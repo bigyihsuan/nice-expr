@@ -8,43 +8,54 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[Invalid - -1]
-	_ = x[Integer-0]
-	_ = x[Float-1]
-	_ = x[String-2]
-	_ = x[LeftBracket-3]
-	_ = x[RightBracket-4]
-	_ = x[LeftBrace-5]
-	_ = x[RightBrace-6]
-	_ = x[LeftParen-7]
-	_ = x[RightParen-8]
-	_ = x[Plus-9]
-	_ = x[Minus-10]
-	_ = x[Star-11]
-	_ = x[Slash-12]
-	_ = x[Equal-13]
-	_ = x[PlusEqual-14]
-	_ = x[MinusEqual-15]
-	_ = x[StarEqual-16]
-	_ = x[SlashEqual-17]
-	_ = x[Comma-18]
-	_ = x[Identifier-19]
-	_ = x[Var-20]
-	_ = x[Is-21]
-	_ = x[For-22]
-	_ = x[Break-23]
-	_ = x[Return-24]
-	_ = x[Func-25]
+	_ = x[Invalid-0]
+	_ = x[EOF-1]
+	_ = x[Integer-2]
+	_ = x[Float-3]
+	_ = x[String-4]
+	_ = x[LeftBracket-5]
+	_ = x[RightBracket-6]
+	_ = x[LeftBrace-7]
+	_ = x[RightBrace-8]
+	_ = x[LeftParen-9]
+	_ = x[RightParen-10]
+	_ = x[Plus-11]
+	_ = x[Minus-12]
+	_ = x[Star-13]
+	_ = x[Slash-14]
+	_ = x[Percent-15]
+	_ = x[PlusEqual-16]
+	_ = x[MinusEqual-17]
+	_ = x[StarEqual-18]
+	_ = x[SlashEqual-19]
+	_ = x[PercentEqual-20]
+	_ = x[Equal-21]
+	_ = x[Greater-22]
+	_ = x[GreaterEqual-23]
+	_ = x[Less-24]
+	_ = x[LessEqual-25]
+	_ = x[Comma-26]
+	_ = x[Identifier-27]
+	_ = x[Semicolon-28]
+	_ = x[Underscore-29]
+	_ = x[Var-30]
+	_ = x[Is-31]
+	_ = x[For-32]
+	_ = x[Break-33]
+	_ = x[Return-34]
+	_ = x[Func-35]
+	_ = x[Not-36]
+	_ = x[If-37]
+	_ = x[Else-38]
 }
 
-const _TokenType_name = "InvalidIntegerFloatStringLeftBracketRightBracketLeftBraceRightBraceLeftParenRightParenPlusMinusStarSlashEqualPlusEqualMinusEqualStarEqualSlashEqualCommaIdentifierVarIsForBreakReturnFunc"
+const _TokenType_name = "InvalidEOFIntegerFloatStringLeftBracketRightBracketLeftBraceRightBraceLeftParenRightParenPlusMinusStarSlashPercentPlusEqualMinusEqualStarEqualSlashEqualPercentEqualEqualGreaterGreaterEqualLessLessEqualCommaIdentifierSemicolonUnderscoreVarIsForBreakReturnFuncNotIfElse"
 
-var _TokenType_index = [...]uint8{0, 7, 14, 19, 25, 36, 48, 57, 67, 76, 86, 90, 95, 99, 104, 109, 118, 128, 137, 147, 152, 162, 165, 167, 170, 175, 181, 185}
+var _TokenType_index = [...]uint16{0, 7, 10, 17, 22, 28, 39, 51, 60, 70, 79, 89, 93, 98, 102, 107, 114, 123, 133, 142, 152, 164, 169, 176, 188, 192, 201, 206, 216, 225, 235, 238, 240, 243, 248, 254, 258, 261, 263, 267}
 
 func (i TokenType) String() string {
-	i -= -1
 	if i < 0 || i >= TokenType(len(_TokenType_index)-1) {
-		return "TokenType(" + strconv.FormatInt(int64(i+-1), 10) + ")"
+		return "TokenType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _TokenType_name[_TokenType_index[i]:_TokenType_index[i+1]]
 }

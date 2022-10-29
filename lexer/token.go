@@ -1,43 +1,8 @@
-//go:generate stringer -type=TokenType
 package lexer
 
-import "fmt"
-
-type TokenType int
-
-const (
-	Invalid TokenType = iota - 1
-	// literals
-	Integer
-	Float
-	String
-	// braces
-	LeftBracket
-	RightBracket
-	LeftBrace
-	RightBrace
-	LeftParen
-	RightParen
-	// math operators
-	Plus
-	Minus
-	Star
-	Slash
-	Equal
-	PlusEqual
-	MinusEqual
-	StarEqual
-	SlashEqual
-	// misc
-	Comma
-	Identifier
-	// keywords
-	Var
-	Is
-	For
-	Break
-	Return
-	Func
+import (
+	"fmt"
+	"strings"
 )
 
 // A lexed token.
@@ -50,5 +15,5 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("{%s `%s` %d:%d,%d}", t.Tt, t.Lexeme, t.Line, t.Start, t.End)
+	return fmt.Sprintf("{%v `%s` %d:%d-%d}", t.Tt, strings.ReplaceAll(t.Lexeme, "\n", "\\n"), t.Line, t.Start, t.End)
 }
