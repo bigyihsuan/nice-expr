@@ -1,0 +1,77 @@
+# nice-expr
+
+what if everything is an expression that return a value
+
+even the loops
+
+## Goals
+
+* lots of keywords
+* as few non-letter syllables as possible (?)
+* everything is expression-based
+
+## Examples?
+
+```go
+// assignments return the value of the variable
+// assignments must have the type
+var x int is 10                  // returns 10
+const n int is 10                // also returns 10, but `n` cannot be have its value changed
+const k int is (var y int is 10) // right-associative, parens are required
+                                 // x = 10, y = 10
+                                 // types must match
+                                 // can mix const and var
+
+// types
+10          // int
+1.23        // float
+"a"         // string (no chars, just string)
+[1,2,3,4,5] // list, homogenous
+<1:"a",2:"b"> // map, key types must match, value types much match
+
+// type zero-values
+// int    -> 0
+// float  -> 0.0
+// string -> ""
+// list   -> []
+// map    -> <>
+
+
+// conditional expressions return the last expression in the option gone down
+// all branches must return the same type
+var z int is if x = 10 {
+    x / 2
+} else {
+    x * 2
+}
+
+// loops
+// infinite loop
+for {}
+// `break` stops the loop immediately, and returns `value`
+for {break value}
+for var i int is 0 { /* use i... */ } // loop with loop variable
+var x string is for { break 30 } // x == 30
+
+// example: getting and returning a sum
+var l list[int] is [1,2,3,4,5,6]
+var sum is for var s int, var idx int {
+    if idx = len(l) { // built-in function len() returns the length
+        break s // return the sum when no more items
+    }
+    s += l[idx] // index lists using ints >=0 only
+}
+
+// all functions are anonymous until assigned to a variable
+var greet is func(name string)string{ "hello " + name }
+// type of `greet` is func(string)string
+var str string is greet("bob")
+
+// recursion
+var factorial is func(n int)int {
+    if n < 1 { return 1 } // early return
+    if n = 2 { return 2 } // early return
+    n * factorial(n-1) // recursive call
+}
+var num int is factorial(4)
+```
