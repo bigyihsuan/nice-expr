@@ -25,5 +25,8 @@ func main() {
 	fmt.Println(file.Name())
 	nicerLexer := lexer.NewLexer(file)
 	tokens := nicerLexer.LexAll()
-	fmt.Println(tokens)
+
+	for _, tok := range tokens {
+		fmt.Println(tok)
+	}
 }

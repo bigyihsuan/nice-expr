@@ -1,5 +1,5 @@
 //go:generate stringer -type=TokenType
-package lexer
+package tokentype
 
 import (
 	"github.com/db47h/lex"
@@ -45,6 +45,8 @@ const (
 	Underscore
 	// keywords
 	Var
+	Const
+	Set
 	Is
 	For
 	Break
@@ -53,10 +55,18 @@ const (
 	Not
 	If
 	Else
+	// primtive types
+	IntType
+	FloatType
+	StringType
+	ListType
+	MapType
 )
 
 var Keywords = map[string]TokenType{
 	"var":    Var,
+	"const":  Const,
+	"set":    Set,
 	"is":     Is,
 	"for":    For,
 	"break":  Break,
@@ -65,11 +75,22 @@ var Keywords = map[string]TokenType{
 	"not":    Not,
 	"if":     If,
 	"else":   Else,
+	"int":    IntType,
+	"float":  FloatType,
+	"string": StringType,
+	"list":   ListType,
+	"map":    MapType,
 }
 
-func toTt(lexTok lex.Token) TokenType {
+var (
+	PrimitiveLiterals = []TokenType{Integer, Float, String}
+	PrimitiveTypes    = []TokenType{IntType, FloatType, StringType}
+	CompositeTypes    = []TokenType{ListType, MapType}
+)
+
+func ToTt(lexTok lex.Token) TokenType {
 	return TokenType(lexTok)
 }
-func toLt(tokType TokenType) lex.Token {
+func ToLt(tokType TokenType) lex.Token {
 	return lex.Token(tokType)
 }

@@ -2,6 +2,8 @@ package lexer
 
 import (
 	"fmt"
+	"nice-expr/lexer/token"
+	TT "nice-expr/lexer/token/tokentype"
 	"unicode"
 
 	"github.com/db47h/lex"
@@ -10,21 +12,37 @@ import (
 
 type NiceExprLexer struct {
 	lex.Lexer
-	Line int
+	Line       int
+	LineStart  int
+	CurrentPos int
 }
 
 func NewLexer(file *lex.File) *NiceExprLexer {
 	l := &NiceExprLexer{}
-	l.Line = 0
+	l.Line = 1
 	l.Lexer = *lex.NewLexer(file, l.program)
 	return l
 }
 
-func (nel *NiceExprLexer) LexAll() []Token {
-	var tokens []Token
-	for tok, pos, v := nel.Lex(); tok != toLt(EOF); tok, pos, v = nel.Lex() {
+func (nel *NiceExprLexer) LexAll() []token.Token {
+	var tokens []token.Token
+	for tok, pos, v := nel.Lex(); tok != TT.ToLt(TT.EOF); tok, pos, v = nel.Lex() {
 		s := fmt.Sprint(v)
-		tokens = append(tokens, Token{toTt(tok), s, nel.Line, pos, pos + len(s)})
+		if nel.CurrentPos > pos {
+			nel.CurrentPos += len(s) + 1
+		} else {
+			nel.CurrentPos = pos + 1
+		}
+		tok := token.Token{
+			Tt:      TT.ToTt(tok),
+			Lexeme:  s,
+			CodePos: nel.CurrentPos,
+			Line:    nel.Line,
+			Start:   nel.CurrentPos - nel.LineStart,
+			End:     nel.CurrentPos - nel.LineStart + len(s),
+		}
+
+		tokens = append(tokens, tok)
 	}
 	return tokens
 }
@@ -36,101 +54,101 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 	switch r { // single-character tokens
 	case lex.EOF:
 		// s.Emit(pos, Semicolon, ";")
-		s.Emit(pos, toLt(EOF), "")
+		s.Emit(pos, TT.ToLt(TT.EOF), "")
 		return nil
 	case ';': // newlines separate statements
-		s.Emit(pos, toLt(Semicolon), ";")
+		s.Emit(pos, TT.ToLt(TT.Semicolon), ";")
 		return nil
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return state.Number(toLt(Integer), toLt(Float), '.')
+		return state.Number(TT.ToLt(TT.Integer), TT.ToLt(TT.Float), '.')
 	case '"': // strings
-		return state.QuotedString(toLt(String))
+		return state.QuotedString(TT.ToLt(TT.String))
 	case ',':
-		s.Emit(pos, toLt(Comma), string(r))
+		s.Emit(pos, TT.ToLt(TT.Comma), string(r))
 		return nil
 	case '+':
 		if s.Peek() == '=' {
 			s.Next()
-			s.Emit(pos, toLt(PlusEqual), "+=")
+			s.Emit(pos, TT.ToLt(TT.PlusEqual), "+=")
 			return nil
 		}
-		s.Emit(pos, toLt(Plus), string(r))
+		s.Emit(pos, TT.ToLt(TT.Plus), string(r))
 		return nil
 	case '-': // either binary minus, unary minus, or -th operator
 		if s.Peek() == '=' {
 			s.Next()
-			s.Emit(pos, toLt(MinusEqual), "-=")
+			s.Emit(pos, TT.ToLt(TT.MinusEqual), "-=")
 			return nil
 		}
-		s.Emit(pos, toLt(Minus), string(r))
+		s.Emit(pos, TT.ToLt(TT.Minus), string(r))
 		return nil
 	case '*':
 		if s.Peek() == '=' {
 			s.Next()
-			s.Emit(pos, toLt(StarEqual), "*=")
+			s.Emit(pos, TT.ToLt(TT.StarEqual), "*=")
 			return nil
 		}
-		s.Emit(pos, toLt(Star), string(r))
+		s.Emit(pos, TT.ToLt(TT.Star), string(r))
 		return nil
 	case '/':
 		if s.Peek() == '=' {
 			s.Next()
-			s.Emit(pos, toLt(SlashEqual), "/=")
+			s.Emit(pos, TT.ToLt(TT.SlashEqual), "/=")
 			return nil
 		} else if s.Peek() == '/' {
 			return nel.comment
 		}
-		s.Emit(pos, toLt(Slash), string(r))
+		s.Emit(pos, TT.ToLt(TT.Slash), string(r))
 		return nil
 	case '%':
 		if s.Peek() == '=' {
 			s.Next()
-			s.Emit(pos, toLt(PercentEqual), "%=")
+			s.Emit(pos, TT.ToLt(TT.PercentEqual), "%=")
 			return nil
 		}
-		s.Emit(pos, toLt(Percent), string(r))
+		s.Emit(pos, TT.ToLt(TT.Percent), string(r))
 		return nil
 	case '=':
-		s.Emit(pos, toLt(Equal), string(r))
+		s.Emit(pos, TT.ToLt(TT.Equal), string(r))
 		return nil
 	case '>':
 		r := s.Next()
 		if r == '=' {
-			s.Emit(pos, toLt(GreaterEqual), ">=")
+			s.Emit(pos, TT.ToLt(TT.GreaterEqual), ">=")
 		} else {
-			s.Emit(pos, toLt(Greater), ">")
+			s.Emit(pos, TT.ToLt(TT.Greater), ">")
 			s.Backup()
 		}
 		return nil
 	case '<':
 		r := s.Next()
 		if r == '=' {
-			s.Emit(pos, toLt(LessEqual), "<=")
+			s.Emit(pos, TT.ToLt(TT.LessEqual), "<=")
 		} else {
-			s.Emit(pos, toLt(Less), "<")
+			s.Emit(pos, TT.ToLt(TT.Less), "<")
 			s.Backup()
 		}
 		return nil
 	case '(':
-		s.Emit(pos, toLt(LeftParen), "(")
+		s.Emit(pos, TT.ToLt(TT.LeftParen), "(")
 		return nil
 	case ')':
-		s.Emit(pos, toLt(RightParen), ")")
+		s.Emit(pos, TT.ToLt(TT.RightParen), ")")
 		return nil
 	case '[':
-		s.Emit(pos, toLt(LeftBracket), "[")
+		s.Emit(pos, TT.ToLt(TT.LeftBracket), "[")
 		return nil
 	case ']':
-		s.Emit(pos, toLt(RightBracket), "]")
+		s.Emit(pos, TT.ToLt(TT.RightBracket), "]")
 		return nil
 	case '{':
-		s.Emit(pos, toLt(LeftBrace), "{")
+		s.Emit(pos, TT.ToLt(TT.LeftBrace), "{")
 		return nil
 	case '}':
-		s.Emit(pos, toLt(RightBrace), "}")
+		s.Emit(pos, TT.ToLt(TT.RightBrace), "}")
 		return nil
 	case '_':
-		s.Emit(pos, toLt(Underscore), "_")
+		s.Emit(pos, TT.ToLt(TT.Underscore), "_")
 		return nil
 	}
 
@@ -140,6 +158,7 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 			// nop
 			if r == '\n' {
 				nel.Line++
+				nel.LineStart = s.Pos()
 			}
 		}
 		s.Backup()
@@ -172,10 +191,10 @@ func (nel *NiceExprLexer) ident_or_keyword(s *lex.State) lex.StateFn {
 			name = append(name, r)
 		}
 		l.Backup()
-		if tok, ok := Keywords[string(name)]; ok {
-			l.Emit(pos, toLt(tok), string(name))
+		if tok, ok := TT.Keywords[string(name)]; ok {
+			l.Emit(pos, TT.ToLt(tok), string(name))
 		} else {
-			l.Emit(pos, toLt(Identifier), string(name))
+			l.Emit(pos, TT.ToLt(TT.Identifier), string(name))
 		}
 		return nil
 	}
