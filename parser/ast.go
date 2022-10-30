@@ -76,78 +76,88 @@ func (id Identifier) String() string {
 	return id.Name.Lexeme
 }
 
-// AssignmentExpr := Name is Value
-type AssignmentExpr struct {
+// Assignment := Name is Value
+type Assignment struct {
 	Node
 	Name  *Identifier
 	Op    *token.Token
 	Value Node
 }
 
-func (ae AssignmentExpr) String() string {
+func (ae Assignment) String() string {
 	return fmt.Sprintf("set %v %v %v", ae.Name, ae.Op.Lexeme, ae.Value)
 }
 
-// DeclarationExpr := Name Type is Value
-type DeclarationExpr struct {
+// Declaration := Name Type is Value
+type Declaration struct {
 	Node
 	Name  *Identifier
-	Type  TypeExpr
+	Type  Type
 	Value Node
 }
 
-// VariableExpr := var Name Type is Value
-type VariableDeclarationExpr struct {
-	*DeclarationExpr
+// Variable := var Name Type is Value
+type VariableDeclaration struct {
+	*Declaration
 }
 
-func (ae VariableDeclarationExpr) String() string {
+func (ae VariableDeclaration) String() string {
 	return fmt.Sprintf("var %v %v is %v", ae.Name, ae.Type, ae.Value)
 }
 
-// ConstantExpr := const Name Type is Value
-type ConstantDeclarationExpr struct {
-	*DeclarationExpr
+// Constant := const Name Type is Value
+type ConstantDeclaration struct {
+	*Declaration
 }
 
-func (ae ConstantDeclarationExpr) String() string {
+func (ae ConstantDeclaration) String() string {
 	return fmt.Sprintf("const %v %v is %v", ae.Name, ae.Type, ae.Value)
 }
 
 // --- TYPES --- //
 // ------------- //
-// TypeExpr := PrimitiveTypeExpr | ListTypeExpr | MapTypeExpr
-type TypeExpr interface {
+// Type := PrimitiveType | ListType | MapType | FuncType
+type Type interface {
 	Node
 }
 
-// PrimitiveTypeExpr := Name
-type PrimitiveTypeExpr struct {
-	Node
+// PrimitiveType := Name
+type PrimitiveType struct {
+	Type
 	Name *token.Token
 }
 
-func (t PrimitiveTypeExpr) String() string {
+func (t PrimitiveType) String() string {
 	return fmt.Sprint(t.Name.Tt)
 }
 
-// ListTypeExpr := list '[' TypeExpr ']'
-type ListTypeExpr struct {
-	Node
-	ValueType TypeExpr
+// ListType := list '[' Type ']'
+type ListType struct {
+	Type
+	ValueType Type
 }
 
-func (t ListTypeExpr) String() string {
+func (t ListType) String() string {
 	return fmt.Sprintf("list[%s]", t.ValueType)
 }
 
-// MapTypeExpr := map '[' TypeExpr ']' TypeExpr
-type MapTypeExpr struct {
-	Node
-	KeyType   TypeExpr
-	ValueType TypeExpr
+// MapType := map '[' Type ']' Type
+type MapType struct {
+	Type
+	KeyType   Type
+	ValueType Type
 }
 
-func (t MapTypeExpr) String() string {
+func (t MapType) String() string {
 	return fmt.Sprintf("map[%s]%s", t.KeyType, t.ValueType)
+}
+
+type FuncType struct {
+	Type
+	InputTypes []Type
+	OutputType Type
+}
+
+func (t FuncType) String() string {
+	return fmt.Sprintf("func(%s)%s", t.InputTypes, t.OutputType)
 }

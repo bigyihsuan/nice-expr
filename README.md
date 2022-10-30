@@ -29,14 +29,14 @@ const k int is (var y int is 10); // right-associative, parens are required
 1.23        // float
 "a"         // string (no chars, just string)
 [1,2,3,4,5] // list, homogenous
-<1:"a",2:"b",> // map, key types must match, value types much match
+<|1:"a",2:"b",|> // map, key types must match, value types much match
 
 // type zero-values
 // int    -> 0
 // float  -> 0.0
 // string -> ""
 // list   -> []
-// map    -> <>
+// map    -> <||>
 
 // conditional expressions return the last expression in the option gone down
 // all branches must return the same type
@@ -65,12 +65,12 @@ var sum is for var s int, var idx int {
 };
 
 // all functions are anonymous until assigned to a variable
-var greet is func(name string)string{ "hello " + name };
+var greet func(string)string is func(name string)string{ "hello " + name };
 // type of `greet` is func(string)string
 var str string is greet("bob");
 
 // recursion
-var factorial is func(n int)int {
+var factorial func(int)int is func(n int)int {
     if n < 1 { return 1 } // early return
     if n = 2 { return 2 } // early return
     n * factorial(n-1) // recursive call
@@ -85,8 +85,8 @@ var num int is factorial(4);
 // list_T -> T
 // map[K]V -> V
 "abcdefghij"_5 = "f"
-[1,2,3,4,5]_2 = 3
-<1:"a",2:"b">_1 = "a"
+[1,2,3,4,5,]_2 = 3
+<|1:"a",2:"b",|>_1 = "a"
 ```
 
 variables can only have letters

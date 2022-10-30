@@ -120,19 +120,19 @@ func (p *NiceExprParser) ParseExpr() (Node, *ParseError) {
 	if err != nil {
 		return nil, err
 	} else if ok {
-		return p.ParseVariableDeclarationExpr()
+		return p.ParseVariableDeclaration()
 	}
 	ok, err = p.optionalToken(TT.Const, "Expr-ConstDecl")
 	if err != nil {
 		return nil, err
 	} else if ok {
-		return p.ParseConstantDeclarationExpr()
+		return p.ParseConstantDeclaration()
 	}
 	ok, err = p.optionalToken(TT.Set, "Expr-Assignment")
 	if err != nil {
 		return nil, err
 	} else if ok {
-		return p.ParseAssignmentExpr()
+		return p.ParseAssignment()
 	}
 	ok, err = p.checkAny(TT.PrimitiveLiterals, "Expr-Literals")
 	if err != nil {
@@ -149,44 +149,44 @@ func (p *NiceExprParser) ParseExpr() (Node, *ParseError) {
 	return nil, NewParseError("unknown expression", nil, "Expr")
 }
 
-func (p *NiceExprParser) ParseVariableDeclarationExpr() (*VariableDeclarationExpr, *ParseError) {
-	expr := new(VariableDeclarationExpr)
-	_, err := p.expectToken(TT.Var, "VariableDeclarationExpr-Var")
+func (p *NiceExprParser) ParseVariableDeclaration() (*VariableDeclaration, *ParseError) {
+	expr := new(VariableDeclaration)
+	_, err := p.expectToken(TT.Var, "VariableDeclaration-Var")
 	if err != nil {
 		return expr, err
 	}
-	decl, err := p.ParseDeclarationExpr()
+	decl, err := p.ParseDeclaration()
 	if err != nil {
 		return expr, err
 	}
-	expr.DeclarationExpr = decl
+	expr.Declaration = decl
 	return expr, nil
 }
-func (p *NiceExprParser) ParseConstantDeclarationExpr() (*ConstantDeclarationExpr, *ParseError) {
-	expr := new(ConstantDeclarationExpr)
-	_, err := p.expectToken(TT.Const, "ConstantDeclarationExpr-Const")
+func (p *NiceExprParser) ParseConstantDeclaration() (*ConstantDeclaration, *ParseError) {
+	expr := new(ConstantDeclaration)
+	_, err := p.expectToken(TT.Const, "ConstantDeclaration-Const")
 	if err != nil {
 		return expr, err
 	}
-	decl, err := p.ParseDeclarationExpr()
+	decl, err := p.ParseDeclaration()
 	if err != nil {
 		return expr, err
 	}
-	expr.DeclarationExpr = decl
+	expr.Declaration = decl
 	return expr, nil
 }
 
-func (p *NiceExprParser) ParseDeclarationExpr() (*DeclarationExpr, *ParseError) {
-	ae := new(DeclarationExpr)
+func (p *NiceExprParser) ParseDeclaration() (*Declaration, *ParseError) {
+	ae := new(Declaration)
 	name, err := p.ParseIdentifier()
 	if err != nil {
 		return ae, err
 	}
-	typeExpr, err := p.ParseTypeExpr()
+	typeExpr, err := p.ParseType()
 	if err != nil {
 		return ae, err
 	}
-	_, err = p.expectToken(TT.Is, "DeclarationExpr-Is")
+	_, err = p.expectToken(TT.Is, "Declaration-Is")
 	if err != nil {
 		return ae, err
 	}
@@ -200,9 +200,9 @@ func (p *NiceExprParser) ParseDeclarationExpr() (*DeclarationExpr, *ParseError) 
 	return ae, nil
 }
 
-func (p *NiceExprParser) ParseAssignmentExpr() (*AssignmentExpr, *ParseError) {
-	ae := new(AssignmentExpr)
-	_, err := p.expectToken(TT.Set, "AssignmentExpr-Set")
+func (p *NiceExprParser) ParseAssignment() (*Assignment, *ParseError) {
+	ae := new(Assignment)
+	_, err := p.expectToken(TT.Set, "Assignment-Set")
 	if err != nil {
 		return ae, err
 	}
@@ -210,7 +210,7 @@ func (p *NiceExprParser) ParseAssignmentExpr() (*AssignmentExpr, *ParseError) {
 	if err != nil {
 		return ae, err
 	}
-	op, err := p.expectAny(TT.AssignmentOperations, "AssignmentExpr-Op")
+	op, err := p.expectAny(TT.AssignmentOperations, "Assignment-Op")
 	if err != nil {
 		return ae, err
 	}
@@ -344,78 +344,98 @@ func (p *NiceExprParser) ParseMapLiteral() (*MapLiteral, *ParseError) {
 	return m, nil
 }
 
-func (p *NiceExprParser) ParseTypeExpr() (TypeExpr, *ParseError) {
-	ok, err := p.checkAny(TT.PrimitiveTypes, "TypeExpr-CheckPrimitive")
+func (p *NiceExprParser) ParseType() (Type, *ParseError) {
+	ok, err := p.checkAny(TT.PrimitiveTypes, "Type-CheckPrimitive")
+	if err != nil {
+		return nil, err
+	} else if ok {
+		return p.ParsePrimitiveType()
+	}
+	ok, err = p.checkAny(TT.CompositeTypes, "Type-CheckComposite")
 	if err != nil {
 		return nil, err
 	} else if ok && err == nil {
-		return p.ParsePrimitiveTypeExpr()
+		return p.ParseCompositeType()
 	}
-	ok, err = p.checkAny(TT.CompositeTypes, "TypeExpr-CheckComposite")
+	ok, err = p.checkToken(TT.Func, "Type-CheckFunc")
 	if err != nil {
 		return nil, err
 	} else if ok && err == nil {
-		return p.ParseCompositeTypeExpr()
+		return p.ParseFuncType()
 	}
-	return nil, NewParseError("type not found", nil, "TypeExpr")
+	return nil, NewParseError("type not found", nil, "Type")
 }
 
-func (p *NiceExprParser) ParseCompositeTypeExpr() (TypeExpr, *ParseError) {
-	ok, err := p.optionalToken(TT.ListType, "CompositeTypeExpr-List")
+func (p *NiceExprParser) ParsePrimitiveType() (*PrimitiveType, *ParseError) {
+	pt := new(PrimitiveType)
+	name, err := p.expectAny(TT.PrimitiveTypes, "PrimitiveType")
 	if err != nil {
 		return nil, err
-	} else if ok && err == nil {
-		return p.ParseListTypeExpr()
 	}
-	ok, err = p.optionalToken(TT.MapType, "CompositeTypeExpr-Map")
-	if err != nil {
-		return nil, err
-	} else if ok && err == nil {
-		return p.ParseMapTypeExpr()
+	if name == nil {
+		return nil, NewParseError("nil typename", name, "PrimitiveType")
 	}
-	return nil, NewParseError("expected `list` or `map`", nil, "CompositeTypeExpr")
+	pt.Name = name
+	return pt, nil
 }
 
-func (p *NiceExprParser) ParseListTypeExpr() (*ListTypeExpr, *ParseError) {
-	lte := new(ListTypeExpr)
-	_, err := p.expectToken(TT.ListType, "ListTypeExpr-List")
+func (p *NiceExprParser) ParseCompositeType() (Type, *ParseError) {
+	ok, err := p.optionalToken(TT.ListType, "CompositeType-List")
+	if err != nil {
+		return nil, err
+	} else if ok && err == nil {
+		return p.ParseListType()
+	}
+	ok, err = p.optionalToken(TT.MapType, "CompositeType-Map")
+	if err != nil {
+		return nil, err
+	} else if ok && err == nil {
+		return p.ParseMapType()
+	}
+	return nil, NewParseError("expected `list` or `map`", nil, "CompositeType")
+}
+
+func (p *NiceExprParser) ParseListType() (*ListType, *ParseError) {
+	lte := new(ListType)
+	_, err := p.expectToken(TT.ListType, "ListType-List")
 	if err != nil {
 		return lte, err
 	}
-	_, err = p.expectToken(TT.LeftBracket, "ListTypeExpr-LeftBracket")
+	_, err = p.expectToken(TT.LeftBracket, "ListType-LeftBracket")
 	if err != nil {
 		return lte, err
 	}
-	valueType, err := p.ParseTypeExpr()
+	valueType, err := p.ParseType()
 	if err != nil {
 		return lte, err
 	}
-	_, err = p.expectToken(TT.RightBracket, "ListTypeExpr-RightBracket")
+	_, err = p.expectToken(TT.RightBracket, "ListType-RightBracket")
 	if err != nil {
 		return lte, err
 	}
 	lte.ValueType = valueType
 	return lte, nil
 }
-func (p *NiceExprParser) ParseMapTypeExpr() (*MapTypeExpr, *ParseError) {
-	mte := new(MapTypeExpr)
-	_, err := p.expectToken(TT.MapType, "MapTypeExpr-Map")
+
+func (p *NiceExprParser) ParseMapType() (*MapType, *ParseError) {
+	mte := new(MapType)
+	_, err := p.expectToken(TT.MapType, "MapType-Map")
 	if err != nil {
 		return mte, err
 	}
-	_, err = p.expectToken(TT.LeftBracket, "MapTypeExpr-LeftBracket")
+	_, err = p.expectToken(TT.LeftBracket, "MapType-LeftBracket")
 	if err != nil {
 		return mte, err
 	}
-	keyType, err := p.ParseTypeExpr()
+	keyType, err := p.ParseType()
 	if err != nil {
 		return mte, err
 	}
-	_, err = p.expectToken(TT.RightBracket, "MapTypeExpr-RightBracket")
+	_, err = p.expectToken(TT.RightBracket, "MapType-RightBracket")
 	if err != nil {
 		return mte, err
 	}
-	valueType, err := p.ParseTypeExpr()
+	valueType, err := p.ParseType()
 	if err != nil {
 		return mte, err
 	}
@@ -424,15 +444,43 @@ func (p *NiceExprParser) ParseMapTypeExpr() (*MapTypeExpr, *ParseError) {
 	return mte, nil
 }
 
-func (p *NiceExprParser) ParsePrimitiveTypeExpr() (*PrimitiveTypeExpr, *ParseError) {
-	pt := new(PrimitiveTypeExpr)
-	name, err := p.expectAny(TT.PrimitiveTypes, "PrimitiveTypeExpr")
+func (p *NiceExprParser) ParseFuncType() (*FuncType, *ParseError) {
+	fte := new(FuncType)
+	_, err := p.expectToken(TT.Func, "FuncType-Func")
 	if err != nil {
-		return nil, err
+		return fte, nil
 	}
-	if name == nil {
-		return nil, NewParseError("nil typename", name, "PrimitiveTypeExpr")
+	_, err = p.expectToken(TT.LeftParen, "FuncType-ArgsStart")
+	if err != nil {
+		return fte, nil
 	}
-	pt.Name = name
-	return pt, nil
+	// arguments
+	for {
+		t, err := p.ParseType()
+		if err != nil {
+			return fte, err
+		}
+		_, err = p.expectToken(TT.Comma, "FuncType-CommaBetweenArgs")
+		if err != nil {
+			return fte, err
+		}
+		fte.InputTypes = append(fte.InputTypes, t)
+		ok, err := p.optionalToken(TT.RightParen, "FuncType-ArgsEnd")
+		if err != nil {
+			return fte, err
+		} else if ok {
+			_, err := p.getNextToken("FuncType-ArgsEnd")
+			if err != nil {
+				return fte, err
+			}
+			break
+		}
+	}
+	// output type
+	out, err := p.ParseType()
+	if err != nil {
+		return fte, err
+	}
+	fte.OutputType = out
+	return fte, nil
 }

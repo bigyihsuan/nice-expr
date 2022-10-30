@@ -76,7 +76,7 @@ func TestParseType(t *testing.T) {
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
 		nicerParser := parser.NewNiceExprParser(tokens)
-		typeExpr, err := nicerParser.ParseTypeExpr()
+		typeExpr, err := nicerParser.ParseType()
 		if err != nil {
 			t.Fatal(err)
 		}

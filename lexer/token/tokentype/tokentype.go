@@ -58,7 +58,8 @@ const (
 	Not
 	If
 	Else
-	// primtive types
+	// built-in
+	NoneType
 	IntType
 	FloatType
 	StringType
@@ -78,6 +79,7 @@ var Keywords = map[string]TokenType{
 	"not":    Not,
 	"if":     If,
 	"else":   Else,
+	"none":   NoneType,
 	"int":    IntType,
 	"float":  FloatType,
 	"string": StringType,
@@ -88,7 +90,7 @@ var Keywords = map[string]TokenType{
 var (
 	PrimitiveLiterals      = []TokenType{Integer, Float, String}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
-	PrimitiveTypes         = []TokenType{IntType, FloatType, StringType}
+	PrimitiveTypes         = []TokenType{NoneType, IntType, FloatType, StringType}
 	CompositeTypes         = []TokenType{ListType, MapType}
 	AssignmentOperations   = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
 )
