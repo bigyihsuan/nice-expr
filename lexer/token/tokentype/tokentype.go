@@ -21,6 +21,8 @@ const (
 	RightBrace
 	LeftParen
 	RightParen
+	LeftTriangle
+	RightTriangle
 	// math operators
 	Plus
 	Minus
@@ -39,8 +41,9 @@ const (
 	Less
 	LessEqual
 	// misc
-	Comma
 	Identifier
+	Comma
+	Colon
 	Semicolon
 	Underscore
 	// keywords
@@ -83,9 +86,11 @@ var Keywords = map[string]TokenType{
 }
 
 var (
-	PrimitiveLiterals = []TokenType{Integer, Float, String}
-	PrimitiveTypes    = []TokenType{IntType, FloatType, StringType}
-	CompositeTypes    = []TokenType{ListType, MapType}
+	PrimitiveLiterals      = []TokenType{Integer, Float, String}
+	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
+	PrimitiveTypes         = []TokenType{IntType, FloatType, StringType}
+	CompositeTypes         = []TokenType{ListType, MapType}
+	AssignmentOperations   = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
 )
 
 func ToTt(lexTok lex.Token) TokenType {

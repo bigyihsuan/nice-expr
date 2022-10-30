@@ -138,7 +138,7 @@ func (p *NiceExprParser) ParseExpr() (Node, *ParseError) {
 	if err != nil {
 		return nil, err
 	} else if ok {
-		return p.ParseLiteralExpr()
+		return p.ParsePrimitiveLiteral()
 	}
 	ok, err = p.optionalToken(TT.Identifier, "Expr-Identifier")
 	if err != nil {
@@ -210,7 +210,7 @@ func (p *NiceExprParser) ParseAssignmentExpr() (*AssignmentExpr, *ParseError) {
 	if err != nil {
 		return ae, err
 	}
-	_, err = p.expectToken(TT.Is, "AssignmentExpr-Is")
+	op, err := p.expectAny(TT.AssignmentOperations, "AssignmentExpr-Op")
 	if err != nil {
 		return ae, err
 	}
@@ -219,31 +219,129 @@ func (p *NiceExprParser) ParseAssignmentExpr() (*AssignmentExpr, *ParseError) {
 		return ae, err
 	}
 	ae.Name = name
+	ae.Op = op
 	ae.Value = value
 	return ae, nil
 }
 
 func (p *NiceExprParser) ParseIdentifier() (*Identifier, *ParseError) {
 	id := new(Identifier)
-	token, err := p.expectToken(TT.Identifier, "LiteralExpr-CheckLiteral")
+	token, err := p.expectToken(TT.Identifier, "Literal-CheckLiteral")
 	if err != nil {
 		return id, err
 	} else if token == nil {
-		return id, NewParseError("invalid token for literal", token, "LiteralExpr-CheckLiteral")
+		return id, NewParseError("invalid token for literal", token, "Literal-CheckLiteral")
 	}
 	id.Name = token
 	return id, nil
 }
-func (p *NiceExprParser) ParseLiteralExpr() (*PrimitiveExpr, *ParseError) {
-	pe := new(PrimitiveExpr)
-	token, err := p.expectAny(TT.PrimitiveLiterals, "LiteralExpr-CheckLiteral")
+
+func (p *NiceExprParser) ParseLiteral() (Literal, *ParseError) {
+	ok, err := p.checkAny(TT.CompositeLiteralStarts, "Literal-Start")
+	if err != nil {
+		return nil, err
+	} else if ok {
+		return p.ParseCompoundLiteral()
+	}
+	return p.ParsePrimitiveLiteral()
+}
+
+func (p *NiceExprParser) ParsePrimitiveLiteral() (*PrimitiveLiteral, *ParseError) {
+	pe := new(PrimitiveLiteral)
+	token, err := p.expectAny(TT.PrimitiveLiterals, "Literal-CheckLiteral")
 	if err != nil {
 		return pe, err
 	} else if token == nil {
-		return pe, NewParseError("invalid token for literal", token, "LiteralExpr-CheckLiteral")
+		return pe, NewParseError("invalid token for literal", token, "Literal-CheckLiteral")
 	}
 	pe.Token = token
 	return pe, nil
+}
+
+func (p *NiceExprParser) ParseCompoundLiteral() (CompoundLiteral, *ParseError) {
+	ok, err := p.optionalToken(TT.LeftBracket, "CompoundLiteral-List?")
+	if err != nil {
+		return nil, err
+	} else if ok {
+		return p.ParseListLiteral()
+	}
+	ok, err = p.optionalToken(TT.LeftTriangle, "CompoundLiteral-Map?")
+	if err != nil {
+		return nil, err
+	} else if ok {
+		return p.ParseMapLiteral()
+	}
+	return nil, NewParseError("unknown compound literal start", nil, "CompoundLiteral")
+}
+
+func (p *NiceExprParser) ParseListLiteral() (*ListLiteral, *ParseError) {
+	l := new(ListLiteral)
+	_, err := p.expectToken(TT.LeftBracket, "ListLiteral-Start")
+	if err != nil {
+		return nil, err
+	}
+	for {
+		// list items are comma-separated, and trailing comma is needed
+		ok, err := p.optionalToken(TT.RightBracket, "ListLiteral-End")
+		if err != nil {
+			return l, err
+		} else if ok {
+			break
+		}
+		value, err := p.ParseLiteral()
+		if err != nil {
+			return l, err
+		}
+		_, err = p.expectToken(TT.Comma, "ListLiteral-ItemComma")
+		if err != nil {
+			return l, err
+		}
+		l.Values = append(l.Values, value)
+	}
+	_, err = p.expectToken(TT.RightBracket, "ListLiteral-End")
+	if err != nil {
+		return l, err
+	}
+	return l, nil
+}
+func (p *NiceExprParser) ParseMapLiteral() (*MapLiteral, *ParseError) {
+	m := new(MapLiteral)
+	m.Values = make(map[Literal]Literal)
+	_, err := p.expectToken(TT.LeftTriangle, "MapLiteral-Start")
+	if err != nil {
+		return nil, err
+	}
+	for {
+		// list items are comma-separated, and trailing comma is needed
+		ok, err := p.optionalToken(TT.RightTriangle, "MapLiteral-End")
+		if err != nil {
+			return m, err
+		} else if ok {
+			break
+		}
+		key, err := p.ParseLiteral()
+		if err != nil {
+			return m, err
+		}
+		_, err = p.expectToken(TT.Colon, "MapLiteral-ItemColon")
+		if err != nil {
+			return m, err
+		}
+		value, err := p.ParseLiteral()
+		if err != nil {
+			return m, err
+		}
+		_, err = p.expectToken(TT.Comma, "MapLiteral-ItemComma")
+		if err != nil {
+			return m, err
+		}
+		m.Values[key] = value
+	}
+	_, err = p.expectToken(TT.RightTriangle, "MapLiteral-End")
+	if err != nil {
+		return m, err
+	}
+	return m, nil
 }
 
 func (p *NiceExprParser) ParseTypeExpr() (TypeExpr, *ParseError) {

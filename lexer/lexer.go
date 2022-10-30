@@ -124,6 +124,8 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 		r := s.Next()
 		if r == '=' {
 			s.Emit(pos, TT.ToLt(TT.LessEqual), "<=")
+		} else if r == '|' {
+			s.Emit(pos, TT.ToLt(TT.LeftTriangle), "<|")
 		} else {
 			s.Emit(pos, TT.ToLt(TT.Less), "<")
 			s.Backup()
@@ -141,6 +143,14 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 	case ']':
 		s.Emit(pos, TT.ToLt(TT.RightBracket), "]")
 		return nil
+	case '|':
+		if s.Peek() != '>' {
+			s.Emit(pos, TT.ToLt(TT.Invalid), string(r)+string(s.Peek()))
+		} else {
+			r = s.Next()
+			s.Emit(pos, TT.ToLt(TT.RightTriangle), "|>")
+		}
+		return nil
 	case '{':
 		s.Emit(pos, TT.ToLt(TT.LeftBrace), "{")
 		return nil
@@ -149,6 +159,9 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 		return nil
 	case '_':
 		s.Emit(pos, TT.ToLt(TT.Underscore), "_")
+		return nil
+	case ':':
+		s.Emit(pos, TT.ToLt(TT.Colon), ":")
 		return nil
 	}
 
