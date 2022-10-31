@@ -89,7 +89,7 @@ func (ae Assignment) String() string {
 
 // Declaration := Name Type is Value
 type Declaration interface {
-	Node
+	Expr
 }
 
 // Variable := var Name Type is Value
@@ -101,7 +101,7 @@ type VariableDeclaration struct {
 }
 
 func (ae VariableDeclaration) String() string {
-	return fmt.Sprintf("var %v %v is %v", ae.Name, ae.Type, ae.Value)
+	return fmt.Sprintf("var %v %v is (%v)", ae.Name, ae.Type, ae.Value)
 }
 
 // Constant := const Name Type is Value
@@ -113,7 +113,7 @@ type ConstantDeclaration struct {
 }
 
 func (ae ConstantDeclaration) String() string {
-	return fmt.Sprintf("const %v %v is %v", ae.Name, ae.Type, ae.Value)
+	return fmt.Sprintf("const %v %v is (%v)", ae.Name, ae.Type, ae.Value)
 }
 
 // --- TYPES --- //

@@ -93,8 +93,8 @@ var (
 	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
 	PrimitiveTypes         = []TokenType{None, Int, Dec, Str}
-	CompositeTypes         = []TokenType{List, Map}
-	Types                  = append(PrimitiveTypes, CompositeTypes...)
+	CompoundTypes          = []TokenType{List, Map}
+	Types                  = append(PrimitiveTypes, CompoundTypes...)
 	AssignmentOperations   = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
 	LitToType              = func() map[TokenType]value.ValueType {
 		m := make(map[TokenType]value.ValueType)
