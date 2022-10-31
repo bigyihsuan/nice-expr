@@ -14,14 +14,20 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 
 ## Features
 
-* [ ] Primitive literals (int, dec, str, bool)
-* [ ] Compound literals (list, map)
-* [ ] Type inference of compound literals
-* [ ] Arbitrarily-nested types
-* [ ] Declarations (var, const): nested, mixed, type checking
-* [ ] Arithmetic operators
-* [ ] Logical operators
+* [x] Primitive literals (int, dec, str, bool)
+* [x] Compound literals (list, map)
+* [x] Type inference of compound literals
+* [x] Arbitrarily-nested types
+* [x] Declarations (var, const): nested, mixed, type checking
+* [x] Function types: func(T...)V, funcs as return type
+* [ ] Arithmetic operators (+, -, *, /, %)
+* [ ] Logical operators (and, or, not)
 * [ ] Assignments (set): check if var or const
+* [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
+* [ ] Blocks: last un-semicolon-terminated return value
+* [ ] Functions: return (early), last un-semicolon-terminated return value, recursion
+* [ ] Conditionals: if-else, if-else if-else
+* [ ] Loops: break, for, for-with-local-variable
 
 ## Examples?
 
