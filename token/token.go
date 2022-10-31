@@ -2,7 +2,7 @@ package token
 
 import (
 	"fmt"
-	"nice-expr/lexer/token/tokentype"
+	"nice-expr/token/tokentype"
 	"strings"
 )
 
@@ -10,6 +10,7 @@ import (
 type Token struct {
 	Tt      tokentype.TokenType // the kind of token
 	Lexeme  string              // the source string of the token
+	Value   interface{}         // the value output by the lexer
 	CodePos int                 // character index of this token
 	Line    int                 // the 1-indexed line this token appears in
 	Start   int                 // the 1-indexed starting index in the line the lexeme starts at, inclusive
@@ -17,5 +18,13 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("{%v `%s` %d:%d:%d-%d}", t.Tt, strings.ReplaceAll(t.Lexeme, "\n", "\\n"), t.CodePos, t.Line, t.Start, t.End)
+	return fmt.Sprintf(
+		"{%v `%s` %d:%d:%d-%d}",
+		t.Tt,
+		strings.ReplaceAll(t.Lexeme, "\n", "\\n"),
+		t.CodePos,
+		t.Line,
+		t.Start,
+		t.End,
+	)
 }

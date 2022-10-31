@@ -2,7 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"nice-expr/lexer/token"
+	"nice-expr/token"
 )
 
 type ParseError struct {

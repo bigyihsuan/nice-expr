@@ -11,7 +11,7 @@ func _() {
 	_ = x[Invalid-0]
 	_ = x[EOF-1]
 	_ = x[Integer-2]
-	_ = x[Float-3]
+	_ = x[Floating-3]
 	_ = x[String-4]
 	_ = x[LeftBracket-5]
 	_ = x[RightBracket-6]
@@ -52,17 +52,17 @@ func _() {
 	_ = x[Not-41]
 	_ = x[If-42]
 	_ = x[Else-43]
-	_ = x[NoneType-44]
-	_ = x[IntType-45]
-	_ = x[FloatType-46]
-	_ = x[StringType-47]
-	_ = x[ListType-48]
-	_ = x[MapType-49]
+	_ = x[None-44]
+	_ = x[Int-45]
+	_ = x[Dec-46]
+	_ = x[Str-47]
+	_ = x[List-48]
+	_ = x[Map-49]
 }
 
-const _TokenType_name = "InvalidEOFIntegerFloatStringLeftBracketRightBracketLeftBraceRightBraceLeftParenRightParenLeftTriangleRightTrianglePlusMinusStarSlashPercentPlusEqualMinusEqualStarEqualSlashEqualPercentEqualEqualGreaterGreaterEqualLessLessEqualIdentifierCommaColonSemicolonUnderscoreVarConstSetIsForBreakReturnFuncNotIfElseNoneTypeIntTypeFloatTypeStringTypeListTypeMapType"
+const _TokenType_name = "InvalidEOFIntegerFloatingStringLeftBracketRightBracketLeftBraceRightBraceLeftParenRightParenLeftTriangleRightTrianglePlusMinusStarSlashPercentPlusEqualMinusEqualStarEqualSlashEqualPercentEqualEqualGreaterGreaterEqualLessLessEqualIdentifierCommaColonSemicolonUnderscoreVarConstSetIsForBreakReturnFuncNotIfElseNoneIntDecStrListMap"
 
-var _TokenType_index = [...]uint16{0, 7, 10, 17, 22, 28, 39, 51, 60, 70, 79, 89, 101, 114, 118, 123, 127, 132, 139, 148, 158, 167, 177, 189, 194, 201, 213, 217, 226, 236, 241, 246, 255, 265, 268, 273, 276, 278, 281, 286, 292, 296, 299, 301, 305, 313, 320, 329, 339, 347, 354}
+var _TokenType_index = [...]uint16{0, 7, 10, 17, 25, 31, 42, 54, 63, 73, 82, 92, 104, 117, 121, 126, 130, 135, 142, 151, 161, 170, 180, 192, 197, 204, 216, 220, 229, 239, 244, 249, 258, 268, 271, 276, 279, 281, 284, 289, 295, 299, 302, 304, 308, 312, 315, 318, 321, 325, 328}
 
 func (i TokenType) String() string {
 	if i < 0 || i >= TokenType(len(_TokenType_index)-1) {

@@ -8,6 +8,7 @@
 123.12321
 9489843.000008493849
 
+""
 "hello"
 "hello world"
 "this\nstring\nhas\n4 lines"

@@ -2,6 +2,8 @@
 package tokentype
 
 import (
+	"nice-expr/value"
+
 	"github.com/db47h/lex"
 )
 
@@ -12,7 +14,7 @@ const (
 	EOF
 	// literals
 	Integer
-	Float
+	Floating
 	String
 	// braces
 	LeftBracket
@@ -59,12 +61,12 @@ const (
 	If
 	Else
 	// built-in
-	NoneType
-	IntType
-	FloatType
-	StringType
-	ListType
-	MapType
+	None
+	Int
+	Dec
+	Str
+	List
+	Map
 )
 
 var Keywords = map[string]TokenType{
@@ -79,20 +81,28 @@ var Keywords = map[string]TokenType{
 	"not":    Not,
 	"if":     If,
 	"else":   Else,
-	"none":   NoneType,
-	"int":    IntType,
-	"float":  FloatType,
-	"string": StringType,
-	"list":   ListType,
-	"map":    MapType,
+	"none":   None,
+	"int":    Int,
+	"dec":    Dec,
+	"str":    Str,
+	"list":   List,
+	"map":    Map,
 }
 
 var (
-	PrimitiveLiterals      = []TokenType{Integer, Float, String}
+	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
-	PrimitiveTypes         = []TokenType{NoneType, IntType, FloatType, StringType}
-	CompositeTypes         = []TokenType{ListType, MapType}
+	PrimitiveTypes         = []TokenType{None, Int, Dec, Str}
+	CompositeTypes         = []TokenType{List, Map}
+	Types                  = append(PrimitiveTypes, CompositeTypes...)
 	AssignmentOperations   = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
+	LitToType              = func() map[TokenType]value.ValueType {
+		m := make(map[TokenType]value.ValueType)
+		for i := range PrimitiveLiterals {
+			m[PrimitiveLiterals[i]] = value.NewValueType(PrimitiveTypes[i].String())
+		}
+		return m
+	}()
 )
 
 func ToTt(lexTok lex.Token) TokenType {

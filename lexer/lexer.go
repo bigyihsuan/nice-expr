@@ -2,8 +2,8 @@ package lexer
 
 import (
 	"fmt"
-	"nice-expr/lexer/token"
-	TT "nice-expr/lexer/token/tokentype"
+	"nice-expr/token"
+	TT "nice-expr/token/tokentype"
 	"unicode"
 
 	"github.com/db47h/lex"
@@ -36,6 +36,7 @@ func (nel *NiceExprLexer) LexAll() []token.Token {
 		tok := token.Token{
 			Tt:      TT.ToTt(tok),
 			Lexeme:  s,
+			Value:   v,
 			CodePos: nel.CurrentPos,
 			Line:    nel.Line,
 			Start:   nel.CurrentPos - nel.LineStart,
@@ -60,7 +61,7 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 		s.Emit(pos, TT.ToLt(TT.Semicolon), ";")
 		return nil
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return state.Number(TT.ToLt(TT.Integer), TT.ToLt(TT.Float), '.')
+		return state.Number(TT.ToLt(TT.Integer), TT.ToLt(TT.Floating), '.')
 	case '"': // strings
 		return state.QuotedString(TT.ToLt(TT.String))
 	case ',':
@@ -147,7 +148,7 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 		if s.Peek() != '>' {
 			s.Emit(pos, TT.ToLt(TT.Invalid), string(r)+string(s.Peek()))
 		} else {
-			r = s.Next()
+			s.Next()
 			s.Emit(pos, TT.ToLt(TT.RightTriangle), "|>")
 		}
 		return nil

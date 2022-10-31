@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"nice-expr/evaluator"
 	"nice-expr/lexer"
+	"nice-expr/parser"
 	"os"
 
 	"github.com/db47h/lex"
@@ -26,7 +28,23 @@ func main() {
 	nicerLexer := lexer.NewLexer(file)
 	tokens := nicerLexer.LexAll()
 
-	for _, tok := range tokens {
-		fmt.Println(tok)
+	// for _, tok := range tokens {
+	// 	fmt.Println(tok)
+	// }
+
+	nicerParser := parser.NewNiceExprParser(tokens)
+	program, pe := nicerParser.ParseProgram()
+	if pe != nil {
+		fmt.Fprintln(os.Stderr, pe)
+		return
 	}
+	nicerEvaluator := evaluator.NewEvaluator()
+	ee := nicerEvaluator.EvaluateProgram(program)
+	if ee != nil {
+		fmt.Fprintln(os.Stderr, ee)
+	}
+
+	fmt.Println("Constants:", nicerEvaluator.Constants)
+	fmt.Println("Variables:", nicerEvaluator.Variables)
+	fmt.Println("ValueStack:", nicerEvaluator.ValueStack)
 }

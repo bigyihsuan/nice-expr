@@ -1,26 +1,25 @@
-package parser
+package ast
 
 import (
 	"fmt"
-	"nice-expr/lexer/token"
+	"nice-expr/token"
+	"nice-expr/value"
 	"strings"
 )
 
+type Program struct {
+	Statements []Expr
+}
+
 type Node interface{}
 
-type TerminalNode struct {
-	Node
-	Token *token.Token
-}
-type UnaryNode struct {
-	Node
-	Child Node
-}
+type Expr interface{ Node }
 
-type Literal interface{}
+type Literal interface{ Expr }
+
 type PrimitiveLiteral struct {
 	Literal
-	TerminalNode
+	Token *token.Token
 }
 
 func (pl PrimitiveLiteral) String() string {
@@ -34,7 +33,7 @@ type CompoundLiteral interface {
 type ListLiteral struct {
 	Node
 	CompoundLiteral
-	Values []Literal // TODO: Expand this to allow expressions
+	Values []Expr
 }
 
 func (ll ListLiteral) String() string {
@@ -51,7 +50,7 @@ func (ll ListLiteral) String() string {
 type MapLiteral struct {
 	Node
 	CompoundLiteral
-	Values map[Literal]Literal // TODO: Expand this to allow expressions
+	Values map[Expr]Expr
 }
 
 func (ll MapLiteral) String() string {
@@ -89,16 +88,16 @@ func (ae Assignment) String() string {
 }
 
 // Declaration := Name Type is Value
-type Declaration struct {
+type Declaration interface {
 	Node
-	Name  *Identifier
-	Type  Type
-	Value Node
 }
 
 // Variable := var Name Type is Value
 type VariableDeclaration struct {
-	*Declaration
+	Declaration
+	Name  *Identifier
+	Type  Type
+	Value Expr
 }
 
 func (ae VariableDeclaration) String() string {
@@ -107,7 +106,10 @@ func (ae VariableDeclaration) String() string {
 
 // Constant := const Name Type is Value
 type ConstantDeclaration struct {
-	*Declaration
+	Declaration
+	Name  *Identifier
+	Type  Type
+	Value Expr
 }
 
 func (ae ConstantDeclaration) String() string {
@@ -118,7 +120,8 @@ func (ae ConstantDeclaration) String() string {
 // ------------- //
 // Type := PrimitiveType | ListType | MapType | FuncType
 type Type interface {
-	Node
+	Expr
+	ToValueType() value.ValueType
 }
 
 // PrimitiveType := Name
@@ -130,6 +133,11 @@ type PrimitiveType struct {
 func (t PrimitiveType) String() string {
 	return fmt.Sprint(t.Name.Tt)
 }
+func (t PrimitiveType) ToValueType() value.ValueType {
+	var valType value.ValueType
+	valType.Name = t.Name.Tt.String()
+	return valType
+}
 
 // ListType := list '[' Type ']'
 type ListType struct {
@@ -138,7 +146,13 @@ type ListType struct {
 }
 
 func (t ListType) String() string {
-	return fmt.Sprintf("list[%s]", t.ValueType)
+	return fmt.Sprintf("List[%s]", t.ValueType)
+}
+func (t ListType) ToValueType() value.ValueType {
+	var valType value.ValueType
+	valType.Name = "List"
+	valType.TypeArgs = append(valType.TypeArgs, t.ValueType.ToValueType())
+	return valType
 }
 
 // MapType := map '[' Type ']' Type
@@ -149,7 +163,12 @@ type MapType struct {
 }
 
 func (t MapType) String() string {
-	return fmt.Sprintf("map[%s]%s", t.KeyType, t.ValueType)
+	return fmt.Sprintf("Map[%s]%s", t.KeyType, t.ValueType)
+}
+func (t MapType) ToValueType() value.ValueType {
+	var valType value.ValueType
+	valType.TypeArgs = append(valType.TypeArgs, t.KeyType.ToValueType(), t.ValueType.ToValueType())
+	return valType
 }
 
 type FuncType struct {
@@ -159,5 +178,12 @@ type FuncType struct {
 }
 
 func (t FuncType) String() string {
-	return fmt.Sprintf("func(%s)%s", t.InputTypes, t.OutputType)
+	var b strings.Builder
+	b.WriteRune('[')
+	for _, e := range t.InputTypes {
+		b.WriteString(fmt.Sprint(e))
+		b.WriteRune(',')
+	}
+	b.WriteRune(']')
+	return fmt.Sprintf("func(%s)%s", b.String(), t.OutputType)
 }
