@@ -65,8 +65,12 @@ const (
 	Int
 	Dec
 	Str
+	Bool
 	List
 	Map
+
+	True
+	False
 )
 
 var Keywords = map[string]TokenType{
@@ -85,22 +89,28 @@ var Keywords = map[string]TokenType{
 	"int":    Int,
 	"dec":    Dec,
 	"str":    Str,
+	"bool":   Bool,
 	"list":   List,
 	"map":    Map,
+	"true":   True,
+	"false":  False,
 }
 
 var (
-	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String}
+	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String, True, False}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
-	PrimitiveTypes         = []TokenType{None, Int, Dec, Str}
+	PrimitiveTypes         = []TokenType{None, Int, Dec, Str, Bool}
 	CompoundTypes          = []TokenType{List, Map}
 	Types                  = append(PrimitiveTypes, CompoundTypes...)
 	AssignmentOperations   = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
 	LitToType              = func() map[TokenType]value.ValueType {
 		m := make(map[TokenType]value.ValueType)
-		for i := range PrimitiveLiterals {
+		for i := range PrimitiveTypes {
 			m[PrimitiveLiterals[i]] = value.NewValueType(PrimitiveTypes[i].String())
 		}
+		// manually add true and false
+		m[True] = value.NewValueType(Bool.String())
+		m[False] = value.NewValueType(Bool.String())
 		return m
 	}()
 )

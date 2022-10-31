@@ -26,9 +26,12 @@ func TestEvaluateDeclaration(t *testing.T) {
 	tokens := nicerLexer.LexAll()
 	nicerParser := parser.NewNiceExprParser(tokens)
 
-	program, err := nicerParser.ParseProgram()
+	program, pe := nicerParser.ParseProgram()
 	if len(program.Statements) <= 0 {
 		t.Fatal("parsed nil")
+	}
+	if pe != nil {
+		t.Fatal(pe)
 	}
 
 	evaluator := evaluator.NewEvaluator()
@@ -94,6 +97,18 @@ func TestEvaluateDeclaration(t *testing.T) {
 			return m
 		}()
 		assert.Equal(t, map[int64]string{1: "a", 2: "b", 3: "c"}, intStrMapActual)
+	}
+
+	varOk, varOkVal := evaluator.GetVariable("ok")
+	assert.NotNil(t, varOk)
+	if assert.NotNil(t, varOkVal) {
+		assert.Equal(t, true, varOkVal.V.(bool))
+	}
+
+	notOk, notOkVal := evaluator.GetConstant("notOk")
+	assert.NotNil(t, notOk)
+	if assert.NotNil(t, notOkVal) {
+		assert.Equal(t, false, notOkVal.V.(bool))
 	}
 
 	t.Log("Constants:", evaluator.Constants)

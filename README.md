@@ -12,6 +12,17 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 * as few non-letter syllables as possible (?)
 * everything is expression-based
 
+## Features
+
+* [ ] Primitive literals (int, dec, str, bool)
+* [ ] Compound literals (list, map)
+* [ ] Type inference of compound literals
+* [ ] Arbitrarily-nested types
+* [ ] Declarations (var, const): nested, mixed, type checking
+* [ ] Arithmetic operators
+* [ ] Logical operators
+* [ ] Assignments (set): check if var or const
+
 ## Examples?
 
 ```go

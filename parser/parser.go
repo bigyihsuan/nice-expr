@@ -406,7 +406,7 @@ func (p *NiceExprParser) ParseType() (ast.Type, *ParseError) {
 	ok, err = p.checkToken(TT.Func, "Type-CheckFunc")
 	if err != nil {
 		return nil, err.addRule("Type")
-	} else if ok && err == nil {
+	} else if ok {
 		return p.ParseFuncType()
 	}
 	return nil, NewParseError("type not found", nil, "Type")

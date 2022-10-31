@@ -14,3 +14,6 @@
 "this\nstring\nhas\n4 lines"
 "before\"inside\"after"
 "before'inside'after"
+
+true
+false

@@ -206,7 +206,14 @@ func (nel *NiceExprLexer) ident_or_keyword(s *lex.State) lex.StateFn {
 		}
 		l.Backup()
 		if tok, ok := TT.Keywords[string(name)]; ok {
-			l.Emit(pos, TT.ToLt(tok), string(name))
+			switch tok {
+			case TT.True:
+				l.Emit(pos, TT.ToLt(tok), true)
+			case TT.False:
+				l.Emit(pos, TT.ToLt(tok), false)
+			default:
+				l.Emit(pos, TT.ToLt(tok), string(name))
+			}
 		} else {
 			l.Emit(pos, TT.ToLt(TT.Identifier), string(name))
 		}

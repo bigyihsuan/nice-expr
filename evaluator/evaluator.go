@@ -6,7 +6,6 @@ import (
 	"nice-expr/token/tokentype"
 	"nice-expr/util"
 	"nice-expr/value"
-	"os"
 )
 
 type Evaluator struct {
@@ -39,7 +38,7 @@ func (e Evaluator) GetVariable(name string) (*ast.Identifier, *value.Value) {
 	return nil, nil
 }
 
-func (e *Evaluator) EvaluatePrimitiveLiteral(literal *ast.PrimitiveLiteral) (*value.Value, error) {
+func (e *Evaluator) EvaluatePrimitiveLiteral(literal *ast.PrimitiveLiteral, typeArgs ...value.ValueType) (*value.Value, error) {
 	val := new(value.Value)
 	valType, ok := tokentype.LitToType[literal.Token.Tt]
 	if !ok {
@@ -63,7 +62,6 @@ func (e *Evaluator) EvaluateListLiteral(literal *ast.ListLiteral, typeArgs ...va
 		}
 		elementType = typeArgs[0].TypeArgs[0]
 		valType.AddTypeArg(elementType)
-		fmt.Fprintln(os.Stderr, elementType, valType)
 	}
 
 	elements := []*value.Value{}
@@ -125,7 +123,7 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 			valueType = v.T
 		}
 		if !v.T.Equal(valueType) {
-			return nil, fmt.Errorf("incorrect value type: expected %v, got %v", valueType, v.T)
+			return nil, fmt.Errorf("incorrect v alue type: expected %v, got %v", valueType, v.T)
 		}
 		elements[k] = v
 	}
@@ -137,31 +135,18 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 func (e *Evaluator) EvaluateLiteral(litExpr ast.Expr, typeArgs ...value.ValueType) (*value.Value, error) {
 	var v *value.Value
 	var err error
-	// inferType := len(typeArgs) < 1
-	// litType := value.NewValueType("UNSET")
-	// if !inferType {
-	// 	litType = typeArgs[0]
-	// }
 
 	switch litExpr := litExpr.(type) {
 	case *ast.PrimitiveLiteral:
-		v, err = e.EvaluatePrimitiveLiteral(litExpr)
+		v, err = e.EvaluatePrimitiveLiteral(litExpr, typeArgs...)
 	case *ast.ListLiteral:
 		v, err = e.EvaluateListLiteral(litExpr, typeArgs...)
 	case *ast.MapLiteral:
 		v, err = e.EvaluateMapLiteral(litExpr, typeArgs...)
 	}
-
 	if err != nil {
 		return v, err
 	}
-	// if inferType && litType.Name == "UNSET" {
-	// 	litType = v.T
-	// }
-	// // check desired type versus actual type
-	// if !litType.Equal(v.T) {
-	// 	return v, fmt.Errorf("types don't match: want %v, got %v", litType, v.T)
-	// }
 	return v, nil
 }
 
