@@ -149,9 +149,8 @@ func (t ListType) String() string {
 	return fmt.Sprintf("List[%s]", t.ValueType)
 }
 func (t ListType) ToValueType() value.ValueType {
-	var valType value.ValueType
-	valType.Name = "List"
-	valType.TypeArgs = append(valType.TypeArgs, t.ValueType.ToValueType())
+	valType := value.NewValueType("List")
+	valType.AddTypeArg(t.ValueType.ToValueType())
 	return valType
 }
 
@@ -166,7 +165,7 @@ func (t MapType) String() string {
 	return fmt.Sprintf("Map[%s]%s", t.KeyType, t.ValueType)
 }
 func (t MapType) ToValueType() value.ValueType {
-	var valType value.ValueType
+	valType := value.NewValueType("Map")
 	valType.TypeArgs = append(valType.TypeArgs, t.KeyType.ToValueType(), t.ValueType.ToValueType())
 	return valType
 }

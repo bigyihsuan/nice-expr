@@ -38,34 +38,97 @@ func (e Evaluator) GetVariable(name string) (*ast.Identifier, *value.Value) {
 	return nil, nil
 }
 
-func (e *Evaluator) EvaluatePrimitiveLiteral(literal *ast.PrimitiveLiteral) {
+func (e *Evaluator) EvaluatePrimitiveLiteral(literal *ast.PrimitiveLiteral) (*value.Value, error) {
 	val := new(value.Value)
-	var valType = tokentype.LitToType[literal.Token.Tt]
+	valType, ok := tokentype.LitToType[literal.Token.Tt]
+	if !ok {
+		return nil, fmt.Errorf("unkown primitive literal %v", literal.Token.Tt)
+	}
 
 	val.T = valType
 	val.V = literal.Token.Value
-	e.ValueStack.Push(val)
+	return val, nil
 }
 
-// func (e *Evaluator) EvaluateListLiteral(literal *ast.ListLiteral) {
-// 	var value value.Value
-// 	var valType value.ValueType
+func (e *Evaluator) EvaluateListLiteral(elementType value.ValueType, literal *ast.ListLiteral) (*value.Value, error) {
+	val := new(value.Value)
+	valType := value.NewValueType("List")
+	valType.AddTypeArg(elementType)
 
-// 	// valType.Name = literal.Token.Tt.String()
-// 	// value.V = literal.Token.value.Value
-// 	value.T = valType
-// 	e.ValueStack.Push(value)
-// }
+	elements := []*value.Value{}
+
+	for _, listVal := range literal.Values {
+		// TODO: expand to all exprs
+		lv := listVal.(*ast.PrimitiveLiteral)
+		v, err := e.EvaluatePrimitiveLiteral(lv)
+		if err != nil {
+			return nil, err
+		}
+		if !v.T.Equal(elementType) {
+			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", elementType, v.T)
+		}
+		elements = append(elements, v)
+	}
+	val.V = elements
+	val.T = valType
+	return val, nil
+}
+func (e *Evaluator) EvaluateMapLiteral(keyType, elementType value.ValueType, literal *ast.MapLiteral) (*value.Value, error) {
+	val := new(value.Value)
+	valType := value.NewValueType("Map")
+	valType.AddTypeArg(keyType, elementType)
+
+	elements := make(map[*value.Value]*value.Value)
+
+	for ke, valExpr := range literal.Values {
+		// TODO: expand to all exprs
+		kl := ke.(*ast.PrimitiveLiteral)
+		k, err := e.EvaluatePrimitiveLiteral(kl)
+		if err != nil {
+			return nil, err
+		}
+		if !k.T.Equal(keyType) {
+			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", keyType, k.T)
+		}
+		vl := valExpr.(*ast.PrimitiveLiteral)
+		v, err := e.EvaluatePrimitiveLiteral(vl)
+		if err != nil {
+			return nil, err
+		}
+		if !v.T.Equal(elementType) {
+			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", elementType, v.T)
+		}
+		elements[k] = v
+	}
+	val.V = elements
+	val.T = valType
+	return val, nil
+}
 
 func (e *Evaluator) EvaluateLiteral(litType value.ValueType, litExpr ast.Expr) (*value.Value, error) {
-	e.EvaluatePrimitiveLiteral(litExpr.(*ast.PrimitiveLiteral))
-	v, err := e.ValueStack.Pop()
+	var v *value.Value
+	var err error
+	switch litExpr := litExpr.(type) {
+	case *ast.PrimitiveLiteral:
+		v, err = e.EvaluatePrimitiveLiteral(litExpr)
+	case *ast.ListLiteral:
+		if len(litType.TypeArgs) < 1 {
+			return nil, fmt.Errorf("not enough typeargs for List: got %v, want 1", len(litType.TypeArgs))
+		}
+		v, err = e.EvaluateListLiteral(litType.TypeArgs[0], litExpr)
+	case *ast.MapLiteral:
+		if len(litType.TypeArgs) < 2 {
+			return nil, fmt.Errorf("not enough typeargs for Map: got %v, want 2", len(litType.TypeArgs))
+		}
+		v, err = e.EvaluateMapLiteral(litType.TypeArgs[0], litType.TypeArgs[1], litExpr)
+	}
+
 	if err != nil {
 		return v, err
 	}
 	// check desired type versus actual type
 	if !litType.Equal(v.T) {
-		return v, fmt.Errorf("types don't match: %v and %v", litType, v.T)
+		return v, fmt.Errorf("types don't match: want %v, got %v", litType, v.T)
 	}
 	return v, nil
 }
