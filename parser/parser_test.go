@@ -32,7 +32,7 @@ func TestParsePrimitiveLiteral(t *testing.T) {
 		if expr == nil {
 			t.Fatal("parsed nil")
 		}
-		t.Log(expr)
+		// t.Log(expr)
 	}
 }
 func TestParseCompoundLiteral(t *testing.T) {
@@ -57,7 +57,7 @@ func TestParseCompoundLiteral(t *testing.T) {
 		if expr == nil {
 			t.Fatal("parsed nil")
 		}
-		t.Log(expr)
+		// t.Log(expr)
 	}
 }
 
@@ -83,7 +83,7 @@ func TestParseType(t *testing.T) {
 		if typeExpr == nil {
 			t.Fatal("parsed nil")
 		}
-		t.Log(typeExpr)
+		// t.Log(typeExpr)
 	}
 }
 
@@ -109,6 +109,6 @@ func TestParseAssignments(t *testing.T) {
 		if expr == nil {
 			t.Fatal("parsed nil")
 		}
-		t.Log(expr)
+		// t.Log(expr)
 	}
 }

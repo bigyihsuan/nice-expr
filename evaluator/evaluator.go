@@ -6,6 +6,7 @@ import (
 	"nice-expr/token/tokentype"
 	"nice-expr/util"
 	"nice-expr/value"
+	"os"
 )
 
 type Evaluator struct {
@@ -57,8 +58,12 @@ func (e *Evaluator) EvaluateListLiteral(literal *ast.ListLiteral, typeArgs ...va
 	elementType := value.NewValueType("UNSET")
 	inferType := len(typeArgs) < 1
 	if !inferType {
-		elementType = typeArgs[0]
+		if len(typeArgs[0].TypeArgs) < 1 {
+			return nil, fmt.Errorf("not enough typeargs for List: want 1, got %v", len(typeArgs[0].TypeArgs))
+		}
+		elementType = typeArgs[0].TypeArgs[0]
 		valType.AddTypeArg(elementType)
+		fmt.Fprintln(os.Stderr, elementType, valType)
 	}
 
 	elements := []*value.Value{}
@@ -70,7 +75,7 @@ func (e *Evaluator) EvaluateListLiteral(literal *ast.ListLiteral, typeArgs ...va
 			return nil, err
 		}
 		if inferType && elementType.Name == "UNSET" {
-			elementType = v.T
+			elementType = v.T.TypeArgs[0]
 		}
 		if !v.T.Equal(elementType) {
 			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", elementType, v.T)
@@ -88,8 +93,11 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 	keyType, valueType := value.NewValueType("UNSET-KEY"), value.NewValueType("UNSET-VALUE")
 	inferType := len(typeArgs) < 2
 	if !inferType {
-		keyType = typeArgs[0]
-		valueType = typeArgs[1]
+		if len(typeArgs[0].TypeArgs) < 2 {
+			return nil, fmt.Errorf("not enough typeargs for Map: got %v, want 2", len(typeArgs))
+		}
+		keyType = typeArgs[0].TypeArgs[0]
+		valueType = typeArgs[0].TypeArgs[1]
 		valType.AddTypeArg(keyType)
 		valType.AddTypeArg(valueType)
 	}
@@ -106,7 +114,7 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 			keyType = k.T
 		}
 		if !k.T.Equal(keyType) {
-			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", keyType, k.T)
+			return nil, fmt.Errorf("incorrect key type: expected %v, got %v", keyType, k.T)
 		}
 		vl := valExpr
 		v, err := e.EvaluateExpr(vl)
@@ -117,7 +125,7 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 			valueType = v.T
 		}
 		if !v.T.Equal(valueType) {
-			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", valueType, v.T)
+			return nil, fmt.Errorf("incorrect value type: expected %v, got %v", valueType, v.T)
 		}
 		elements[k] = v
 	}
@@ -139,14 +147,8 @@ func (e *Evaluator) EvaluateLiteral(litExpr ast.Expr, typeArgs ...value.ValueTyp
 	case *ast.PrimitiveLiteral:
 		v, err = e.EvaluatePrimitiveLiteral(litExpr)
 	case *ast.ListLiteral:
-		if len(typeArgs) < 1 {
-			return nil, fmt.Errorf("not enough typeargs for List: got %v, want 1", len(typeArgs))
-		}
 		v, err = e.EvaluateListLiteral(litExpr, typeArgs...)
 	case *ast.MapLiteral:
-		if len(typeArgs) < 2 {
-			return nil, fmt.Errorf("not enough typeargs for Map: got %v, want 2", len(typeArgs))
-		}
 		v, err = e.EvaluateMapLiteral(litExpr, typeArgs...)
 	}
 
