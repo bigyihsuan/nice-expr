@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math/big"
 	"nice-expr/ast"
 	"nice-expr/token/tokentype"
 	"nice-expr/util"
@@ -176,10 +177,39 @@ func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*v
 	switch expr := expr.(type) {
 	case *ast.PrimitiveLiteral, *ast.ListLiteral, *ast.MapLiteral:
 		return e.EvaluateLiteral(expr, typeArgs...)
+	// case *ast.Identifier:
+	// 	return e.EvaluateIdentifier(expr, typeArgs...)
 	case ast.Declaration:
 		return e.EvaluateDeclaration(expr)
 	}
-	return nil, nil
+	return nil, fmt.Errorf("unknown expr %v", expr)
+}
+
+func (e *Evaluator) EvaluateUnary(unary *ast.UnaryExpr) (*value.Value, error) {
+	val, err := e.EvaluateExpr(unary.Right)
+	if err != nil {
+		return val, err
+	}
+	if unary.Op != nil {
+		switch unary.Op.Tt {
+		case tokentype.Not:
+			if !val.T.Equal(tokentype.BoolType) {
+				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
+			}
+			val.V = !val.V.(bool)
+			return val, nil
+		case tokentype.Minus:
+			switch {
+			case val.T.Equal(tokentype.IntType):
+				val.V.(*big.Int).Neg(val.V.(*big.Int))
+			case val.T.Equal(tokentype.DecType):
+				val.V.(*big.Float).Neg(val.V.(*big.Float))
+			default:
+				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
+			}
+		}
+	}
+	return val, nil
 }
 
 func (e *Evaluator) EvaluateProgram(program ast.Program) error {

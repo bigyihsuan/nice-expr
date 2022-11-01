@@ -42,6 +42,10 @@ const (
 	GreaterEqual
 	Less
 	LessEqual
+	// logical ops
+	And
+	Or
+	Not
 	// misc
 	Identifier
 	Comma
@@ -57,7 +61,6 @@ const (
 	Break
 	Return
 	Func
-	Not
 	If
 	Else
 	// built-in
@@ -82,6 +85,8 @@ var Keywords = map[string]TokenType{
 	"break":  Break,
 	"return": Return,
 	"func":   Func,
+	"and":    And,
+	"or":     Or,
 	"not":    Not,
 	"if":     If,
 	"else":   Else,
@@ -99,11 +104,12 @@ var Keywords = map[string]TokenType{
 var (
 	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String, True, False}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
-	PrimitiveTypes         = []TokenType{None, Int, Dec, Str, Bool}
-	CompoundTypes          = []TokenType{List, Map}
-	Types                  = append(PrimitiveTypes, CompoundTypes...)
-	AssignmentOperations   = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
-	LitToType              = func() map[TokenType]value.ValueType {
+
+	PrimitiveTypes       = []TokenType{None, Int, Dec, Str, Bool}
+	CompoundTypes        = []TokenType{List, Map}
+	Types                = append(PrimitiveTypes, CompoundTypes...)
+	AssignmentOperations = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
+	LitToType            = func() map[TokenType]value.ValueType {
 		m := make(map[TokenType]value.ValueType)
 		for i := range PrimitiveTypes {
 			m[PrimitiveLiterals[i]] = value.NewValueType(PrimitiveTypes[i].String())
@@ -113,6 +119,18 @@ var (
 		m[False] = value.NewValueType(Bool.String())
 		return m
 	}()
+	NoneType = value.NewValueType("None")
+	IntType  = value.NewValueType("Int")
+	DecType  = value.NewValueType("Dec")
+	StrType  = value.NewValueType("Str")
+	BoolType = value.NewValueType("Bool")
+
+	BinMathOps        = []TokenType{Plus, Minus, Star, Slash, Percent}
+	BinCompOps        = []TokenType{Equal, Greater, GreaterEqual, Less, LessEqual}
+	BinLogOps         = []TokenType{And, Or}
+	AssignmentMathOps = []TokenType{PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
+	BinOps            = append(append(BinMathOps, BinCompOps...), BinLogOps...)
+	UnaryOps          = []TokenType{Not, Minus}
 )
 
 func ToTt(lexTok lex.Token) TokenType {

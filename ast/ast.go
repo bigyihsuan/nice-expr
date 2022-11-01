@@ -15,6 +15,26 @@ type Node interface{}
 
 type Expr interface{ Node }
 
+type BinaryExpr struct {
+	Expr
+	Left, Right Expr
+	Op          *token.Token
+}
+
+func (e BinaryExpr) String() string {
+	return fmt.Sprintf("(%v)%s(%v)", e.Left, e.Op.Lexeme, e.Right)
+}
+
+type UnaryExpr struct {
+	Expr
+	Op    *token.Token
+	Right Expr
+}
+
+func (e UnaryExpr) String() string {
+	return fmt.Sprintf("%s(%v)", e.Op.Lexeme, e.Right)
+}
+
 type Literal interface{ Expr }
 
 type PrimitiveLiteral struct {

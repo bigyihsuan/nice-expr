@@ -19,15 +19,34 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 * [x] Type inference of compound literals
 * [x] Arbitrarily-nested types
 * [x] Declarations (var, const): nested, mixed, type checking
-* [x] Function types: func(T...)V, funcs as return type
-* [ ] Arithmetic operators (+, -, *, /, %)
-* [ ] Logical operators (and, or, not)
+* [x] Function types: func(T,T,...)V, funcs as return type
+* [ ] Operators
+  * [x] Unary Operators
+    * [x] `not`, `-`
+  * [ ] Binary Operators
+    * [ ] Arithmetic operators (+, -, *, /, %)
+      * [ ] primitives
+      * [ ] variables, constants
+    * [ ] Comparison operators (=, <, <=, >, >=)
+    * [ ] Logical operators (and, or)
 * [ ] Assignments (set): check if var or const
 * [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
-* [ ] Blocks: last un-semicolon-terminated return value
-* [ ] Functions: return (early), last un-semicolon-terminated return value, recursion
-* [ ] Conditionals: if-else, if-else if-else
-* [ ] Loops: break, for, for-with-local-variable
+* [ ] Built-in functions
+  * [ ] print()/println()
+  * [ ] len(): lists, maps
+* [ ] Blocks
+  * [ ] last un-semicolon-terminated return value
+* [ ] Functions
+  * [ ] return (early)
+  * [ ] last un-semicolon-terminated return value
+  * [ ] recursion
+* [ ] Conditionals:
+  * [ ] if-else
+  * [ ] if-else if-else
+* [ ] Loops
+  * [ ] break
+  * [ ] for
+  * [ ] for-with-local-variable
 
 ## Examples?
 

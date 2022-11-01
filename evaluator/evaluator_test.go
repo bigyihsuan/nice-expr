@@ -7,8 +7,10 @@ import (
 	"nice-expr/evaluator"
 	"nice-expr/lexer"
 	"nice-expr/parser"
+	"nice-expr/token/tokentype"
 	"nice-expr/value"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/db47h/lex"
@@ -211,4 +213,45 @@ func TestEvaluateNestedDeclaration(t *testing.T) {
 	t.Log("Constants:", evaluator.Constants)
 	t.Log("Variables:", evaluator.Variables)
 	t.Log("ValueStack:", evaluator.ValueStack)
+}
+
+func TestEvaluateUnary(t *testing.T) {
+	fileName := "./../test/unary.test.ne"
+	test, err := os.ReadFile(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := strings.Split(string(test), "\n")
+	expected := []interface{}{false, int64(-89), float64(-2.34), true, int64(89), float64(2.34)}
+	for i, c := range cases {
+		file := lex.NewFile(fileName, strings.NewReader(c))
+		nicerLexer := lexer.NewLexer(file)
+		tokens := nicerLexer.LexAll()
+
+		nicerParser := parser.NewNiceExprParser(tokens)
+		expr, perr := nicerParser.ParseUnary()
+		if perr != nil {
+			t.Fatal(perr)
+		}
+		if expr == nil {
+			t.Fatal("parsed nil")
+		}
+
+		evaluator := evaluator.NewEvaluator()
+		val, ee := evaluator.EvaluateUnary(expr)
+		if ee != nil {
+			t.Fatal(ee)
+		}
+
+		switch {
+		case val.T.Equal(tokentype.IntType):
+			assert.Equal(t, expected[i], val.V.(*big.Int).Int64())
+		case val.T.Equal(tokentype.DecType):
+			f, _ := val.V.(*big.Float).Float64()
+			assert.Equal(t, expected[i], f)
+		case val.T.Equal(tokentype.BoolType):
+			assert.Equal(t, expected[i], val.V.(bool))
+
+		}
+	}
 }
