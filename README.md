@@ -20,7 +20,7 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 * [x] Arbitrarily-nested types
 * [x] Declarations (var, const): nested, mixed, type checking
 * [x] Function types: func(T,T,...)V, funcs as return type
-* [ ] Using variables
+* [x] Using variables
 * [ ] Operators
   * [x] Unary Operators
     * [x] `not`, `-`

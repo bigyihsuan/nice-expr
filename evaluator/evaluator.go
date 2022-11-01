@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	BuiltinFunctionNames = []string{"print", "println"}
+	BuiltinFunctionNames = []string{"print", "println", "len"}
 )
 
 type Evaluator struct {
@@ -220,17 +220,53 @@ func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs
 		if len(funcCall.Arguments) < 1 {
 			fmt.Print()
 		} else {
-			for _, e := range funcCall.Arguments {
-				fmt.Print(e)
+			for _, ex := range funcCall.Arguments {
+				val, err := e.EvaluateExpr(ex)
+				if err != nil {
+					return val, err
+				}
+				fmt.Print(val.V)
 			}
 		}
 	case "println":
 		if len(funcCall.Arguments) < 1 {
 			fmt.Println()
 		} else {
-			for _, e := range funcCall.Arguments {
-				fmt.Println(e)
+			for _, ex := range funcCall.Arguments {
+				val, err := e.EvaluateExpr(ex)
+				if err != nil {
+					return val, err
+				}
+				fmt.Println(val.V)
 			}
+		}
+	case "len":
+		if len(funcCall.Arguments) != 1 {
+			return nil, fmt.Errorf("incorrect number of arguments for `len`: got %d, want %d", len(funcCall.Arguments), 1)
+		}
+		collection, err := e.EvaluateExpr(funcCall.Arguments[0])
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case collection.T.Equal(tokentype.StrType):
+			val := collection.V.(string)
+			return &value.Value{
+				T: tokentype.IntType,
+				V: big.NewInt(int64(len([]rune(val)))),
+			}, nil
+		case collection.T.Is(tokentype.ListType):
+			return &value.Value{
+				T: tokentype.IntType,
+				V: big.NewInt(int64(len(collection.V.([]*value.Value)))),
+			}, nil
+		case collection.T.Is(tokentype.MapType):
+			return &value.Value{
+				T: tokentype.IntType,
+				V: big.NewInt(int64(len(collection.V.(map[*value.Value]*value.Value)))),
+			}, nil
+		default:
+			return nil, fmt.Errorf("invalid type for `len`: %s", collection.T.Name)
 		}
 	}
 	return nil, nil
@@ -247,10 +283,10 @@ func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*v
 	switch expr := expr.(type) {
 	case *ast.PrimitiveLiteral, *ast.ListLiteral, *ast.MapLiteral:
 		return e.EvaluateLiteral(expr, typeArgs...)
-	case *ast.Identifier:
-		return e.EvaluateIdentifier(expr, typeArgs...)
 	case *ast.FunctionCall:
 		return e.EvaluateFunctionCall(expr, typeArgs...)
+	case *ast.Identifier:
+		return e.EvaluateIdentifier(expr, typeArgs...)
 	case ast.Declaration:
 		return e.EvaluateDeclaration(expr)
 	}

@@ -292,8 +292,8 @@ func TestEvaluateUnary(t *testing.T) {
 	}
 }
 
-func TestEvaluateBuiltinFunctions(t *testing.T) {
-	fileName := "./../test/func-builtin.test.ne"
+func TestEvaluateBuiltinFunctionsPrint(t *testing.T) {
+	fileName := "./../test/func-builtin-print.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -337,6 +337,43 @@ on
 a
 new
 line
+`
+	assert.Equal(t, expected, output)
+}
+func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
+	fileName := "./../test/func-builtin-len.test.ne"
+	test, err := os.ReadFile(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := lex.NewFile(fileName, bytes.NewReader(test))
+	nicerLexer := lexer.NewLexer(file)
+	tokens := nicerLexer.LexAll()
+	// t.Log(tokens)
+
+	nicerParser := parser.NewNiceExprParser(tokens)
+
+	program, pe := nicerParser.ParseProgram()
+	if pe != nil {
+		t.Fatal(pe)
+	}
+	if len(program.Statements) <= 0 {
+		t.Fatal("parsed nil")
+	}
+	// t.Log(program)
+
+	evaluator := evaluator.NewEvaluator()
+
+	output := captureOutput(func() {
+		ee := evaluator.EvaluateProgram(program)
+		if ee != nil {
+			t.Fatal(ee)
+		}
+	})
+
+	expected := `3
+2
+5
 `
 	assert.Equal(t, expected, output)
 }

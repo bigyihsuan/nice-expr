@@ -47,6 +47,8 @@ func (vt ValueType) String() string {
 	}
 }
 
+// compares to another type.
+// checks for deep equality, i.e. the type arguments are also equal.
 func (vt ValueType) Equal(other ValueType) bool {
 	return vt.Name == other.Name &&
 		slices.EqualFunc(
@@ -56,6 +58,14 @@ func (vt ValueType) Equal(other ValueType) bool {
 		)
 }
 
+// compares to another type.
+// checks for deep equality, i.e. the type arguments are also equal.
 func (vt ValueType) NotEqual(other ValueType) bool {
 	return !vt.Equal(other)
+}
+
+// compares to another type.
+// only checks if the base type is the same.
+func (vt ValueType) Is(other ValueType) bool {
+	return vt.Name == other.Name
 }

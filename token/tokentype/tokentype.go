@@ -124,6 +124,8 @@ var (
 	DecType  = value.NewValueType("Dec")
 	StrType  = value.NewValueType("Str")
 	BoolType = value.NewValueType("Bool")
+	ListType = value.NewValueType("List")
+	MapType  = value.NewValueType("Map")
 
 	BinMathOps        = []TokenType{Plus, Minus, Star, Slash, Percent}
 	BinCompOps        = []TokenType{Equal, Greater, GreaterEqual, Less, LessEqual}
