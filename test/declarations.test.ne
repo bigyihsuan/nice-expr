@@ -9,3 +9,6 @@ var intStrMap map[int]str is <|1: "a", 2:"b"  , 3    :"c"    ,    |>;
 
 var ok bool is true;
 const notOk bool is false;
+
+var reuse int is x;
+const copied map[int]str is intStrMap;

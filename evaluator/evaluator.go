@@ -9,6 +9,16 @@ import (
 	"nice-expr/value"
 )
 
+//go:generate stringer -type=IdentifierType
+type IdentifierType int
+
+const (
+	InvalidIdentifier IdentifierType = iota - 1
+	ConstantIdentifier
+	VariableIdentifier
+	FunctionIdentifier
+)
+
 type Evaluator struct {
 	Constants, Variables map[*ast.Identifier]*value.Value
 	ValueStack           util.Stack[*value.Value]
@@ -39,13 +49,22 @@ func (e Evaluator) GetVariable(name string) (*ast.Identifier, *value.Value) {
 	return nil, nil
 }
 
+func (e Evaluator) GetIdentifier(name string) (*ast.Identifier, *value.Value, IdentifierType) {
+	if con, conval := e.GetConstant(name); con != nil {
+		return con, conval, ConstantIdentifier
+	}
+	if v, vval := e.GetVariable(name); v != nil {
+		return v, vval, VariableIdentifier
+	}
+	return nil, nil, InvalidIdentifier
+}
+
 func (e *Evaluator) EvaluatePrimitiveLiteral(literal *ast.PrimitiveLiteral, typeArgs ...value.ValueType) (*value.Value, error) {
 	val := new(value.Value)
 	valType, ok := tokentype.LitToType[literal.Token.Tt]
 	if !ok {
 		return nil, fmt.Errorf("unkown primitive literal %v", literal.Token.Tt)
 	}
-
 	val.T = valType
 	val.V = literal.Token.Value
 	return val, nil
@@ -76,7 +95,7 @@ func (e *Evaluator) EvaluateListLiteral(literal *ast.ListLiteral, typeArgs ...va
 		if inferType && elementType.Name == "UNSET" {
 			elementType = v.T.TypeArgs[0]
 		}
-		if !v.T.Equal(elementType) {
+		if v.T.NotEqual(elementType) {
 			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", elementType, v.T)
 		}
 		elements = append(elements, v)
@@ -89,8 +108,10 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 	val := new(value.Value)
 	valType := value.NewValueType("Map")
 
-	keyType, valueType := value.NewValueType("UNSET-KEY"), value.NewValueType("UNSET-VALUE")
-	inferType := len(typeArgs) < 2
+	keyType := value.NewValueType("UNSET-KEY")
+	valueType := value.NewValueType("UNSET-VALUE")
+
+	inferType := len(typeArgs) < 1
 	if !inferType {
 		if len(typeArgs[0].TypeArgs) < 2 {
 			return nil, fmt.Errorf("not enough typeargs for Map: got %v, want 2", len(typeArgs))
@@ -112,7 +133,7 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 		if inferType && keyType.Name == "UNSET-KEY" {
 			keyType = k.T
 		}
-		if !k.T.Equal(keyType) {
+		if k.T.NotEqual(keyType) {
 			return nil, fmt.Errorf("incorrect key type: expected %v, got %v", keyType, k.T)
 		}
 		vl := valExpr
@@ -123,8 +144,8 @@ func (e *Evaluator) EvaluateMapLiteral(literal *ast.MapLiteral, typeArgs ...valu
 		if inferType && valueType.Name == "UNSET-VALUE" {
 			valueType = v.T
 		}
-		if !v.T.Equal(valueType) {
-			return nil, fmt.Errorf("incorrect v alue type: expected %v, got %v", valueType, v.T)
+		if v.T.NotEqual(valueType) {
+			return nil, fmt.Errorf("incorrect value type: expected %v, got %v", valueType, v.T)
 		}
 		elements[k] = v
 	}
@@ -149,6 +170,20 @@ func (e *Evaluator) EvaluateLiteral(litExpr ast.Expr, typeArgs ...value.ValueTyp
 		return v, err
 	}
 	return v, nil
+}
+
+func (e *Evaluator) EvaluateIdentifier(ident *ast.Identifier, typeArgs ...value.ValueType) (*value.Value, error) {
+	id, idVal, idKind := e.GetIdentifier(ident.Name.Lexeme)
+	if idKind == InvalidIdentifier {
+		return nil, fmt.Errorf("identifier not found: %s", ident.Name.Lexeme)
+	}
+	if len(typeArgs) > 0 {
+		// check type
+		if idVal.T.NotEqual(typeArgs[0]) {
+			return nil, fmt.Errorf("value type of `%s` and desired type don't match: got %s, want %s", id.Name.Lexeme, idVal.T, typeArgs[0])
+		}
+	}
+	return idVal, nil
 }
 
 func (e *Evaluator) EvaluateDeclaration(decl ast.Declaration) (*value.Value, error) {
@@ -177,8 +212,8 @@ func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*v
 	switch expr := expr.(type) {
 	case *ast.PrimitiveLiteral, *ast.ListLiteral, *ast.MapLiteral:
 		return e.EvaluateLiteral(expr, typeArgs...)
-	// case *ast.Identifier:
-	// 	return e.EvaluateIdentifier(expr, typeArgs...)
+	case *ast.Identifier:
+		return e.EvaluateIdentifier(expr, typeArgs...)
 	case ast.Declaration:
 		return e.EvaluateDeclaration(expr)
 	}
@@ -193,7 +228,7 @@ func (e *Evaluator) EvaluateUnary(unary *ast.UnaryExpr) (*value.Value, error) {
 	if unary.Op != nil {
 		switch unary.Op.Tt {
 		case tokentype.Not:
-			if !val.T.Equal(tokentype.BoolType) {
+			if val.T.NotEqual(tokentype.BoolType) {
 				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
 			}
 			val.V = !val.V.(bool)

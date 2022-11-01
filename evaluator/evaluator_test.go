@@ -87,9 +87,10 @@ func TestEvaluateDeclaration(t *testing.T) {
 	}
 
 	intStrMap, intStrMapVal := evaluator.GetVariable("intStrMap")
+	var intStrMapActual map[int64]string
 	assert.NotNil(t, intStrMap)
 	if assert.NotNil(t, intStrMapVal) {
-		intStrMapActual := func() map[int64]string {
+		intStrMapActual = func() map[int64]string {
 			m := make(map[int64]string)
 			for k, v := range intStrMapVal.V.(map[*value.Value]*value.Value) {
 				kv := k.V.(*big.Int).Int64()
@@ -111,6 +112,29 @@ func TestEvaluateDeclaration(t *testing.T) {
 	assert.NotNil(t, notOk)
 	if assert.NotNil(t, notOkVal) {
 		assert.Equal(t, false, notOkVal.V.(bool))
+	}
+
+	// variable usage
+	reuse, reuseVal := evaluator.GetVariable("reuse")
+	assert.NotNil(t, reuse)
+	if assert.NotNil(t, reuseVal) {
+		assert.Equal(t, int64(10), reuseVal.V.(int64))
+		assert.Equal(t, xv.V.(*big.Int).Int64(), reuseVal.V.(*big.Int).Int64())
+	}
+	copied, copiedVal := evaluator.GetConstant("copied")
+	assert.NotNil(t, copied)
+	if assert.NotNil(t, copiedVal) {
+		copiedActual := func() map[int64]string {
+			m := make(map[int64]string)
+			for k, v := range copiedVal.V.(map[*value.Value]*value.Value) {
+				kv := k.V.(*big.Int).Int64()
+				vv := v.V.(string)
+				m[kv] = vv
+			}
+			return m
+		}()
+		assert.Equal(t, map[int64]string{1: "a", 2: "b", 3: "c"}, copiedActual)
+		assert.Equal(t, intStrMapActual, copiedActual)
 	}
 
 	t.Log("Constants:", evaluator.Constants)
