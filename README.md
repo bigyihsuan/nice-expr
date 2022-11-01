@@ -33,7 +33,7 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 * [ ] Assignments (set): check if var or const
 * [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
 * [ ] Built-in functions
-  * [ ] print()/println()
+  * [x] print()/println()
   * [ ] len(): lists, maps
 * [ ] Blocks
   * [ ] last un-semicolon-terminated return value

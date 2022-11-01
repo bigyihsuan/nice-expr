@@ -1,14 +1,14 @@
-var x int is 10;
-var n dec is 2.34;
-const k str is "hello world";
+var x is int 10;
+var n is dec 2.34;
+const k is str "hello world";
 
-const intList list[int] is [1,2,3,4,5,];
-var   decList list[dec] is [1.1,2.2,3.3,4.4,5.5,];
+const intList is list[int] [1,2,3,4,5,];
+var   decList is list[dec] [1.1,2.2,3.3,4.4,5.5,];
 
-var intStrMap map[int]str is <|1: "a", 2:"b"  , 3    :"c"    ,    |>;
+var intStrMap is map[int]str <|1: "a", 2:"b"  , 3    :"c"    ,    |>;
 
-var ok bool is true;
-const notOk bool is false;
+var ok is bool true;
+const notOk is bool false;
 
-var reuse int is x;
-const copied map[int]str is intStrMap;
+var reuse is int x;
+const copied is map[int]str intStrMap;

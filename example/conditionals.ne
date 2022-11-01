@@ -1,4 +1,4 @@
-var z int is if x = 10 {
+var z is int if x = 10 {
     x / 2
 } else {
     x * 2

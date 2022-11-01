@@ -1,2 +1,2 @@
-var x int is (var y int is (var z int is 123));
-var a str is (const b str is (var c str is "nesting is fun"));
+var x is int (var y is int (var z is int 123));
+var a is str (const b is str (var c is str "nesting is fun"));

@@ -221,7 +221,17 @@ func (p *NiceExprParser) ParseExpr() (ast.Expr, *ParseError) {
 	if err != nil {
 		return nil, err.addRule("Expr")
 	} else if ok {
-		return p.ParseIdentifier()
+		p.getNextToken("Expr-IsFunctionCall?")
+		ok, err := p.optionalToken(TT.LeftParen, "Expr-IsFunctionCall?")
+		if err != nil {
+			return nil, err.addRule("Expr-IsFunctionCall?")
+		} else if ok {
+			p.putBackToken()
+			return p.ParseFunctionCall()
+		} else {
+			p.putBackToken()
+			return p.ParseIdentifier()
+		}
 	}
 	ok, err = p.optionalToken(TT.LeftParen, "Expr-NestedExprStart")
 	if err != nil {
@@ -254,11 +264,11 @@ func (p *NiceExprParser) ParseVariableDeclaration() (*ast.VariableDeclaration, *
 	if err != nil {
 		return expr, err.addRule("VariableDeclaration")
 	}
-	typeExpr, err := p.ParseType()
+	_, err = p.expectToken(TT.Is, "VariableDeclaration-Is")
 	if err != nil {
 		return expr, err.addRule("VariableDeclaration")
 	}
-	_, err = p.expectToken(TT.Is, "VariableDeclaration-Is")
+	typeExpr, err := p.ParseType()
 	if err != nil {
 		return expr, err.addRule("VariableDeclaration")
 	}
@@ -281,11 +291,11 @@ func (p *NiceExprParser) ParseConstantDeclaration() (*ast.ConstantDeclaration, *
 	if err != nil {
 		return expr, err.addRule("ConstantDeclaration")
 	}
-	typeExpr, err := p.ParseType()
+	_, err = p.expectToken(TT.Is, "ConstantDeclaration-Is")
 	if err != nil {
 		return expr, err.addRule("ConstantDeclaration")
 	}
-	_, err = p.expectToken(TT.Is, "ConstantDeclaration-Is")
+	typeExpr, err := p.ParseType()
 	if err != nil {
 		return expr, err.addRule("ConstantDeclaration")
 	}
@@ -325,14 +335,45 @@ func (p *NiceExprParser) ParseAssignment() (*ast.Assignment, *ParseError) {
 
 func (p *NiceExprParser) ParseIdentifier() (*ast.Identifier, *ParseError) {
 	id := new(ast.Identifier)
-	token, err := p.expectToken(TT.Identifier, "Literal-CheckLiteral")
+	token, err := p.expectToken(TT.Identifier, "Identifier-CheckIdentifier")
 	if err != nil {
 		return id, err.addRule("Identifier")
 	} else if token == nil {
-		return id, NewParseError("invalid token for literal", token, "Literal-CheckLiteral")
+		return id, NewParseError("invalid token for literal", token, "Identifier-CheckIdentifier")
 	}
 	id.Name = token
 	return id, nil
+}
+func (p *NiceExprParser) ParseFunctionCall() (*ast.FunctionCall, *ParseError) {
+	funcCall := new(ast.FunctionCall)
+	ident, err := p.ParseIdentifier()
+	if err != nil {
+		return funcCall, err.addRule("FunctionCall")
+	}
+	if _, err := p.expectToken(TT.LeftParen, "FunctionCall-ArgsStart"); err != nil {
+		return funcCall, err.addRule("FunctionCall-ArgsStart")
+	}
+	funcCall.Identifier = ident
+	for {
+		if ok, err := p.optionalToken(TT.RightParen, "FunctionCall-ArgsEnd"); err != nil {
+			return funcCall, err.addRule("FunctionCall-Arguments")
+		} else if ok {
+			break
+		}
+		arg, err := p.ParseExpr()
+		if err != nil {
+			return funcCall, err.addRule("FunctionCall-Arguments")
+		}
+		_, err = p.expectToken(TT.Comma, "FunctionCall-ItemComma")
+		if err != nil {
+			return funcCall, err.addRule("FunctionCall-Arguments")
+		}
+		funcCall.Arguments = append(funcCall.Arguments, arg)
+	}
+	if _, err := p.expectToken(TT.RightParen, "FunctionCall-ArgsEnd"); err != nil {
+		return funcCall, err.addRule("FunctionCall-ArgsEnd")
+	}
+	return funcCall, nil
 }
 
 func (p *NiceExprParser) ParseLiteral() (ast.Literal, *ParseError) {

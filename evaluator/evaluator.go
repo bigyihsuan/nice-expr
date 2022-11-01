@@ -7,6 +7,8 @@ import (
 	"nice-expr/token/tokentype"
 	"nice-expr/util"
 	"nice-expr/value"
+
+	"golang.org/x/exp/slices"
 )
 
 //go:generate stringer -type=IdentifierType
@@ -17,6 +19,10 @@ const (
 	ConstantIdentifier
 	VariableIdentifier
 	FunctionIdentifier
+)
+
+var (
+	BuiltinFunctionNames = []string{"print", "println"}
 )
 
 type Evaluator struct {
@@ -208,12 +214,43 @@ func (e *Evaluator) EvaluateDeclaration(decl ast.Declaration) (*value.Value, err
 	return v, nil
 }
 
+func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs ...value.ValueType) (*value.Value, error) {
+	switch funcCall.Name.Lexeme {
+	case "print":
+		if len(funcCall.Arguments) < 1 {
+			fmt.Print()
+		} else {
+			for _, e := range funcCall.Arguments {
+				fmt.Print(e)
+			}
+		}
+	case "println":
+		if len(funcCall.Arguments) < 1 {
+			fmt.Println()
+		} else {
+			for _, e := range funcCall.Arguments {
+				fmt.Println(e)
+			}
+		}
+	}
+	return nil, nil
+}
+
+func (e *Evaluator) EvaluateFunctionCall(funcCall *ast.FunctionCall, typeArgs ...value.ValueType) (*value.Value, error) {
+	if slices.Contains(BuiltinFunctionNames, funcCall.Name.Lexeme) {
+		return e.EvaluateBuiltinFunction(funcCall, typeArgs...)
+	}
+	return nil, nil
+}
+
 func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*value.Value, error) {
 	switch expr := expr.(type) {
 	case *ast.PrimitiveLiteral, *ast.ListLiteral, *ast.MapLiteral:
 		return e.EvaluateLiteral(expr, typeArgs...)
 	case *ast.Identifier:
 		return e.EvaluateIdentifier(expr, typeArgs...)
+	case *ast.FunctionCall:
+		return e.EvaluateFunctionCall(expr, typeArgs...)
 	case ast.Declaration:
 		return e.EvaluateDeclaration(expr)
 	}

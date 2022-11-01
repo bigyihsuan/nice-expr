@@ -87,12 +87,22 @@ func (ll MapLiteral) String() string {
 }
 
 type Identifier struct {
-	Node
+	Expr
 	Name *token.Token
 }
 
 func (id Identifier) String() string {
 	return id.Name.Lexeme
+}
+
+type FunctionCall struct {
+	Expr
+	*Identifier
+	Arguments []Expr
+}
+
+func (fn FunctionCall) String() string {
+	return fmt.Sprintf("{%s %s}", fn.Name, fn.Arguments)
 }
 
 // Assignment := Name is Value
