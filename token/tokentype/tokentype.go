@@ -2,8 +2,6 @@
 package tokentype
 
 import (
-	"nice-expr/value"
-
 	"github.com/db47h/lex"
 )
 
@@ -109,23 +107,6 @@ var (
 	CompoundTypes        = []TokenType{List, Map}
 	Types                = append(PrimitiveTypes, CompoundTypes...)
 	AssignmentOperations = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
-	LitToType            = func() map[TokenType]value.ValueType {
-		m := make(map[TokenType]value.ValueType)
-		for i := range PrimitiveTypes {
-			m[PrimitiveLiterals[i]] = value.NewValueType(PrimitiveTypes[i].String())
-		}
-		// manually add true and false
-		m[True] = value.NewValueType(Bool.String())
-		m[False] = value.NewValueType(Bool.String())
-		return m
-	}()
-	NoneType = value.NewValueType("None")
-	IntType  = value.NewValueType("Int")
-	DecType  = value.NewValueType("Dec")
-	StrType  = value.NewValueType("Str")
-	BoolType = value.NewValueType("Bool")
-	ListType = value.NewValueType("List")
-	MapType  = value.NewValueType("Map")
 
 	BinMathOps        = []TokenType{Plus, Minus, Star, Slash, Percent}
 	BinCompOps        = []TokenType{Equal, Greater, GreaterEqual, Less, LessEqual}

@@ -2,6 +2,8 @@ package value
 
 import (
 	"fmt"
+	"nice-expr/token/tokentype"
+	"strings"
 
 	"golang.org/x/exp/slices"
 )
@@ -14,6 +16,50 @@ type Value struct {
 func (v Value) String() string {
 	return fmt.Sprintf("{%s %v}", v.T, v.V)
 }
+
+func (v Value) Sprint() string {
+	var b strings.Builder
+	if v.T.Is(ListType) {
+		b.WriteRune('[')
+		for _, e := range v.V.([]*Value) {
+			b.WriteString(e.Sprint())
+			b.WriteRune(',')
+		}
+		b.WriteRune(']')
+		return b.String()
+	} else if v.T.Is(MapType) {
+		b.WriteString("<|")
+		for key, val := range v.V.(map[*Value]*Value) {
+			b.WriteString(key.Sprint())
+			b.WriteRune(':')
+			b.WriteString(val.Sprint())
+			b.WriteRune(',')
+		}
+		b.WriteString("|>")
+		return b.String()
+	}
+	return fmt.Sprint(v.V)
+}
+
+var (
+	LitToType = func() map[tokentype.TokenType]ValueType {
+		m := make(map[tokentype.TokenType]ValueType)
+		for i := range tokentype.PrimitiveTypes {
+			m[tokentype.PrimitiveLiterals[i]] = NewValueType(tokentype.PrimitiveTypes[i].String())
+		}
+		// manually add true and false
+		m[tokentype.True] = BoolType
+		m[tokentype.False] = BoolType
+		return m
+	}()
+	NoneType = NewValueType("None")
+	IntType  = NewValueType("Int")
+	DecType  = NewValueType("Dec")
+	StrType  = NewValueType("Str")
+	BoolType = NewValueType("Bool")
+	ListType = NewValueType("List")
+	MapType  = NewValueType("Map")
+)
 
 type ValueType struct {
 	Name     string

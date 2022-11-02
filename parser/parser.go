@@ -132,29 +132,6 @@ func (p *NiceExprParser) ParseStatement() (ast.Node, *ParseError) {
 	return node, nil
 }
 
-func (p *NiceExprParser) ParseBinary() (ast.Expr, *ParseError) {
-	var binary ast.BinaryExpr
-	left, err := p.ParseUnary()
-	if err != nil {
-		return binary, err.addRule("Binary-Left")
-	}
-
-	op, err := p.expectAny(TT.BinOps, "Binary-Op")
-	if err != nil {
-		return binary, err.addRule("Binary-Op")
-	}
-
-	right, err := p.ParseUnary()
-	if err != nil {
-		return binary, err.addRule("Binary-Right")
-	}
-
-	binary.Left = left
-	binary.Op = op
-	binary.Right = right
-	return binary, nil
-}
-
 func (p *NiceExprParser) ParseUnary() (*ast.UnaryExpr, *ParseError) {
 	unary := new(ast.UnaryExpr)
 	ok, err := p.checkAny(TT.UnaryOps, "Unary-Op")
@@ -175,16 +152,30 @@ func (p *NiceExprParser) ParseUnary() (*ast.UnaryExpr, *ParseError) {
 	return unary, nil
 }
 
-// func (p *NiceExprParser) ParseValueExpr() (ast.Expr, *ParseError) {
-// 	ok, err := p.checkAny(TT.UnaryOps, "ValueExpr-Unary")
-// 	if err != nil {
-// 		return nil, err.addRule("ValueExpr-Unary")
-// 	} else if ok {
-// 		return p.ParseUnary()
-// 	}
+// ValueExpr := Unary (Op Unary)
+func (p *NiceExprParser) ParseBinary() (ast.Expr, *ParseError) {
+	var binary = new(ast.BinaryExpr)
+	var err *ParseError
 
-// 	return nil, NewParseError("unknown expression", nil, "ValueExpr")
-// }
+	binary.Left, err = p.ParseUnary()
+	if err != nil {
+		return binary, err.addRule("Binary-Left")
+	}
+	if ok, err := p.checkAny(TT.BinOps, "Binary-Op"); err != nil {
+		return binary, err.addRule("Binary-Op")
+	} else if !ok {
+		return binary.Left, nil
+	}
+	binary.Op, err = p.getNextToken("Binary-Op")
+	if err != nil {
+		return binary, err.addRule("Binary-Op")
+	}
+	binary.Right, err = p.ParseUnary()
+	if err != nil {
+		return binary, err.addRule("Binary-Right")
+	}
+	return binary, nil
+}
 
 func (p *NiceExprParser) ParseExpr() (ast.Expr, *ParseError) {
 	ok, err := p.optionalToken(TT.Var, "Expr-VarDecl")

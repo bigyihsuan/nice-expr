@@ -2,13 +2,12 @@ package evaluator_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"nice-expr/ast"
 	"nice-expr/evaluator"
 	"nice-expr/lexer"
 	"nice-expr/parser"
-	"nice-expr/token/tokentype"
 	"nice-expr/value"
 	"os"
 	"strings"
@@ -24,7 +23,7 @@ func captureOutput(f func()) string {
 	os.Stdout = w
 	f()
 	w.Close()
-	out, _ := ioutil.ReadAll(r)
+	out, _ := io.ReadAll(r)
 	os.Stdout = rescueOutput
 	return string(out)
 }
@@ -280,12 +279,12 @@ func TestEvaluateUnary(t *testing.T) {
 		}
 
 		switch {
-		case val.T.Equal(tokentype.IntType):
+		case val.T.Equal(value.IntType):
 			assert.Equal(t, expected[i], val.V.(*big.Int).Int64())
-		case val.T.Equal(tokentype.DecType):
+		case val.T.Equal(value.DecType):
 			f, _ := val.V.(*big.Float).Float64()
 			assert.Equal(t, expected[i], f)
-		case val.T.Equal(tokentype.BoolType):
+		case val.T.Equal(value.BoolType):
 			assert.Equal(t, expected[i], val.V.(bool))
 
 		}
@@ -376,4 +375,60 @@ func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
 5
 `
 	assert.Equal(t, expected, output)
+}
+
+func TestEvaluateBinaryOperators(t *testing.T) {
+	fileName := "./../test/func-builtin-len.test.ne"
+	test, err := os.ReadFile(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := lex.NewFile(fileName, bytes.NewReader(test))
+	nicerLexer := lexer.NewLexer(file)
+	tokens := nicerLexer.LexAll()
+	// t.Log(tokens)
+
+	nicerParser := parser.NewNiceExprParser(tokens)
+
+	program, pe := nicerParser.ParseProgram()
+	if pe != nil {
+		t.Fatal(pe)
+	}
+	if len(program.Statements) <= 0 {
+		t.Fatal("parsed nil")
+	}
+	// t.Log(program)
+
+	evaluator := evaluator.NewEvaluator()
+
+	output := captureOutput(func() {
+		ee := evaluator.EvaluateProgram(program)
+		if ee != nil {
+			t.Fatal(ee)
+		}
+	})
+
+	expected := `2
+0
+6.6
+1
+1
+hello world
+heo
+hllo
+[1,2,3,4,5,]
+[1,2,3,4,5,6,]
+[1,2,4,5,]
+true
+true
+true
+true
+true
+true
+true
+2
+5
+`
+	assert.Equal(t, expected, output)
+
 }

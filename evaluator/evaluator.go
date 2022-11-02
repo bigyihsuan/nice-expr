@@ -67,7 +67,7 @@ func (e Evaluator) GetIdentifier(name string) (*ast.Identifier, *value.Value, Id
 
 func (e *Evaluator) EvaluatePrimitiveLiteral(literal *ast.PrimitiveLiteral, typeArgs ...value.ValueType) (*value.Value, error) {
 	val := new(value.Value)
-	valType, ok := tokentype.LitToType[literal.Token.Tt]
+	valType, ok := value.LitToType[literal.Token.Tt]
 	if !ok {
 		return nil, fmt.Errorf("unkown primitive literal %v", literal.Token.Tt)
 	}
@@ -99,7 +99,7 @@ func (e *Evaluator) EvaluateListLiteral(literal *ast.ListLiteral, typeArgs ...va
 			return nil, err
 		}
 		if inferType && elementType.Name == "UNSET" {
-			elementType = v.T.TypeArgs[0]
+			elementType = v.T
 		}
 		if v.T.NotEqual(elementType) {
 			return nil, fmt.Errorf("incorrect element type: expected %v, got %v", elementType, v.T)
@@ -225,7 +225,7 @@ func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs
 				if err != nil {
 					return val, err
 				}
-				fmt.Print(val.V)
+				fmt.Print(val.Sprint())
 			}
 		}
 	case "println":
@@ -237,7 +237,7 @@ func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs
 				if err != nil {
 					return val, err
 				}
-				fmt.Println(val.V)
+				fmt.Println(val.Sprint())
 			}
 		}
 	case "len":
@@ -249,20 +249,20 @@ func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs
 			return nil, err
 		}
 		switch {
-		case collection.T.Equal(tokentype.StrType):
+		case collection.T.Equal(value.StrType):
 			val := collection.V.(string)
 			return &value.Value{
-				T: tokentype.IntType,
+				T: value.IntType,
 				V: big.NewInt(int64(len([]rune(val)))),
 			}, nil
-		case collection.T.Is(tokentype.ListType):
+		case collection.T.Is(value.ListType):
 			return &value.Value{
-				T: tokentype.IntType,
+				T: value.IntType,
 				V: big.NewInt(int64(len(collection.V.([]*value.Value)))),
 			}, nil
-		case collection.T.Is(tokentype.MapType):
+		case collection.T.Is(value.MapType):
 			return &value.Value{
-				T: tokentype.IntType,
+				T: value.IntType,
 				V: big.NewInt(int64(len(collection.V.(map[*value.Value]*value.Value)))),
 			}, nil
 		default:
@@ -301,16 +301,16 @@ func (e *Evaluator) EvaluateUnary(unary *ast.UnaryExpr) (*value.Value, error) {
 	if unary.Op != nil {
 		switch unary.Op.Tt {
 		case tokentype.Not:
-			if val.T.NotEqual(tokentype.BoolType) {
+			if val.T.NotEqual(value.BoolType) {
 				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
 			}
 			val.V = !val.V.(bool)
 			return val, nil
 		case tokentype.Minus:
 			switch {
-			case val.T.Equal(tokentype.IntType):
+			case val.T.Equal(value.IntType):
 				val.V.(*big.Int).Neg(val.V.(*big.Int))
-			case val.T.Equal(tokentype.DecType):
+			case val.T.Equal(value.DecType):
 				val.V.(*big.Float).Neg(val.V.(*big.Float))
 			default:
 				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)

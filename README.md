@@ -26,15 +26,14 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
     * [x] `not`, `-`
   * [ ] Binary Operators
     * [ ] Arithmetic operators (+, -, *, /, %)
-      * [ ] primitives
-      * [ ] variables, constants
     * [ ] Comparison operators (=, <, <=, >, >=)
     * [ ] Logical operators (and, or)
+    * [ ] Indexing operator `_`
 * [ ] Assignments (set): check if var or const
 * [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
-* [ ] Built-in functions
+* [x] Built-in functions
   * [x] print()/println()
-  * [ ] len(): lists, maps
+  * [x] len(): lists, maps
 * [ ] Blocks
   * [ ] last un-semicolon-terminated return value
 * [ ] Functions

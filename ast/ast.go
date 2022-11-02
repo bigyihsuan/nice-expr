@@ -17,7 +17,7 @@ type Expr interface{ Node }
 
 type BinaryExpr struct {
 	Expr
-	Left, Right Expr
+	Left, Right *UnaryExpr
 	Op          *token.Token
 }
 
