@@ -2,7 +2,7 @@ package token
 
 import (
 	"fmt"
-	"nice-expr/token/tokentype"
+	"nice-expr/src/token/tokentype"
 	"strings"
 )
 

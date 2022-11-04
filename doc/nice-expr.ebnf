@@ -1,0 +1,34 @@
+program     ::= statement*
+statement   ::= expr ";" ;
+expr        ::= literal | identifier | funcCall | test | declaration | assignment | parenExpr ;
+parenExpr   ::= "(" expr ")" ;
+indexing    ::= expr "_" expr ;
+funcCall    ::= identifier "(" (expr ",")* ")" ;
+declaration ::= varDecl | constDecl ;
+varDecl     ::= "var" identifier "is" type expr ;
+constDecl   ::= "const" identifier "is" type expr ;
+assignment  ::= "set" identifier "is" expr ;
+
+test       ::= orTest ;
+orTest     ::= andTest    | orTest "or" orTest ;
+andTest    ::= notTest    | andTest "and" andTest ;
+notTest    ::= comparison | "not" notTest ;
+
+comparison ::= addExpr ("<"|">"|"<="|">="|"=") addExpr ;
+addExpr    ::= mulExpr   | addExpr ("+"|"-") addExpr ;
+mulExpr    ::= unaryExpr | mulExpr ("*"|"/"|"%") unaryExpr ;
+unaryExpr  ::= expr      | "-" unaryExpr ;
+
+literal     ::= primitive | compound ;
+compound    ::= listLiteral | mapLiteral ;
+listLiteral ::= "[" listItem* "]" ;
+mapLiteral  ::= "<|" mapItem* "|>" ;
+listItem    ::= expr "," ;
+mapItem     ::= expr ":" expr "," ;
+primitve    ::= "INT" | "FLOAT" | "STRING"
+
+type          ::= primitiveType | compoundType ;
+compoundType  ::= listType | mapType ;
+listType      ::= "list" "[" type "]"
+mapType       ::= "map" "[" type "]" type ;
+primitiveType ::= "int" | "dec" | "str" ;

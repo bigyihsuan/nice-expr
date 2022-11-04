@@ -1,8 +1,8 @@
 package parser_test
 
 import (
-	"nice-expr/lexer"
-	"nice-expr/parser"
+	"nice-expr/src/lexer"
+	"nice-expr/src/parser"
 	"os"
 	"strings"
 	"testing"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestParsePrimitiveLiteral(t *testing.T) {
-	fileName := "./../test/primitive-literal.test.ne"
+	fileName := "./../../test/primitive-literal.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +36,7 @@ func TestParsePrimitiveLiteral(t *testing.T) {
 	}
 }
 func TestParseCompoundLiteral(t *testing.T) {
-	fileName := "./../test/compound-literal.test.ne"
+	fileName := "./../../test/compound-literal.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +62,7 @@ func TestParseCompoundLiteral(t *testing.T) {
 }
 
 func TestParseType(t *testing.T) {
-	fileName := "./../test/type.test.ne"
+	fileName := "./../../test/type.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestParseType(t *testing.T) {
 }
 
 func TestParseAssignments(t *testing.T) {
-	fileName := "./../test/assignments.test.ne"
+	fileName := "./../../test/assignments.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +114,7 @@ func TestParseAssignments(t *testing.T) {
 }
 
 func TestParseUnary(t *testing.T) {
-	fileName := "./../test/unary.test.ne"
+	fileName := "./../../test/unary.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -127,7 +127,7 @@ func TestParseUnary(t *testing.T) {
 		file := lex.NewFile(fileName, strings.NewReader(c))
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
-
+		t.Log(tokens)
 		nicerParser := parser.NewNiceExprParser(tokens)
 		expr, perr := nicerParser.ParseUnary()
 		if perr != nil {

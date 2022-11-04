@@ -3,10 +3,10 @@ package evaluator
 import (
 	"fmt"
 	"math/big"
-	"nice-expr/ast"
-	"nice-expr/token/tokentype"
-	"nice-expr/util"
-	"nice-expr/value"
+	"nice-expr/src/ast"
+	TT "nice-expr/src/token/tokentype"
+	"nice-expr/src/util"
+	"nice-expr/src/value"
 
 	"golang.org/x/exp/slices"
 )
@@ -279,34 +279,20 @@ func (e *Evaluator) EvaluateFunctionCall(funcCall *ast.FunctionCall, typeArgs ..
 	return nil, nil
 }
 
-func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*value.Value, error) {
-	switch expr := expr.(type) {
-	case *ast.PrimitiveLiteral, *ast.ListLiteral, *ast.MapLiteral:
-		return e.EvaluateLiteral(expr, typeArgs...)
-	case *ast.FunctionCall:
-		return e.EvaluateFunctionCall(expr, typeArgs...)
-	case *ast.Identifier:
-		return e.EvaluateIdentifier(expr, typeArgs...)
-	case ast.Declaration:
-		return e.EvaluateDeclaration(expr)
-	}
-	return nil, fmt.Errorf("unknown expr %v", expr)
-}
-
-func (e *Evaluator) EvaluateUnary(unary *ast.UnaryExpr) (*value.Value, error) {
+func (e *Evaluator) EvaluateUnaryExpr(unary *ast.UnaryExpr, typeArgs ...value.ValueType) (*value.Value, error) {
 	val, err := e.EvaluateExpr(unary.Right)
 	if err != nil {
 		return val, err
 	}
 	if unary.Op != nil {
 		switch unary.Op.Tt {
-		case tokentype.Not:
+		case TT.Not:
 			if val.T.NotEqual(value.BoolType) {
 				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
 			}
 			val.V = !val.V.(bool)
 			return val, nil
-		case tokentype.Minus:
+		case TT.Minus:
 			switch {
 			case val.T.Equal(value.IntType):
 				val.V.(*big.Int).Neg(val.V.(*big.Int))
@@ -318,6 +304,52 @@ func (e *Evaluator) EvaluateUnary(unary *ast.UnaryExpr) (*value.Value, error) {
 		}
 	}
 	return val, nil
+}
+func (e *Evaluator) EvaluateBinaryExpr(binary *ast.BinaryExpr, typeArgs ...value.ValueType) (*value.Value, error) {
+	left, err := e.EvaluateExpr(binary.Left)
+	if err != nil {
+		return left, err
+	}
+	right, err := e.EvaluateExpr(binary.Right)
+	if err != nil {
+		return right, err
+	}
+	if binary.Op == nil {
+		return nil, fmt.Errorf("missing operation for binary expr")
+	}
+	switch binary.Op.Tt {
+	// arithmetic
+	case TT.Plus, TT.Minus, TT.Star, TT.Slash, TT.Percent:
+	// comparisons
+	case TT.Equal, TT.Greater, TT.GreaterEqual, TT.Less, TT.LessEqual:
+		// logical
+	case TT.And, TT.Or:
+		// indexing
+	case TT.Underscore:
+	default:
+		return nil, fmt.Errorf("unknown op: got `%s`", binary.Op.Lexeme)
+	}
+	return nil, fmt.Errorf("unknown op: got `%s`", binary.Op.Lexeme)
+}
+
+func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*value.Value, error) {
+	switch expr := expr.(type) {
+	// leaves
+	case *ast.PrimitiveLiteral, *ast.ListLiteral, *ast.MapLiteral:
+		return e.EvaluateLiteral(expr, typeArgs...)
+	case *ast.Identifier:
+		return e.EvaluateIdentifier(expr, typeArgs...)
+	// branches
+	case *ast.FunctionCall:
+		return e.EvaluateFunctionCall(expr, typeArgs...)
+	case *ast.UnaryExpr:
+		return e.EvaluateUnaryExpr(expr, typeArgs...)
+	case *ast.BinaryExpr:
+		return e.EvaluateBinaryExpr(expr, typeArgs...)
+	case *ast.ConstantDeclaration, *ast.VariableDeclaration:
+		return e.EvaluateDeclaration(expr)
+	}
+	return nil, fmt.Errorf("unknown expr %v", expr)
 }
 
 func (e *Evaluator) EvaluateProgram(program ast.Program) error {

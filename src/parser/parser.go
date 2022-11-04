@@ -2,9 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"nice-expr/ast"
-	"nice-expr/token"
-	TT "nice-expr/token/tokentype"
+	"nice-expr/src/ast"
+	"nice-expr/src/token"
+	TT "nice-expr/src/token/tokentype"
 )
 
 type NiceExprParser struct {
@@ -178,6 +178,8 @@ func (p *NiceExprParser) ParseBinary() (ast.Expr, *ParseError) {
 }
 
 func (p *NiceExprParser) ParseExpr() (ast.Expr, *ParseError) {
+	var expr ast.Expr
+	var err *ParseError
 	ok, err := p.optionalToken(TT.Var, "Expr-VarDecl")
 	if err != nil {
 		return nil, err.addRule("Expr")
@@ -226,7 +228,7 @@ func (p *NiceExprParser) ParseExpr() (ast.Expr, *ParseError) {
 	}
 	ok, err = p.optionalToken(TT.LeftParen, "Expr-NestedExprStart")
 	if err != nil {
-		return nil, err.addRule("Expr")
+		return expr, err.addRule("Expr-NestedExprStart")
 	} else if ok {
 		_, err = p.getNextToken("Expr-NestedExprStart")
 		if err != nil {
@@ -240,9 +242,24 @@ func (p *NiceExprParser) ParseExpr() (ast.Expr, *ParseError) {
 		if err != nil {
 			return node, err.addRule("Expr-Nested")
 		}
-		return node, nil
+		expr, err = node, nil
 	}
-	return nil, NewParseError("unknown value expression", nil, "Expr")
+	ok, err = p.checkAny(TT.BinOps, "Expr-BinaryExprOp?")
+	if err != nil {
+		return nil, err.addRule("Expr-BinaryExprOp?")
+	} else if ok {
+		op, err := p.getNextToken("Expr-BinaryExprOp")
+		if err != nil {
+			return nil, err.addRule("Expr-BinaryExprOp")
+		}
+		right, err := p.ParseExpr()
+		if err != nil {
+			return nil, err.addRule("Expr-BinaryExprRight")
+		}
+		return &ast.BinaryExpr{Left: expr, Op: op, Right: right}, nil
+	}
+	return expr, nil
+	// return nil, NewParseError("unknown value expression", nil, "Expr")
 }
 
 func (p *NiceExprParser) ParseVariableDeclaration() (*ast.VariableDeclaration, *ParseError) {

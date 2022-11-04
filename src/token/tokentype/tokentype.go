@@ -112,7 +112,7 @@ var (
 	BinCompOps        = []TokenType{Equal, Greater, GreaterEqual, Less, LessEqual}
 	BinLogOps         = []TokenType{And, Or}
 	AssignmentMathOps = []TokenType{PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
-	BinOps            = append(append(BinMathOps, BinCompOps...), BinLogOps...)
+	BinOps            = append(append(append(BinMathOps, BinCompOps...), BinLogOps...), Underscore)
 	UnaryOps          = []TokenType{Not, Minus}
 )
 

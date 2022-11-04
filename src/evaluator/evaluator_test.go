@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"io"
 	"math/big"
-	"nice-expr/ast"
-	"nice-expr/evaluator"
-	"nice-expr/lexer"
-	"nice-expr/parser"
-	"nice-expr/value"
+	"nice-expr/src/ast"
+	"nice-expr/src/evaluator"
+	"nice-expr/src/lexer"
+	"nice-expr/src/parser"
+	"nice-expr/src/value"
 	"os"
 	"strings"
 	"testing"
@@ -29,7 +29,7 @@ func captureOutput(f func()) string {
 }
 
 func TestEvaluateDeclarations(t *testing.T) {
-	fileName := "./../test/declarations.test.ne"
+	fileName := "./../../test/declarations.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestEvaluateDeclarations(t *testing.T) {
 }
 
 func TestEvaluateNestedDeclarations(t *testing.T) {
-	fileName := "./../test/nested-declarations.test.ne"
+	fileName := "./../../test/nested-declarations.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -251,7 +251,7 @@ func TestEvaluateNestedDeclarations(t *testing.T) {
 }
 
 func TestEvaluateUnary(t *testing.T) {
-	fileName := "./../test/unary.test.ne"
+	fileName := "./../../test/unary.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -273,7 +273,7 @@ func TestEvaluateUnary(t *testing.T) {
 		}
 
 		evaluator := evaluator.NewEvaluator()
-		val, ee := evaluator.EvaluateUnary(expr)
+		val, ee := evaluator.EvaluateUnaryExpr(expr)
 		if ee != nil {
 			t.Fatal(ee)
 		}
@@ -292,7 +292,7 @@ func TestEvaluateUnary(t *testing.T) {
 }
 
 func TestEvaluateBuiltinFunctionsPrint(t *testing.T) {
-	fileName := "./../test/func-builtin-print.test.ne"
+	fileName := "./../../test/func-builtin-print.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -340,7 +340,7 @@ line
 	assert.Equal(t, expected, output)
 }
 func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
-	fileName := "./../test/func-builtin-len.test.ne"
+	fileName := "./../../test/func-builtin-len.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -378,7 +378,7 @@ func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
 }
 
 func TestEvaluateBinaryOperators(t *testing.T) {
-	fileName := "./../test/func-builtin-len.test.ne"
+	fileName := "./../../test/func-builtin-len.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)

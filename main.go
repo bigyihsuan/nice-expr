@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"nice-expr/evaluator"
-	"nice-expr/lexer"
-	"nice-expr/parser"
+	"nice-expr/src/evaluator"
+	"nice-expr/src/lexer"
+	"nice-expr/src/parser"
 	"os"
 
 	"github.com/db47h/lex"

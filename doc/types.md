@@ -31,6 +31,31 @@ Each type has a zero value when declared on a variable with no explicit assignme
 
 All operations' outputs match their left value type.
 
+### Precedence
+
+From highest (first executed) to lowest (last executed).
+Operators on the same row have the same precedence and are grouped left-to-right.
+
+| Op Kind          | Operator      |
+| ---------------- | ------------- |
+| Parens           | `()`          |
+| Indexing         | `_`           |
+| Unary Minus, Not | `-a, not a`   |
+| Multiplication   | `* / %`       |
+| Addition         | `+ -`         |
+| Comparisons      | `< > <= >= =` |
+| Logical          | `and or`      |
+
+#### BNF
+
+* <https://docs.python.org/3/reference/expressions.html>
+* <https://go.dev/ref/spec#Expressions>
+
+```ebnf
+Expr ::= IndexingExpr | "(" Expr ")";
+IndexingExpr ::= UnaryExpr "_" Expr;
+```
+
 ### Unary
 
 | Op    | `int`  | `dec`  | `str` | `bool` | `list[T]` | `map[K]V` |

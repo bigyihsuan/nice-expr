@@ -2,8 +2,8 @@ package ast
 
 import (
 	"fmt"
-	"nice-expr/token"
-	"nice-expr/value"
+	"nice-expr/src/token"
+	"nice-expr/src/value"
 	"strings"
 )
 
@@ -17,7 +17,7 @@ type Expr interface{ Node }
 
 type BinaryExpr struct {
 	Expr
-	Left, Right *UnaryExpr
+	Left, Right Expr
 	Op          *token.Token
 }
 

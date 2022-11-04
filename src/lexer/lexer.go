@@ -2,8 +2,8 @@ package lexer
 
 import (
 	"fmt"
-	"nice-expr/token"
-	TT "nice-expr/token/tokentype"
+	"nice-expr/src/token"
+	TT "nice-expr/src/token/tokentype"
 	"unicode"
 
 	"github.com/db47h/lex"
