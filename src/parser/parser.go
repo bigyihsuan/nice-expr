@@ -5,15 +5,20 @@ import (
 	"nice-expr/src/ast"
 	"nice-expr/src/token"
 	TT "nice-expr/src/token/tokentype"
+	"nice-expr/src/util"
+
+	"golang.org/x/exp/slices"
 )
 
 type NiceExprParser struct {
-	Tokens    []token.Token
-	lastToken *token.Token
+	Tokens     []token.Token
+	lastTokens *util.Stack[token.Token]
 }
 
 func NewNiceExprParser(tokens []token.Token) NiceExprParser {
-	return NiceExprParser{tokens, &token.Token{Tt: TT.EOF, Lexeme: "EOF", CodePos: -1, Line: -1, Start: -1, End: -1}}
+	stack := new(util.Stack[token.Token])
+	stack.Push(token.Token{Tt: TT.EOF, Lexeme: "EOF", CodePos: -1, Line: -1, Start: -1, End: -1})
+	return NiceExprParser{tokens, stack}
 }
 
 func (p NiceExprParser) hasMore() bool {
@@ -21,72 +26,90 @@ func (p NiceExprParser) hasMore() bool {
 }
 
 // consume and return the next token in the token queue.
-func (p *NiceExprParser) getNextToken(lastRule string) (*token.Token, *ParseError) {
+func (p *NiceExprParser) getNextToken() (*token.Token, *ParseError) {
 	if !p.hasMore() {
-		return nil, NewParseError("out of tokens", nil, lastRule)
+		return nil, NewParseError("out of tokens", nil, "getNextToken")
 	}
 	tok := p.Tokens[0]
 	p.Tokens = p.Tokens[1:]
-	p.lastToken = &tok
+	p.lastTokens.Push(tok)
 	return &tok, nil
 }
 
 // peek at the front of the token queue.
-func (p *NiceExprParser) peekToken(lastRule string) (*token.Token, *ParseError) {
+func (p *NiceExprParser) peekToken() (*token.Token, *ParseError) {
 	if !p.hasMore() {
-		return nil, NewParseError("out of tokens", nil, lastRule)
+		return nil, NewParseError("out of tokens", nil, "peekToken")
 	}
 	return &(p.Tokens[0]), nil
 }
 
 // put the last-consumed token back onto the front of the token queue.
 func (p *NiceExprParser) putBackToken() {
-	p.Tokens = append([]token.Token{*p.lastToken}, p.Tokens...)
+	tok, err := p.lastTokens.Pop()
+	if err != nil {
+		return
+	}
+	p.Tokens = append([]token.Token{tok}, p.Tokens...)
 }
 
 // consume a token and determine if it is of a desired token type.
-func (p *NiceExprParser) expectToken(tokType TT.TokenType, lastRule string) (*token.Token, *ParseError) {
-	token, err := p.getNextToken(lastRule)
+func (p *NiceExprParser) expectToken(tokType TT.TokenType) (*token.Token, *ParseError) {
+	token, err := p.getNextToken()
 	if err != nil {
-		return token, err
+		return token, err.addRule("expectToken")
 	}
 	if token.Tt != tokType {
-		return nil, NewParseError(fmt.Sprintf("expected token `%v`", tokType), token, lastRule)
+		return nil, NewParseError(fmt.Sprintf("expected token `%v`", tokType), token, "expectToken")
 	}
 	return token, nil
 }
 
 // consume a token and determine if it is one of a desired token type.
-func (p *NiceExprParser) expectAny(tokTypes []TT.TokenType, lastRule string) (*token.Token, *ParseError) {
-	token, err := p.getNextToken(lastRule)
+func (p *NiceExprParser) expectAny(tokTypes []TT.TokenType) (*token.Token, *ParseError) {
+	token, err := p.getNextToken()
 	if err != nil {
-		return nil, err.addRule(lastRule)
+		return nil, err.addRule("expectAny")
 	}
 	for _, tokType := range tokTypes {
 		if token.Tt == tokType {
 			return token, nil
 		}
 	}
-	return nil, NewParseError(fmt.Sprintf("expected one of %v", tokTypes), token, lastRule)
+	return nil, NewParseError(fmt.Sprintf("expected one of %v", tokTypes), token, "expectAny")
 }
 
 // peek at a token and determine if it is of a desired token type.
-func (p *NiceExprParser) checkToken(tokType TT.TokenType, lastRule string) (bool, *ParseError) {
-	token, err := p.peekToken(lastRule)
+func (p *NiceExprParser) checkToken(tokType TT.TokenType) (bool, *ParseError) {
+	token, err := p.peekToken()
 	if err != nil {
-		return false, err.addRule(lastRule)
+		return false, err.addRule("checkToken")
 	}
 	if token.Tt != tokType {
-		return false, NewParseError(fmt.Sprintf("expected token `%v`", tokType), token, lastRule)
+		return false, NewParseError(fmt.Sprintf("expected token `%v`", tokType), token, "checkToken")
 	}
 	return true, nil
 }
 
 // peek at a token and determine if it is of a desired token type.
-func (p *NiceExprParser) optionalToken(tokType TT.TokenType, lastRule string) (bool, *ParseError) {
-	token, err := p.peekToken(lastRule)
+func (p *NiceExprParser) checkAny(tokTypes []TT.TokenType) (bool, *ParseError) {
+	token, err := p.peekToken()
 	if err != nil {
-		return false, err.addRule(lastRule)
+		return false, err.addRule("checkToken")
+	}
+	for _, tokType := range tokTypes {
+		if token.Tt == tokType {
+			return true, nil
+		}
+	}
+	return false, NewParseError(fmt.Sprintf("expected one of %v", tokTypes), token, "checkAny")
+}
+
+// peek at a token and determine if it is of a desired token type.
+func (p *NiceExprParser) optionalToken(tokType TT.TokenType) (bool, *ParseError) {
+	token, err := p.peekToken()
+	if err != nil {
+		return false, err.addRule("optionalToken")
 	}
 	if token.Tt != tokType {
 		return false, nil
@@ -95,10 +118,10 @@ func (p *NiceExprParser) optionalToken(tokType TT.TokenType, lastRule string) (b
 }
 
 // peek at a token and determine if it is of one of a desired token type.
-func (p *NiceExprParser) checkAny(tokTypes []TT.TokenType, lastRule string) (bool, *ParseError) {
-	token, err := p.peekToken(lastRule)
+func (p *NiceExprParser) optionalAny(tokTypes []TT.TokenType) (bool, *ParseError) {
+	token, err := p.peekToken()
 	if err != nil {
-		return false, err.addRule(lastRule)
+		return false, err.addRule("optionalAny")
 	}
 	for _, tokType := range tokTypes {
 		if token.Tt == tokType {
@@ -108,10 +131,10 @@ func (p *NiceExprParser) checkAny(tokTypes []TT.TokenType, lastRule string) (boo
 	return false, nil
 }
 
-func (p *NiceExprParser) ParseProgram() (ast.Program, *ParseError) {
+func (p *NiceExprParser) Program() (ast.Program, *ParseError) {
 	var program ast.Program
 	for p.hasMore() {
-		stmt, err := p.ParseStatement()
+		stmt, err := p.Statement()
 		if err != nil {
 			return program, err.addRule("Program")
 		}
@@ -120,403 +143,535 @@ func (p *NiceExprParser) ParseProgram() (ast.Program, *ParseError) {
 	return program, nil
 }
 
-func (p *NiceExprParser) ParseStatement() (ast.Node, *ParseError) {
-	node, err := p.ParseExpr()
+func (p *NiceExprParser) Statement() (ast.Node, *ParseError) {
+	node, err := p.Expr()
 	if err != nil {
 		return node, err.addRule("Statement")
 	}
-	_, err = p.expectToken(TT.Semicolon, "Statement-Semicolon")
+	_, err = p.expectToken(TT.Semicolon)
 	if err != nil {
-		return node, err.addRule("Statement")
+		return node, err.addRule("Statement.Semicolon")
 	}
 	return node, nil
 }
 
-func (p *NiceExprParser) ParseUnary() (*ast.UnaryExpr, *ParseError) {
-	unary := new(ast.UnaryExpr)
-	ok, err := p.checkAny(TT.UnaryOps, "Unary-Op")
-	if err != nil {
-		return nil, err.addRule("Unary-Op")
-	} else if ok {
-		op, err := p.getNextToken("Unary-Op")
-		if err != nil {
-			return unary, err.addRule("Unary-Op")
-		}
-		unary.Op = op
-	}
-	expr, err := p.ParseExpr()
-	if err != nil {
-		return unary, err.addRule("Unary-Expr")
-	}
-	unary.Right = expr
-	return unary, nil
-}
-
-// ValueExpr := Unary (Op Unary)
-func (p *NiceExprParser) ParseBinary() (ast.Expr, *ParseError) {
-	var binary = new(ast.BinaryExpr)
-	var err *ParseError
-
-	binary.Left, err = p.ParseUnary()
-	if err != nil {
-		return binary, err.addRule("Binary-Left")
-	}
-	if ok, err := p.checkAny(TT.BinOps, "Binary-Op"); err != nil {
-		return binary, err.addRule("Binary-Op")
-	} else if !ok {
-		return binary.Left, nil
-	}
-	binary.Op, err = p.getNextToken("Binary-Op")
-	if err != nil {
-		return binary, err.addRule("Binary-Op")
-	}
-	binary.Right, err = p.ParseUnary()
-	if err != nil {
-		return binary, err.addRule("Binary-Right")
-	}
-	return binary, nil
-}
-
-func (p *NiceExprParser) ParseExpr() (ast.Expr, *ParseError) {
+func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 	var expr ast.Expr
-	var err *ParseError
-	ok, err := p.optionalToken(TT.Var, "Expr-VarDecl")
-	if err != nil {
-		return nil, err.addRule("Expr")
-	} else if ok {
-		return p.ParseVariableDeclaration()
-	}
-	ok, err = p.optionalToken(TT.Const, "Expr-ConstDecl")
-	if err != nil {
-		return nil, err.addRule("Expr")
-	} else if ok {
-		return p.ParseConstantDeclaration()
-	}
-	ok, err = p.optionalToken(TT.Set, "Expr-Assignment")
-	if err != nil {
-		return nil, err.addRule("Expr")
-	} else if ok {
-		return p.ParseAssignment()
-	}
-	ok, err = p.checkAny(TT.PrimitiveLiterals, "Expr-PrimitiveLiterals")
-	if err != nil {
-		return nil, err.addRule("Expr")
-	} else if ok {
-		return p.ParsePrimitiveLiteral()
-	}
-	ok, err = p.checkAny(TT.CompositeLiteralStarts, "Expr-CompositeLiteralStarts")
-	if err != nil {
-		return nil, err.addRule("Expr")
-	} else if ok {
-		return p.ParseCompoundLiteral()
-	}
-	ok, err = p.optionalToken(TT.Identifier, "Expr-Identifier")
-	if err != nil {
-		return nil, err.addRule("Expr")
-	} else if ok {
-		p.getNextToken("Expr-IsFunctionCall?")
-		ok, err := p.optionalToken(TT.LeftParen, "Expr-IsFunctionCall?")
+	var err *ParseError = nil
+
+	switch tok, err := p.peekToken(); {
+	case err != nil:
+		return expr, err.addRule("Expr")
+	case slices.Contains(TT.Literals, tok.Tt):
+		expr, err = p.Literal()
 		if err != nil {
-			return nil, err.addRule("Expr-IsFunctionCall?")
-		} else if ok {
-			p.putBackToken()
-			return p.ParseFunctionCall()
-		} else {
-			p.putBackToken()
-			return p.ParseIdentifier()
+			return expr, err.addRule("Expr.Literal")
+		}
+	case slices.Contains(TT.VarConstSet, tok.Tt):
+		expr, err = p.AssOrDecl()
+		if err != nil {
+			return expr, err.addRule("Expr.AssOrDecl")
+		}
+	case tok.Tt == TT.Identifier:
+		expr, err = p.IdentifierOrFuncCall()
+		if err != nil {
+			return expr, err.addRule("Expr.IdentOrFuncCall")
+		}
+	case tok.Tt == TT.LeftParen:
+		p.getNextToken()
+		expr, err = p.Expr()
+		if err != nil {
+			return expr, err.addRule("Expr.ParenExpr")
+		}
+		if _, err := p.expectToken(TT.RightParen); err != nil {
+			return expr, err.addRule("Expr.ParenExprEnd")
 		}
 	}
-	ok, err = p.optionalToken(TT.LeftParen, "Expr-NestedExprStart")
-	if err != nil {
-		return expr, err.addRule("Expr-NestedExprStart")
-	} else if ok {
-		_, err = p.getNextToken("Expr-NestedExprStart")
-		if err != nil {
-			return nil, err.addRule("Expr-Nested")
-		}
-		node, err := p.ParseExpr()
-		if err != nil {
-			return node, err.addRule("Expr-Nested")
-		}
-		_, err = p.expectToken(TT.RightParen, "Expr-NestedExprEnd")
-		if err != nil {
-			return node, err.addRule("Expr-Nested")
-		}
-		expr, err = node, nil
-	}
-	ok, err = p.checkAny(TT.BinOps, "Expr-BinaryExprOp?")
-	if err != nil {
-		return nil, err.addRule("Expr-BinaryExprOp?")
-	} else if ok {
-		op, err := p.getNextToken("Expr-BinaryExprOp")
-		if err != nil {
-			return nil, err.addRule("Expr-BinaryExprOp")
-		}
-		right, err := p.ParseExpr()
-		if err != nil {
-			return nil, err.addRule("Expr-BinaryExprRight")
-		}
-		return &ast.BinaryExpr{Left: expr, Op: op, Right: right}, nil
-	}
-	return expr, nil
+	return expr, err
 	// return nil, NewParseError("unknown value expression", nil, "Expr")
 }
 
-func (p *NiceExprParser) ParseVariableDeclaration() (*ast.VariableDeclaration, *ParseError) {
-	expr := new(ast.VariableDeclaration)
-	_, err := p.expectToken(TT.Var, "VariableDeclaration-Var")
-	if err != nil {
-		return expr, err.addRule("VariableDeclaration")
+func (p *NiceExprParser) Unary() (*ast.UnaryExpr, *ParseError) {
+	unary := new(ast.UnaryExpr)
+	var err *ParseError
+	if op, err := p.expectToken(TT.Minus); err != nil {
+		return nil, err.addRule("Unary.Op")
+	} else {
+		unary.Op = op
 	}
-	name, err := p.ParseIdentifier()
-	if err != nil {
-		return expr, err.addRule("VariableDeclaration")
+	if unary.Right, err = p.Expr(); err != nil {
+		return unary, err.addRule("Unary.Expr")
 	}
-	_, err = p.expectToken(TT.Is, "VariableDeclaration-Is")
-	if err != nil {
-		return expr, err.addRule("VariableDeclaration")
-	}
-	typeExpr, err := p.ParseType()
-	if err != nil {
-		return expr, err.addRule("VariableDeclaration")
-	}
-	value, err := p.ParseExpr()
-	if err != nil {
-		return expr, err.addRule("VariableDeclaration")
-	}
-	expr.Name = name
-	expr.Type = typeExpr
-	expr.Value = value
-	return expr, nil
+	return unary, nil
 }
-func (p *NiceExprParser) ParseConstantDeclaration() (*ast.ConstantDeclaration, *ParseError) {
-	expr := new(ast.ConstantDeclaration)
-	_, err := p.expectToken(TT.Const, "ConstantDeclaration-Const")
-	if err != nil {
-		return expr, err.addRule("ConstantDeclaration")
+
+// test ::= orTest ;
+func (p *NiceExprParser) Test() (ast.Expr, *ParseError) {
+	return p.OrTest()
+}
+
+// orTest ::= andTest | orTest "or" orTest ;
+func (p *NiceExprParser) OrTest() (ast.Expr, *ParseError) {
+	orTest := new(ast.BinaryExpr)
+	var err *ParseError
+	if orTest.Left, err = p.AndTest(); err != nil {
+		return orTest, err.addRule("OrTest.AndTest")
 	}
-	name, err := p.ParseIdentifier()
-	if err != nil {
-		return expr, err.addRule("ConstantDeclaration")
+	if ok, err := p.optionalToken(TT.Or); err != nil {
+		return orTest, err.addRule("OrTest.Or?")
+	} else if !ok {
+		// andTest only
+		return orTest.Left, nil
 	}
-	_, err = p.expectToken(TT.Is, "ConstantDeclaration-Is")
-	if err != nil {
-		return expr, err.addRule("ConstantDeclaration")
+	// orTest "or" orTest
+	if orTest.Op, err = p.expectToken(TT.Or); err != nil {
+		return orTest, err.addRule("OrTest.Or")
 	}
-	typeExpr, err := p.ParseType()
-	if err != nil {
-		return expr, err.addRule("ConstantDeclaration")
+	if orTest.Right, err = p.OrTest(); err != nil {
+		return orTest, err.addRule("OrTest.OrTest")
 	}
-	value, err := p.ParseExpr()
+	return orTest, nil
+}
+
+// andTest ::= notTest | andTest "and" andTest ;
+func (p *NiceExprParser) AndTest() (ast.Expr, *ParseError) {
+	andTest := new(ast.BinaryExpr)
+	var err *ParseError
+	if andTest.Left, err = p.NotTest(); err != nil {
+		return andTest, err.addRule("AndTest.NotTest")
+	}
+	if ok, err := p.optionalToken(TT.Or); err != nil {
+		return andTest, err.addRule("AndTest.And?")
+	} else if !ok {
+		// notTest only
+		return andTest.Left, nil
+	}
+	// andTest "and" andTest
+	if andTest.Op, err = p.expectToken(TT.Or); err != nil {
+		return andTest, err.addRule("AndTest.And")
+	}
+	if andTest.Right, err = p.AndTest(); err != nil {
+		return andTest, err.addRule("AndTest.AndTest")
+	}
+	return andTest, nil
+}
+
+// notTest ::= comparison | "not" notTest ;
+func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
+	notTest := new(ast.UnaryExpr)
+	var ok bool
+	var err *ParseError
+	if ok, err = p.optionalToken(TT.Not); err != nil {
+		return notTest, err.addRule("NotTest.Not?")
+	} else if !ok {
+		// just a comparison
+		return p.Comparison()
+	}
+	// "not" notTest
+	if notTest.Op, err = p.expectToken(TT.Not); err != nil {
+		return notTest, err.addRule("NotTest.Not")
+	}
+	if notTest.Right, err = p.NotTest(); err != nil {
+		return notTest, err.addRule("NotTest.NotTest")
+	}
+	return notTest, nil
+}
+
+// comparison ::= addExpr (("<"|">"|"<="|">="|"=") comparison)* ;
+func (p *NiceExprParser) Comparison() (ast.Expr, *ParseError) {
+	comparison := new(ast.BinaryExpr)
+	var err *ParseError
+	// required left addExpr
+	if comparison.Left, err = p.AddExpr(); err != nil {
+		return comparison, err.addRule("Comparison.AddExprRightLeft")
+	}
+	if ok, err := p.optionalAny(TT.ComparisonOps); err != nil {
+		return comparison, err.addRule("Comparison.ComparisonOp?")
+	} else if !ok {
+		// only "addExpr"
+		return comparison.Left, nil
+	}
+	if comparison.Op, err = p.expectAny(TT.ComparisonOps); err != nil {
+		return comparison, err.addRule("Comparison.ComparisonOp")
+	}
+	// optional right comparison
+	if comparison.Right, err = p.Comparison(); err != nil {
+		return comparison, err.addRule("Comparison.AddExprRight")
+	}
+	return comparison, nil
+}
+
+// addExpr ::= mulExpr | addExpr ("+"|"-") addExpr ;
+func (p *NiceExprParser) AddExpr() (ast.Expr, *ParseError) {
+	addExpr := new(ast.BinaryExpr)
+	var err *ParseError
+	if addExpr.Left, err = p.MulExpr(); err != nil {
+		return addExpr, err.addRule("AddExpr.MulExpr")
+	}
+	if ok, err := p.optionalAny(TT.AddOps); err != nil {
+		return addExpr, err.addRule("AddExpr.AddOp?")
+	} else if !ok {
+		// only "mulExpr"
+		return addExpr.Left, nil
+	}
+	if addExpr.Op, err = p.expectAny(TT.AddOps); err != nil {
+		return addExpr, err.addRule("AddExpr.AddOp")
+	}
+	if addExpr.Right, err = p.AddExpr(); err != nil {
+		return addExpr, err.addRule("AddExpr.AddExprRight")
+	}
+	return addExpr, nil
+}
+
+// mulExpr ::= unaryExpr | mulExpr ("*"|"/"|"%") mulExpr ;
+func (p *NiceExprParser) MulExpr() (ast.Expr, *ParseError) {
+	mulExpr := new(ast.BinaryExpr)
+	var err *ParseError
+	if mulExpr.Left, err = p.UnaryExpr(); err != nil {
+		return mulExpr, err.addRule("MulExpr.UnaryExpr")
+	}
+	if ok, err := p.optionalAny(TT.MulOps); err != nil {
+		return mulExpr, err.addRule("MulExpr.MulOp?")
+	} else if !ok {
+		// only "unaryExpr"
+		return mulExpr.Left, nil
+	}
+	if mulExpr.Op, err = p.expectAny(TT.MulOps); err != nil {
+		return mulExpr, err.addRule("MulExpr.MulOp")
+	}
+	if mulExpr.Right, err = p.MulExpr(); err != nil {
+		return mulExpr, err.addRule("MulExpr.MulExprRight")
+	}
+	return mulExpr, nil
+}
+
+// unaryExpr ::= expr | "-" unaryExpr ;
+func (p *NiceExprParser) UnaryExpr() (ast.Expr, *ParseError) {
+	unaryExpr := new(ast.UnaryExpr)
+	var ok bool
+	var err *ParseError
+	if ok, err = p.optionalToken(TT.Minus); err != nil {
+		return unaryExpr, err.addRule("UnaryExpr.Minus?")
+	} else if !ok {
+		// just a comparison
+		return p.Comparison()
+	}
+	// "-" unaryExpr
+	if unaryExpr.Op, err = p.expectToken(TT.Minus); err != nil {
+		return unaryExpr, err.addRule("UnaryExpr.Minus")
+	}
+	if unaryExpr.Right, err = p.UnaryExpr(); err != nil {
+		return unaryExpr, err.addRule("UnaryExpr.UnaryExpr")
+	}
+	return unaryExpr, nil
+}
+
+func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
+	switch tok, err := p.peekToken(); {
+	case tok.Tt == TT.Var:
+		return p.VariableDeclaration()
+	case tok.Tt == TT.Const:
+		return p.ConstantDeclaration()
+	case tok.Tt == TT.Set:
+		return p.Assignment()
+	case err != nil:
+		return nil, err.addRule("AssOrDecl.Start")
+	default:
+		return nil, NewParseError("unknown leading token", nil, "AssOrDecl.Start")
+	}
+}
+
+func (p *NiceExprParser) IdentifierOrFuncCall() (ast.Expr, *ParseError) {
+	ident, err := p.expectToken(TT.Identifier)
 	if err != nil {
-		return expr, err.addRule("ConstantDeclaration")
+		return ident, err.addRule("IdentifierOrFuncCall.Ident")
+	}
+	if ok, err := p.optionalToken(TT.LeftParen); err != nil {
+		return ident, err.addRule("IdentifierOrFuncCall.FuncCall?")
+	} else if ok {
+		p.putBackToken() // put back the ident for
+		return p.FunctionCall()
+	} else {
+		// ident
+		return ident, nil
+	}
+}
+
+func (p *NiceExprParser) VariableDeclaration() (*ast.VariableDeclaration, *ParseError) {
+	expr := new(ast.VariableDeclaration)
+	if _, err := p.expectToken(TT.Const); err != nil {
+		return expr, err.addRule("VariableDeclaration.Var")
+	}
+	name, err := p.Identifier()
+	if err != nil {
+		return expr, err.addRule("VariableDeclaration")
 	}
 	expr.Name = name
+	if _, err = p.expectToken(TT.Is); err != nil {
+		return expr, err.addRule("VariableDeclaration.Is")
+	}
+	typeExpr, err := p.Type()
+	if err != nil {
+		return expr, err.addRule("VariableDeclaration.Type")
+	}
 	expr.Type = typeExpr
+	value, err := p.Expr()
+	if err != nil {
+		return expr, err.addRule("VariableDeclaration.Value")
+	}
 	expr.Value = value
 	return expr, nil
 }
 
-func (p *NiceExprParser) ParseAssignment() (*ast.Assignment, *ParseError) {
+func (p *NiceExprParser) ConstantDeclaration() (*ast.ConstantDeclaration, *ParseError) {
+	expr := new(ast.ConstantDeclaration)
+	if _, err := p.expectToken(TT.Const); err != nil {
+		return expr, err.addRule("ConstantDeclaration.Const")
+	}
+	name, err := p.Identifier()
+	if err != nil {
+		return expr, err.addRule("ConstantDeclaration")
+	}
+	expr.Name = name
+	if _, err = p.expectToken(TT.Is); err != nil {
+		return expr, err.addRule("ConstantDeclaration.Is")
+	}
+	typeExpr, err := p.Type()
+	if err != nil {
+		return expr, err.addRule("ConstantDeclaration.Type")
+	}
+	expr.Type = typeExpr
+	value, err := p.Expr()
+	if err != nil {
+		return expr, err.addRule("ConstantDeclaration.Value")
+	}
+	expr.Value = value
+	return expr, nil
+}
+
+func (p *NiceExprParser) Assignment() (*ast.Assignment, *ParseError) {
 	ae := new(ast.Assignment)
-	_, err := p.expectToken(TT.Set, "Assignment-Set")
-	if err != nil {
-		return ae, err.addRule("Assignment")
+
+	if _, err := p.expectToken(TT.Set); err != nil {
+		return ae, err.addRule("Assignment.Set")
 	}
-	name, err := p.ParseIdentifier()
+	name, err := p.Identifier()
 	if err != nil {
-		return ae, err.addRule("Assignment")
-	}
-	op, err := p.expectAny(TT.AssignmentOperations, "Assignment-Op")
-	if err != nil {
-		return ae, err.addRule("Assignment")
-	}
-	value, err := p.ParseExpr()
-	if err != nil {
-		return ae, err.addRule("Assignment")
+		return ae, err.addRule("Assignment.Identifier")
 	}
 	ae.Name = name
+	op, err := p.expectAny(TT.AssignmentOperations)
+	if err != nil {
+		return ae, err.addRule("Assignment.AssignmentOp")
+	}
 	ae.Op = op
+	value, err := p.Expr()
+	if err != nil {
+		return ae, err.addRule("Assignment.Value")
+	}
 	ae.Value = value
 	return ae, nil
 }
 
-func (p *NiceExprParser) ParseIdentifier() (*ast.Identifier, *ParseError) {
+func (p *NiceExprParser) Identifier() (*ast.Identifier, *ParseError) {
 	id := new(ast.Identifier)
-	token, err := p.expectToken(TT.Identifier, "Identifier-CheckIdentifier")
+	token, err := p.expectToken(TT.Identifier)
 	if err != nil {
-		return id, err.addRule("Identifier")
+		return id, err.addRule("Identifier.CheckIdentifier")
 	} else if token == nil {
-		return id, NewParseError("invalid token for literal", token, "Identifier-CheckIdentifier")
+		return id, NewParseError("invalid token for literal", token, "Identifier.CheckIdentifier")
 	}
 	id.Name = token
 	return id, nil
 }
-func (p *NiceExprParser) ParseFunctionCall() (*ast.FunctionCall, *ParseError) {
+
+func (p *NiceExprParser) FunctionCall() (*ast.FunctionCall, *ParseError) {
 	funcCall := new(ast.FunctionCall)
-	ident, err := p.ParseIdentifier()
+	ident, err := p.Identifier()
 	if err != nil {
 		return funcCall, err.addRule("FunctionCall")
 	}
-	if _, err := p.expectToken(TT.LeftParen, "FunctionCall-ArgsStart"); err != nil {
-		return funcCall, err.addRule("FunctionCall-ArgsStart")
+	if _, err := p.expectToken(TT.LeftParen); err != nil {
+		return funcCall, err.addRule("FunctionCall.ArgsStart")
 	}
 	funcCall.Identifier = ident
-	for {
-		if ok, err := p.optionalToken(TT.RightParen, "FunctionCall-ArgsEnd"); err != nil {
-			return funcCall, err.addRule("FunctionCall-Arguments")
-		} else if ok {
-			break
-		}
-		arg, err := p.ParseExpr()
-		if err != nil {
-			return funcCall, err.addRule("FunctionCall-Arguments")
-		}
-		_, err = p.expectToken(TT.Comma, "FunctionCall-ItemComma")
-		if err != nil {
-			return funcCall, err.addRule("FunctionCall-Arguments")
-		}
-		funcCall.Arguments = append(funcCall.Arguments, arg)
+	funcCall.Arguments, err = p.ParseExprList(TT.RightParen)
+	if err != nil {
+		return funcCall, err.addRule("FuncCall.Arguments")
 	}
-	if _, err := p.expectToken(TT.RightParen, "FunctionCall-ArgsEnd"); err != nil {
-		return funcCall, err.addRule("FunctionCall-ArgsEnd")
+	if _, err := p.expectToken(TT.RightParen); err != nil {
+		return funcCall, err.addRule("FunctionCall.ArgsEnd")
 	}
 	return funcCall, nil
 }
 
-func (p *NiceExprParser) ParseLiteral() (ast.Literal, *ParseError) {
-	ok, err := p.checkAny(TT.CompositeLiteralStarts, "Literal-Start")
-	if err != nil {
-		return nil, err.addRule("Literal")
-	} else if ok {
-		return p.ParseCompoundLiteral()
+func (p *NiceExprParser) ParseExprList(endingToken TT.TokenType) ([]ast.Expr, *ParseError) {
+	l := []ast.Expr{}
+	for {
+		if ok, err := p.optionalToken(endingToken); err != nil {
+			return l, err.addRule("ExprList.Ending")
+		} else if ok {
+			break
+		}
+		expr, err := p.Expr()
+		if err != nil {
+			return l, err.addRule("ExprList.Expr")
+		}
+		if _, err = p.expectToken(TT.Comma); err != nil {
+			return l, err.addRule("ExprList.Comma")
+		}
+		l = append(l, expr)
 	}
-	return p.ParsePrimitiveLiteral()
+	return l, nil
 }
 
-func (p *NiceExprParser) ParsePrimitiveLiteral() (*ast.PrimitiveLiteral, *ParseError) {
-	pe := new(ast.PrimitiveLiteral)
-	token, err := p.expectAny(TT.PrimitiveLiterals, "Literal-CheckLiteral")
+func (p *NiceExprParser) Literal() (ast.Literal, *ParseError) {
+	ok, err := p.checkAny(TT.CompositeLiteralStarts)
 	if err != nil {
-		return pe, err.addRule("PrimitiveLiteral")
+		return nil, err.addRule("Literal.Start")
+	} else if ok {
+		return p.CompoundLiteral()
+	}
+	return p.PrimitiveLiteral()
+}
+
+func (p *NiceExprParser) PrimitiveLiteral() (*ast.PrimitiveLiteral, *ParseError) {
+	pe := new(ast.PrimitiveLiteral)
+	token, err := p.expectAny(TT.PrimitiveLiterals)
+	if err != nil {
+		return pe, err.addRule("PrimitiveLiteral.CheckLiteral")
 	} else if token == nil {
-		return pe, NewParseError("invalid token for literal", token, "Literal-CheckLiteral")
+		return pe, NewParseError("invalid token for literal", token, "Literal.CheckLiteral")
 	}
 	pe.Token = token
 	return pe, nil
 }
 
-func (p *NiceExprParser) ParseCompoundLiteral() (ast.CompoundLiteral, *ParseError) {
-	ok, err := p.optionalToken(TT.LeftBracket, "CompoundLiteral-List?")
+func (p *NiceExprParser) CompoundLiteral() (ast.CompoundLiteral, *ParseError) {
+	ok, err := p.optionalToken(TT.LeftBracket)
 	if err != nil {
-		return nil, err.addRule("CompoundLiteral")
+		return nil, err.addRule("CompoundLiteral.List?")
 	} else if ok {
-		return p.ParseListLiteral()
+		return p.ListLiteral()
 	}
-	ok, err = p.optionalToken(TT.LeftTriangle, "CompoundLiteral-Map?")
+	ok, err = p.optionalToken(TT.LeftTriangle)
 	if err != nil {
-		return nil, err.addRule("CompoundLiteral")
+		return nil, err.addRule("CompoundLiteral.Map?")
 	} else if ok {
-		return p.ParseMapLiteral()
+		return p.MapLiteral()
 	}
 	return nil, NewParseError("unknown compound literal start", nil, "CompoundLiteral")
 }
 
-func (p *NiceExprParser) ParseListLiteral() (*ast.ListLiteral, *ParseError) {
+func (p *NiceExprParser) ListLiteral() (*ast.ListLiteral, *ParseError) {
 	l := new(ast.ListLiteral)
-	_, err := p.expectToken(TT.LeftBracket, "ListLiteral-Start")
+	var err *ParseError
+	_, err = p.expectToken(TT.LeftBracket)
 	if err != nil {
-		return nil, err.addRule("ListLiteral")
+		return nil, err.addRule("ListLiteral.Start")
 	}
-	for {
-		// list items are comma-separated, and trailing comma is needed
-		ok, err := p.optionalToken(TT.RightBracket, "ListLiteral-End")
-		if err != nil {
-			return l, err.addRule("ListLiteral-Elements")
-		} else if ok {
-			break
-		}
-		value, err := p.ParseExpr()
-		if err != nil {
-			return l, err.addRule("ListLiteral-Elements")
-		}
-		_, err = p.expectToken(TT.Comma, "ListLiteral-ItemComma")
-		if err != nil {
-			return l, err.addRule("ListLiteral-Elements")
-		}
-		l.Values = append(l.Values, value)
-	}
-	_, err = p.expectToken(TT.RightBracket, "ListLiteral-End")
+	l.Values, err = p.ListElements()
 	if err != nil {
-		return l, err
+		return l, err.addRule("ListLiteral.ListElements")
+	}
+	if _, err = p.expectToken(TT.RightBracket); err != nil {
+		return l, err.addRule("ListLiteral.End")
 	}
 	return l, nil
 }
-func (p *NiceExprParser) ParseMapLiteral() (*ast.MapLiteral, *ParseError) {
-	m := new(ast.MapLiteral)
-	m.Values = make(map[ast.Expr]ast.Expr)
-	_, err := p.expectToken(TT.LeftTriangle, "MapLiteral-Start")
-	if err != nil {
-		return nil, err.addRule("MapLiteral")
-	}
+
+func (p *NiceExprParser) ListElements() ([]ast.Expr, *ParseError) {
+	l := []ast.Expr{}
 	for {
-		// list items are comma-separated, and trailing comma is needed
-		ok, err := p.optionalToken(TT.RightTriangle, "MapLiteral-End")
-		if err != nil {
-			return m, err.addRule("MapLiteral-Entry")
+		// list items are comma.separated, and trailing comma is needed
+		if ok, err := p.checkToken(TT.RightBracket); err != nil {
+			return l, err.addRule("ListElements.End")
 		} else if ok {
 			break
 		}
-		key, err := p.ParseExpr()
+		value, err := p.Expr()
 		if err != nil {
-			return m, err.addRule("MapLiteral-Entry")
+			return l, err.addRule("ListElements.Elements")
 		}
-		_, err = p.expectToken(TT.Colon, "MapLiteral-ItemColon")
-		if err != nil {
-			return m, err.addRule("MapLiteral-Entry")
+		if _, err = p.expectToken(TT.Comma); err != nil {
+			return l, err.addRule("ListElements.Elements")
 		}
-		value, err := p.ParseExpr()
-		if err != nil {
-			return m, err.addRule("MapLiteral-Entry")
-		}
-		_, err = p.expectToken(TT.Comma, "MapLiteral-ItemComma")
-		if err != nil {
-			return m, err.addRule("MapLiteral-Entry")
-		}
-		m.Values[key] = value
+		l = append(l, value)
 	}
-	_, err = p.expectToken(TT.RightTriangle, "MapLiteral-End")
+	return l, nil
+}
+
+func (p *NiceExprParser) MapLiteral() (*ast.MapLiteral, *ParseError) {
+	m := new(ast.MapLiteral)
+	var err *ParseError
+	if _, err := p.expectToken(TT.LeftTriangle); err != nil {
+		return nil, err.addRule("MapLiteral")
+	}
+	m.Values, err = p.MapEntries()
 	if err != nil {
+		return m, err.addRule("MapLiteral.MapEntries")
+	}
+	if _, err = p.expectToken(TT.RightTriangle); err != nil {
 		return m, err
 	}
 	return m, nil
 }
 
-func (p *NiceExprParser) ParseType() (ast.Type, *ParseError) {
-	ok, err := p.checkAny(TT.PrimitiveTypes, "Type-CheckPrimitive")
+func (p *NiceExprParser) MapEntries() (map[ast.Expr]ast.Expr, *ParseError) {
+	m := make(map[ast.Expr]ast.Expr)
+	for {
+		// list items are comma.separated, and trailing comma is needed
+		if ok, err := p.checkToken(TT.RightTriangle); err != nil {
+			return m, err.addRule("MapEntry.End")
+		} else if ok {
+			break
+		}
+		key, err := p.Expr()
+		if err != nil {
+			return m, err.addRule("MapEntry.Key")
+		}
+		_, err = p.expectToken(TT.Colon)
+		if err != nil {
+			return m, err.addRule("MapEntry.Colon")
+		}
+		value, err := p.Expr()
+		if err != nil {
+			return m, err.addRule("MapEntry.Value")
+		}
+		_, err = p.expectToken(TT.Comma)
+		if err != nil {
+			return m, err.addRule("MapEntry.Comma")
+		}
+		m[key] = value
+	}
+	return m, nil
+}
+
+func (p *NiceExprParser) Type() (ast.Type, *ParseError) {
+	ok, err := p.checkAny(TT.PrimitiveTypes)
 	if err != nil {
 		return nil, err.addRule("Type")
 	} else if ok {
-		return p.ParsePrimitiveType()
+		return p.PrimitiveType()
 	}
-	ok, err = p.checkAny(TT.CompoundTypes, "Type-CheckComposite")
+	ok, err = p.checkAny(TT.CompoundTypes)
 	if err != nil {
 		return nil, err.addRule("Type")
 	} else if ok && err == nil {
-		return p.ParseCompoundType()
+		return p.CompoundType()
 	}
-	ok, err = p.checkToken(TT.Func, "Type-CheckFunc")
+	ok, err = p.checkToken(TT.Func)
 	if err != nil {
 		return nil, err.addRule("Type")
 	} else if ok {
-		return p.ParseFuncType()
+		return p.FuncType()
 	}
 	return nil, NewParseError("type not found", nil, "Type")
 }
 
-func (p *NiceExprParser) ParsePrimitiveType() (*ast.PrimitiveType, *ParseError) {
+func (p *NiceExprParser) PrimitiveType() (*ast.PrimitiveType, *ParseError) {
 	pt := new(ast.PrimitiveType)
-	name, err := p.expectAny(TT.PrimitiveTypes, "PrimitiveType")
+	name, err := p.expectAny(TT.PrimitiveTypes)
 	if err != nil {
 		return nil, err.addRule("PrimitiveType")
 	}
@@ -527,108 +682,121 @@ func (p *NiceExprParser) ParsePrimitiveType() (*ast.PrimitiveType, *ParseError) 
 	return pt, nil
 }
 
-func (p *NiceExprParser) ParseCompoundType() (ast.Type, *ParseError) {
-	ok, err := p.optionalToken(TT.List, "CompoundType-List")
+func (p *NiceExprParser) CompoundType() (ast.Type, *ParseError) {
+	ok, err := p.optionalToken(TT.List)
 	if err != nil {
-		return nil, err.addRule("CompoundType")
+		return nil, err.addRule("CompoundType.List")
 	} else if ok && err == nil {
-		return p.ParseListType()
+		return p.ListType()
 	}
-	ok, err = p.optionalToken(TT.Map, "CompoundType-Map")
+	ok, err = p.optionalToken(TT.Map)
 	if err != nil {
-		return nil, err.addRule("CompoundType")
+		return nil, err.addRule("CompoundType.Map")
 	} else if ok && err == nil {
-		return p.ParseMapType()
+		return p.MapType()
 	}
 	return nil, NewParseError("expected `list` or `map`", nil, "CompoundType")
 }
 
-func (p *NiceExprParser) ParseListType() (*ast.ListType, *ParseError) {
+func (p *NiceExprParser) ListType() (*ast.ListType, *ParseError) {
 	lte := new(ast.ListType)
-	_, err := p.expectToken(TT.List, "ListType-List")
+	_, err := p.expectToken(TT.List)
 	if err != nil {
-		return lte, err.addRule("ListType")
+		return lte, err.addRule("ListType.List")
 	}
-	_, err = p.expectToken(TT.LeftBracket, "ListType-LeftBracket")
+	_, err = p.expectToken(TT.LeftBracket)
 	if err != nil {
-		return lte, err.addRule("ListType")
+		return lte, err.addRule("ListType.Start")
 	}
-	valueType, err := p.ParseType()
+	valueType, err := p.Type()
 	if err != nil {
-		return lte, err.addRule("ListType")
+		return lte, err.addRule("ListType.Value")
 	}
-	_, err = p.expectToken(TT.RightBracket, "ListType-RightBracket")
+	_, err = p.expectToken(TT.RightBracket)
 	if err != nil {
-		return lte, err.addRule("ListType")
+		return lte, err.addRule("ListType.End")
 	}
 	lte.ValueType = valueType
 	return lte, nil
 }
 
-func (p *NiceExprParser) ParseMapType() (*ast.MapType, *ParseError) {
+func (p *NiceExprParser) MapType() (*ast.MapType, *ParseError) {
 	mte := new(ast.MapType)
-	_, err := p.expectToken(TT.Map, "MapType-Map")
+	_, err := p.expectToken(TT.Map)
 	if err != nil {
-		return mte, err.addRule("MapType")
+		return mte, err.addRule("MapType.Map")
 	}
-	_, err = p.expectToken(TT.LeftBracket, "MapType-LeftBracket")
+	_, err = p.expectToken(TT.LeftBracket)
 	if err != nil {
-		return mte, err.addRule("MapType")
+		return mte, err.addRule("MapType.KeyStart")
 	}
-	keyType, err := p.ParseType()
+	keyType, err := p.Type()
 	if err != nil {
-		return mte, err.addRule("MapType")
+		return mte, err.addRule("MapType.Key")
 	}
-	_, err = p.expectToken(TT.RightBracket, "MapType-RightBracket")
+	_, err = p.expectToken(TT.RightBracket)
 	if err != nil {
-		return mte, err.addRule("MapType")
+		return mte, err.addRule("MapType.KeyEnd")
 	}
-	valueType, err := p.ParseType()
+	valueType, err := p.Type()
 	if err != nil {
-		return mte, err.addRule("MapType")
+		return mte, err.addRule("MapType.Value")
 	}
 	mte.KeyType = keyType
 	mte.ValueType = valueType
 	return mte, nil
 }
 
-func (p *NiceExprParser) ParseFuncType() (*ast.FuncType, *ParseError) {
+func (p *NiceExprParser) FuncType() (*ast.FuncType, *ParseError) {
 	fte := new(ast.FuncType)
-	_, err := p.expectToken(TT.Func, "FuncType-Func")
+	_, err := p.expectToken(TT.Func)
 	if err != nil {
 		return fte, nil
 	}
-	_, err = p.expectToken(TT.LeftParen, "FuncType-ArgsStart")
-	if err != nil {
-		return fte, nil
+	if _, err = p.expectToken(TT.LeftParen); err != nil {
+		return fte, err.addRule("FuncType.InputTypesStart")
 	}
-	// arguments
-	for {
-		ok, err := p.optionalToken(TT.RightParen, "FuncType-ArgsEnd")
+	if ok, err := p.checkToken(TT.RightParen); err != nil {
+		return fte, err.addRule("FuncType.InputTypesEnd")
+	} else if !ok {
+		fte.InputTypes, err = p.TypeList()
 		if err != nil {
-			return fte, err.addRule("FuncType")
-		} else if ok {
-			_, err := p.getNextToken("FuncType-ArgsEnd")
-			if err != nil {
-				return fte, err.addRule("FuncType")
-			}
-			break
+			return fte, err.addRule("FuncType.InputTypes")
 		}
-		t, err := p.ParseType()
-		if err != nil {
-			return fte, err.addRule("FuncType")
-		}
-		_, err = p.expectToken(TT.Comma, "FuncType-CommaBetweenArgs")
-		if err != nil {
-			return fte, err.addRule("FuncType")
-		}
-		fte.InputTypes = append(fte.InputTypes, t)
+	}
+	if _, err := p.expectToken(TT.RightParen); err != nil {
+		return fte, err.addRule("FuncType.InputTypesEnd")
 	}
 	// output type, optional
-	out, err := p.ParseType()
-	if err != nil {
-		return fte, err.addRule("FuncType")
+	if ok, err := p.checkAny(TT.Types); err != nil {
+		return fte, err.addRule("FuncType.CheckOutputType")
+	} else if ok {
+		out, err := p.Type()
+		if err != nil {
+			return fte, err.addRule("FuncType.OutputType")
+		}
+		fte.OutputType = out
 	}
-	fte.OutputType = out
 	return fte, nil
+}
+
+func (p *NiceExprParser) TypeList() ([]ast.Type, *ParseError) {
+	types := []ast.Type{}
+
+	for {
+		if ok, err := p.checkAny(TT.Types); err != nil {
+			return types, err.addRule("TypeList.MoreTypes?")
+		} else if !ok {
+			break
+		}
+		t, err := p.Type()
+		if err != nil {
+			return types, err.addRule("TypeList.Type")
+		}
+		if _, err = p.expectToken(TT.Comma); err != nil {
+			return types, err.addRule("TypeList.Comma")
+		}
+		types = append(types, t)
+	}
+	return types, nil
 }

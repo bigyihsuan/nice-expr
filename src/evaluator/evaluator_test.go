@@ -39,7 +39,7 @@ func TestEvaluateDeclarations(t *testing.T) {
 	tokens := nicerLexer.LexAll()
 	nicerParser := parser.NewNiceExprParser(tokens)
 
-	program, pe := nicerParser.ParseProgram()
+	program, pe := nicerParser.Program()
 	if len(program.Statements) <= 0 {
 		t.Fatal("parsed nil")
 	}
@@ -166,7 +166,7 @@ func TestEvaluateNestedDeclarations(t *testing.T) {
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 
-	program, pe := nicerParser.ParseProgram()
+	program, pe := nicerParser.Program()
 	if pe != nil {
 		t.Fatal(pe)
 	}
@@ -264,7 +264,7 @@ func TestEvaluateUnary(t *testing.T) {
 		tokens := nicerLexer.LexAll()
 
 		nicerParser := parser.NewNiceExprParser(tokens)
-		expr, perr := nicerParser.ParseUnary()
+		expr, perr := nicerParser.Unary()
 		if perr != nil {
 			t.Fatal(perr)
 		}
@@ -304,7 +304,7 @@ func TestEvaluateBuiltinFunctionsPrint(t *testing.T) {
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 
-	program, pe := nicerParser.ParseProgram()
+	program, pe := nicerParser.Program()
 	if pe != nil {
 		t.Fatal(pe)
 	}
@@ -352,7 +352,7 @@ func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 
-	program, pe := nicerParser.ParseProgram()
+	program, pe := nicerParser.Program()
 	if pe != nil {
 		t.Fatal(pe)
 	}
@@ -390,7 +390,7 @@ func TestEvaluateBinaryOperators(t *testing.T) {
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 
-	program, pe := nicerParser.ParseProgram()
+	program, pe := nicerParser.Program()
 	if pe != nil {
 		t.Fatal(pe)
 	}

@@ -102,11 +102,18 @@ var Keywords = map[string]TokenType{
 var (
 	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String, True, False}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
+	Literals               = append(PrimitiveLiterals, CompositeLiteralStarts...)
 
 	PrimitiveTypes       = []TokenType{None, Int, Dec, Str, Bool}
 	CompoundTypes        = []TokenType{List, Map}
 	Types                = append(PrimitiveTypes, CompoundTypes...)
 	AssignmentOperations = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
+
+	ComparisonOps = []TokenType{Equal, Greater, GreaterEqual, Less, LessEqual}
+	AddOps        = []TokenType{Plus, Minus}
+	MulOps        = []TokenType{Star, Slash, Percent}
+
+	VarConstSet = []TokenType{Var, Const, Set}
 
 	BinMathOps        = []TokenType{Plus, Minus, Star, Slash, Percent}
 	BinCompOps        = []TokenType{Equal, Greater, GreaterEqual, Less, LessEqual}

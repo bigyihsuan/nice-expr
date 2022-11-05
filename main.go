@@ -29,7 +29,7 @@ func main() {
 	tokens := nicerLexer.LexAll()
 
 	nicerParser := parser.NewNiceExprParser(tokens)
-	program, pe := nicerParser.ParseProgram()
+	program, pe := nicerParser.Program()
 	if pe != nil {
 		fmt.Fprintln(os.Stderr, pe)
 		return

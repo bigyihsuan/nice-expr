@@ -25,7 +25,7 @@ func TestParsePrimitiveLiteral(t *testing.T) {
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
 		nicerParser := parser.NewNiceExprParser(tokens)
-		expr, perr := nicerParser.ParsePrimitiveLiteral()
+		expr, perr := nicerParser.PrimitiveLiteral()
 		if perr != nil {
 			t.Fatal(perr)
 		}
@@ -50,7 +50,7 @@ func TestParseCompoundLiteral(t *testing.T) {
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
 		nicerParser := parser.NewNiceExprParser(tokens)
-		expr, perr := nicerParser.ParseCompoundLiteral()
+		expr, perr := nicerParser.CompoundLiteral()
 		if perr != nil {
 			t.Fatal(perr)
 		}
@@ -76,7 +76,7 @@ func TestParseType(t *testing.T) {
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
 		nicerParser := parser.NewNiceExprParser(tokens)
-		typeExpr, perr := nicerParser.ParseType()
+		typeExpr, perr := nicerParser.Type()
 		if perr != nil {
 			t.Fatal(perr)
 		}
@@ -102,7 +102,7 @@ func TestParseAssignments(t *testing.T) {
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
 		nicerParser := parser.NewNiceExprParser(tokens)
-		expr, perr := nicerParser.ParseStatement()
+		expr, perr := nicerParser.Statement()
 		if perr != nil {
 			t.Fatal(perr)
 		}
@@ -129,7 +129,7 @@ func TestParseUnary(t *testing.T) {
 		tokens := nicerLexer.LexAll()
 		t.Log(tokens)
 		nicerParser := parser.NewNiceExprParser(tokens)
-		expr, perr := nicerParser.ParseUnary()
+		expr, perr := nicerParser.Unary()
 		if perr != nil {
 			t.Fatal(perr)
 		}
