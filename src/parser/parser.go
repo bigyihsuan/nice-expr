@@ -86,7 +86,7 @@ func (p *NiceExprParser) checkToken(tokType TT.TokenType) (bool, *ParseError) {
 		return false, err.addRule("checkToken")
 	}
 	if token.Tt != tokType {
-		return false, NewParseError(fmt.Sprintf("expected token `%v`", tokType), token, "checkToken")
+		return false, nil
 	}
 	return true, nil
 }
@@ -102,7 +102,7 @@ func (p *NiceExprParser) checkAny(tokTypes []TT.TokenType) (bool, *ParseError) {
 			return true, nil
 		}
 	}
-	return false, NewParseError(fmt.Sprintf("expected one of %v", tokTypes), token, "checkAny")
+	return false, nil
 }
 
 // peek at a token and determine if it is of a desired token type.
@@ -162,22 +162,7 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 	switch tok, err := p.peekToken(); {
 	case err != nil:
 		return expr, err.addRule("Expr")
-	case slices.Contains(TT.Literals, tok.Tt):
-		expr, err = p.Literal()
-		if err != nil {
-			return expr, err.addRule("Expr.Literal")
-		}
-	case slices.Contains(TT.VarConstSet, tok.Tt):
-		expr, err = p.AssOrDecl()
-		if err != nil {
-			return expr, err.addRule("Expr.AssOrDecl")
-		}
-	case tok.Tt == TT.Identifier:
-		expr, err = p.IdentifierOrFuncCall()
-		if err != nil {
-			return expr, err.addRule("Expr.IdentOrFuncCall")
-		}
-	case tok.Tt == TT.LeftParen:
+	case tok.Tt == TT.LeftParen: // nested
 		p.getNextToken()
 		expr, err = p.Expr()
 		if err != nil {
@@ -186,79 +171,103 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 		if _, err := p.expectToken(TT.RightParen); err != nil {
 			return expr, err.addRule("Expr.ParenExprEnd")
 		}
+	case slices.Contains(TT.Literals, tok.Tt): // primary
+		expr, err = p.Literal()
+		if err != nil {
+			return expr, err.addRule("Expr.Literal")
+		}
+		return expr, err
+	case tok.Tt == TT.Identifier: // primary
+		expr, err = p.IdentifierOrFuncCall()
+		if err != nil {
+			return expr, err.addRule("Expr.IdentOrFuncCall")
+		}
+		return expr, err
+	case slices.Contains(TT.VarConstSet, tok.Tt): // decl or assignment
+		expr, err = p.AssOrDecl()
+		if err != nil {
+			return expr, err.addRule("Expr.AssOrDecl")
+		}
+		return expr, err
+	default:
+		return p.Test()
 	}
 	return expr, err
 	// return nil, NewParseError("unknown value expression", nil, "Expr")
 }
 
-func (p *NiceExprParser) Unary() (*ast.UnaryExpr, *ParseError) {
-	unary := new(ast.UnaryExpr)
-	var err *ParseError
-	if op, err := p.expectToken(TT.Minus); err != nil {
-		return nil, err.addRule("Unary.Op")
-	} else {
-		unary.Op = op
-	}
-	if unary.Right, err = p.Expr(); err != nil {
-		return unary, err.addRule("Unary.Expr")
-	}
-	return unary, nil
-}
-
-// test ::= orTest ;
+// test ::= notTest | test ("and"|"or") test ;
 func (p *NiceExprParser) Test() (ast.Expr, *ParseError) {
-	return p.OrTest()
-}
-
-// orTest ::= andTest | orTest "or" orTest ;
-func (p *NiceExprParser) OrTest() (ast.Expr, *ParseError) {
-	orTest := new(ast.BinaryExpr)
+	test := new(ast.BinaryExpr)
 	var err *ParseError
-	if orTest.Left, err = p.AndTest(); err != nil {
-		return orTest, err.addRule("OrTest.AndTest")
+	if test.Left, err = p.NotTest(); err != nil {
+		return test, err.addRule("Test.NotTest")
 	}
-	if ok, err := p.optionalToken(TT.Or); err != nil {
-		return orTest, err.addRule("OrTest.Or?")
-	} else if !ok {
-		// andTest only
-		return orTest.Left, nil
-	}
-	// orTest "or" orTest
-	if orTest.Op, err = p.expectToken(TT.Or); err != nil {
-		return orTest, err.addRule("OrTest.Or")
-	}
-	if orTest.Right, err = p.OrTest(); err != nil {
-		return orTest, err.addRule("OrTest.OrTest")
-	}
-	return orTest, nil
-}
-
-// andTest ::= notTest | andTest "and" andTest ;
-func (p *NiceExprParser) AndTest() (ast.Expr, *ParseError) {
-	andTest := new(ast.BinaryExpr)
-	var err *ParseError
-	if andTest.Left, err = p.NotTest(); err != nil {
-		return andTest, err.addRule("AndTest.NotTest")
-	}
-	if ok, err := p.optionalToken(TT.Or); err != nil {
-		return andTest, err.addRule("AndTest.And?")
+	if ok, err := p.optionalAny(TT.BinLogOps); err != nil {
+		return test, err.addRule("Test.LogOp?")
 	} else if !ok {
 		// notTest only
-		return andTest.Left, nil
+		return test.Left, nil
 	}
-	// andTest "and" andTest
-	if andTest.Op, err = p.expectToken(TT.Or); err != nil {
-		return andTest, err.addRule("AndTest.And")
+	// test "and" test
+	if test.Op, err = p.expectAny(TT.BinLogOps); err != nil {
+		return test, err.addRule("Test.And")
 	}
-	if andTest.Right, err = p.AndTest(); err != nil {
-		return andTest, err.addRule("AndTest.AndTest")
+	if test.Right, err = p.Test(); err != nil {
+		return test, err.addRule("Test.Test")
 	}
-	return andTest, nil
+	return test, nil
 }
+
+// // orTest ::= andTest | orTest "or" orTest ;
+// func (p *NiceExprParser) OrTest() (ast.Expr, *ParseError) {
+// 	orTest := new(ast.BinaryExpr)
+// 	var err *ParseError
+// 	if orTest.Left, err = p.AndTest(); err != nil {
+// 		return orTest, err.addRule("OrTest.AndTest")
+// 	}
+// 	if ok, err := p.optionalToken(TT.Or); err != nil {
+// 		return orTest, err.addRule("OrTest.Or?")
+// 	} else if !ok {
+// 		// andTest only
+// 		return orTest.Left, nil
+// 	}
+// 	// orTest "or" orTest
+// 	if orTest.Op, err = p.expectToken(TT.Or); err != nil {
+// 		return orTest, err.addRule("OrTest.Or")
+// 	}
+// 	if orTest.Right, err = p.OrTest(); err != nil {
+// 		return orTest, err.addRule("OrTest.OrTest")
+// 	}
+// 	return orTest, nil
+// }
+
+// // andTest ::= notTest | andTest "and" andTest ;
+// func (p *NiceExprParser) AndTest() (ast.Expr, *ParseError) {
+// 	andTest := new(ast.BinaryExpr)
+// 	var err *ParseError
+// 	if andTest.Left, err = p.NotTest(); err != nil {
+// 		return andTest, err.addRule("AndTest.NotTest")
+// 	}
+// 	if ok, err := p.optionalToken(TT.Or); err != nil {
+// 		return andTest, err.addRule("AndTest.And?")
+// 	} else if !ok {
+// 		// notTest only
+// 		return andTest.Left, nil
+// 	}
+// 	// andTest "and" andTest
+// 	if andTest.Op, err = p.expectToken(TT.Or); err != nil {
+// 		return andTest, err.addRule("AndTest.And")
+// 	}
+// 	if andTest.Right, err = p.AndTest(); err != nil {
+// 		return andTest, err.addRule("AndTest.AndTest")
+// 	}
+// 	return andTest, nil
+// }
 
 // notTest ::= comparison | "not" notTest ;
 func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
-	notTest := new(ast.UnaryExpr)
+	notTest := new(ast.UnaryMinusExpr)
 	var ok bool
 	var err *ParseError
 	if ok, err = p.optionalToken(TT.Not); err != nil {
@@ -323,17 +332,17 @@ func (p *NiceExprParser) AddExpr() (ast.Expr, *ParseError) {
 	return addExpr, nil
 }
 
-// mulExpr ::= unaryExpr | mulExpr ("*"|"/"|"%") mulExpr ;
+// mulExpr ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
 func (p *NiceExprParser) MulExpr() (ast.Expr, *ParseError) {
 	mulExpr := new(ast.BinaryExpr)
 	var err *ParseError
-	if mulExpr.Left, err = p.UnaryExpr(); err != nil {
-		return mulExpr, err.addRule("MulExpr.UnaryExpr")
+	if mulExpr.Left, err = p.UnaryMinusExpr(); err != nil {
+		return mulExpr, err.addRule("MulExpr.UnaryMinusExpr")
 	}
 	if ok, err := p.optionalAny(TT.MulOps); err != nil {
 		return mulExpr, err.addRule("MulExpr.MulOp?")
 	} else if !ok {
-		// only "unaryExpr"
+		// only "unaryMinusExpr"
 		return mulExpr.Left, nil
 	}
 	if mulExpr.Op, err = p.expectAny(TT.MulOps); err != nil {
@@ -345,25 +354,25 @@ func (p *NiceExprParser) MulExpr() (ast.Expr, *ParseError) {
 	return mulExpr, nil
 }
 
-// unaryExpr ::= expr | "-" unaryExpr ;
-func (p *NiceExprParser) UnaryExpr() (ast.Expr, *ParseError) {
-	unaryExpr := new(ast.UnaryExpr)
+// unaryMinusExpr ::= expr | "-" unaryMinusExpr ;
+func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
+	unaryMinusExpr := new(ast.UnaryMinusExpr)
 	var ok bool
 	var err *ParseError
 	if ok, err = p.optionalToken(TT.Minus); err != nil {
-		return unaryExpr, err.addRule("UnaryExpr.Minus?")
+		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus?")
 	} else if !ok {
 		// just a comparison
-		return p.Comparison()
+		return p.Expr()
 	}
-	// "-" unaryExpr
-	if unaryExpr.Op, err = p.expectToken(TT.Minus); err != nil {
-		return unaryExpr, err.addRule("UnaryExpr.Minus")
+	// "-" unaryMinusExpr
+	if unaryMinusExpr.Op, err = p.expectToken(TT.Minus); err != nil {
+		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus")
 	}
-	if unaryExpr.Right, err = p.UnaryExpr(); err != nil {
-		return unaryExpr, err.addRule("UnaryExpr.UnaryExpr")
+	if unaryMinusExpr.Right, err = p.UnaryMinusExpr(); err != nil {
+		return unaryMinusExpr, err.addRule("UnaryMinusExpr.UnaryMinusExpr")
 	}
-	return unaryExpr, nil
+	return unaryMinusExpr, nil
 }
 
 func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
@@ -389,17 +398,17 @@ func (p *NiceExprParser) IdentifierOrFuncCall() (ast.Expr, *ParseError) {
 	if ok, err := p.optionalToken(TT.LeftParen); err != nil {
 		return ident, err.addRule("IdentifierOrFuncCall.FuncCall?")
 	} else if ok {
-		p.putBackToken() // put back the ident for
+		p.putBackToken() // put back the ident for func call
 		return p.FunctionCall()
 	} else {
-		// ident
-		return ident, nil
+		p.putBackToken() // put back the ident for ident
+		return p.Identifier()
 	}
 }
 
 func (p *NiceExprParser) VariableDeclaration() (*ast.VariableDeclaration, *ParseError) {
 	expr := new(ast.VariableDeclaration)
-	if _, err := p.expectToken(TT.Const); err != nil {
+	if _, err := p.expectToken(TT.Var); err != nil {
 		return expr, err.addRule("VariableDeclaration.Var")
 	}
 	name, err := p.Identifier()
@@ -494,7 +503,7 @@ func (p *NiceExprParser) FunctionCall() (*ast.FunctionCall, *ParseError) {
 	if _, err := p.expectToken(TT.LeftParen); err != nil {
 		return funcCall, err.addRule("FunctionCall.ArgsStart")
 	}
-	funcCall.Identifier = ident
+	funcCall.Ident = ident
 	funcCall.Arguments, err = p.ParseExprList(TT.RightParen)
 	if err != nil {
 		return funcCall, err.addRule("FuncCall.Arguments")
@@ -757,15 +766,15 @@ func (p *NiceExprParser) FuncType() (*ast.FuncType, *ParseError) {
 		return fte, err.addRule("FuncType.InputTypesStart")
 	}
 	if ok, err := p.checkToken(TT.RightParen); err != nil {
-		return fte, err.addRule("FuncType.InputTypesEnd")
-	} else if !ok {
-		fte.InputTypes, err = p.TypeList()
-		if err != nil {
-			return fte, err.addRule("FuncType.InputTypes")
+		return fte, err.addRule("FuncType.InputTypesEnd?")
+	} else if ok {
+		if _, err := p.expectToken(TT.RightParen); err != nil {
+			return fte, err.addRule("FuncType.InputTypesEnd")
 		}
 	}
-	if _, err := p.expectToken(TT.RightParen); err != nil {
-		return fte, err.addRule("FuncType.InputTypesEnd")
+	fte.InputTypes, err = p.TypeList()
+	if err != nil {
+		return fte, err.addRule("FuncType.InputTypes")
 	}
 	// output type, optional
 	if ok, err := p.checkAny(TT.Types); err != nil {

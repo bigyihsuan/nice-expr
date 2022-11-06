@@ -8,6 +8,7 @@ import (
 	"nice-expr/src/evaluator"
 	"nice-expr/src/lexer"
 	"nice-expr/src/parser"
+	"nice-expr/src/util"
 	"nice-expr/src/value"
 	"os"
 	"strings"
@@ -162,7 +163,7 @@ func TestEvaluateNestedDeclarations(t *testing.T) {
 	file := lex.NewFile(fileName, bytes.NewReader(test))
 	nicerLexer := lexer.NewLexer(file)
 	tokens := nicerLexer.LexAll()
-	// t.Log(tokens)
+	t.Log(tokens)
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 
@@ -250,43 +251,45 @@ func TestEvaluateNestedDeclarations(t *testing.T) {
 	t.Log("ValueStack:", evaluator.ValueStack)
 }
 
-func TestEvaluateUnary(t *testing.T) {
-	fileName := "./../../test/unary.test.ne"
-	test, err := os.ReadFile(fileName)
-	if err != nil {
-		t.Fatal(err)
+func TestEvaluateUnaryMinus(t *testing.T) {
+	cases := []util.TestCase{
+		{Code: "89", Expected: int64(89), ExpectedType: value.IntType},
+		{Code: "-89", Expected: int64(-89), ExpectedType: value.IntType},
+		{Code: "12.34", Expected: float64(12.34), ExpectedType: value.DecType},
+		{Code: "-12.34", Expected: float64(-12.34), ExpectedType: value.DecType},
+		{Code: "-0", Expected: int64(0), ExpectedType: value.IntType},
 	}
-	cases := strings.Split(string(test), "\n")
-	expected := []interface{}{false, int64(-89), float64(-2.34), true, int64(89), float64(2.34)}
-	for i, c := range cases {
-		file := lex.NewFile(fileName, strings.NewReader(c))
+	for _, tc := range cases {
+		file := lex.NewFile(tc.Code, strings.NewReader(tc.Code))
 		nicerLexer := lexer.NewLexer(file)
 		tokens := nicerLexer.LexAll()
-
+		t.Log(tokens)
 		nicerParser := parser.NewNiceExprParser(tokens)
-		expr, perr := nicerParser.Unary()
+		expr, perr := nicerParser.UnaryMinusExpr()
 		if perr != nil {
 			t.Fatal(perr)
 		}
 		if expr == nil {
 			t.Fatal("parsed nil")
 		}
-
 		evaluator := evaluator.NewEvaluator()
-		val, ee := evaluator.EvaluateUnaryExpr(expr)
+		val, ee := evaluator.EvaluateUnaryMinusExpr(expr)
 		if ee != nil {
 			t.Fatal(ee)
 		}
-
 		switch {
-		case val.T.Equal(value.IntType):
-			assert.Equal(t, expected[i], val.V.(*big.Int).Int64())
-		case val.T.Equal(value.DecType):
-			f, _ := val.V.(*big.Float).Float64()
-			assert.Equal(t, expected[i], f)
-		case val.T.Equal(value.BoolType):
-			assert.Equal(t, expected[i], val.V.(bool))
-
+		case tc.ExpectedType.Is(value.IntType):
+			i, err := val.Int()
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.Expected, i)
+		case tc.ExpectedType.Is(value.DecType):
+			f, err := val.Dec()
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.Expected, f)
 		}
 	}
 }
@@ -329,7 +332,6 @@ this is a line
 true
 false
 [1,2,3,4,5,]
-<|1:a,2:b,|>
 multiplestringsinasinglecall
 each
 on
@@ -348,7 +350,7 @@ func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
 	file := lex.NewFile(fileName, bytes.NewReader(test))
 	nicerLexer := lexer.NewLexer(file)
 	tokens := nicerLexer.LexAll()
-	// t.Log(tokens)
+	t.Log(tokens)
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 
@@ -359,7 +361,7 @@ func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
 	if len(program.Statements) <= 0 {
 		t.Fatal("parsed nil")
 	}
-	// t.Log(program)
+	t.Log(program)
 
 	evaluator := evaluator.NewEvaluator()
 

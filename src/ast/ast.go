@@ -25,13 +25,13 @@ func (e BinaryExpr) String() string {
 	return fmt.Sprintf("(%v)%s(%v)", e.Left, e.Op.Lexeme, e.Right)
 }
 
-type UnaryExpr struct {
+type UnaryMinusExpr struct {
 	Expr
 	Op    *token.Token
 	Right Expr
 }
 
-func (e UnaryExpr) String() string {
+func (e UnaryMinusExpr) String() string {
 	return fmt.Sprintf("%s(%v)", e.Op.Lexeme, e.Right)
 }
 
@@ -92,17 +92,17 @@ type Identifier struct {
 }
 
 func (id Identifier) String() string {
-	return id.Name.Lexeme
+	return fmt.Sprintf("(Identifier %s)", id.Name.Lexeme)
 }
 
 type FunctionCall struct {
 	Expr
-	*Identifier
+	Ident     *Identifier
 	Arguments []Expr
 }
 
 func (fn FunctionCall) String() string {
-	return fmt.Sprintf("{%s %s}", fn.Name, fn.Arguments)
+	return fmt.Sprintf("(%s (%s))", fn.Ident, fn.Arguments)
 }
 
 // Assignment := Name is Value
@@ -114,7 +114,7 @@ type Assignment struct {
 }
 
 func (ae Assignment) String() string {
-	return fmt.Sprintf("set %v %v %v", ae.Name, ae.Op.Lexeme, ae.Value)
+	return fmt.Sprintf("(set (%v) (%v) (%v))", ae.Name, ae.Op.Lexeme, ae.Value)
 }
 
 // Declaration := Name Type is Value
@@ -131,7 +131,7 @@ type VariableDeclaration struct {
 }
 
 func (ae VariableDeclaration) String() string {
-	return fmt.Sprintf("var %v %v is (%v)", ae.Name, ae.Type, ae.Value)
+	return fmt.Sprintf("(var (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
 }
 
 // Constant := const Name Type is Value
@@ -143,7 +143,7 @@ type ConstantDeclaration struct {
 }
 
 func (ae ConstantDeclaration) String() string {
-	return fmt.Sprintf("const %v %v is (%v)", ae.Name, ae.Type, ae.Value)
+	return fmt.Sprintf("(const (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
 }
 
 // --- TYPES --- //

@@ -2,6 +2,7 @@ package value
 
 import (
 	"fmt"
+	"math/big"
 	"nice-expr/src/token/tokentype"
 	"strings"
 
@@ -49,7 +50,8 @@ func (v Value) Sprint() string {
 		return b.String()
 	} else if v.T.Is(MapType) {
 		b.WriteString("<|")
-		for key, val := range v.V.(map[*Value]*Value) {
+		m := v.V.(map[*Value]*Value)
+		for key, val := range m {
 			b.WriteString(key.Sprint())
 			b.WriteRune(':')
 			b.WriteString(val.Sprint())
@@ -59,6 +61,26 @@ func (v Value) Sprint() string {
 		return b.String()
 	}
 	return fmt.Sprint(v.V)
+}
+
+func (v Value) Int() (int64, error) {
+	if val, ok := v.V.(*big.Int); ok {
+		return val.Int64(), nil
+	}
+	return 0, fmt.Errorf("incorrect type for Int: %s", v.T.String())
+}
+func (v Value) Dec() (float64, error) {
+	if val, ok := v.V.(*big.Float); ok {
+		valf, _ := val.Float64()
+		return valf, nil
+	}
+	return 0.0, fmt.Errorf("incorrect type for Dec: %s", v.T.String())
+}
+func (v Value) Str() (string, error) {
+	if val, ok := v.V.(string); ok {
+		return val, nil
+	}
+	return "", fmt.Errorf("incorrect type for Str: %s", v.T.String())
 }
 
 type ValueType struct {

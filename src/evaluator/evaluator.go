@@ -215,7 +215,7 @@ func (e *Evaluator) EvaluateDeclaration(decl ast.Declaration) (*value.Value, err
 }
 
 func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs ...value.ValueType) (*value.Value, error) {
-	switch funcCall.Name.Lexeme {
+	switch funcCall.Ident.Name.Lexeme {
 	case "print":
 		if len(funcCall.Arguments) < 1 {
 			fmt.Print()
@@ -273,38 +273,46 @@ func (e *Evaluator) EvaluateBuiltinFunction(funcCall *ast.FunctionCall, typeArgs
 }
 
 func (e *Evaluator) EvaluateFunctionCall(funcCall *ast.FunctionCall, typeArgs ...value.ValueType) (*value.Value, error) {
-	if slices.Contains(BuiltinFunctionNames, funcCall.Name.Lexeme) {
+	if slices.Contains(BuiltinFunctionNames, funcCall.Ident.Name.Lexeme) {
 		return e.EvaluateBuiltinFunction(funcCall, typeArgs...)
 	}
 	return nil, nil
 }
 
-func (e *Evaluator) EvaluateUnaryExpr(unary *ast.UnaryExpr, typeArgs ...value.ValueType) (*value.Value, error) {
-	val, err := e.EvaluateExpr(unary.Right)
-	if err != nil {
-		return val, err
-	}
-	if unary.Op != nil {
-		switch unary.Op.Tt {
-		case TT.Not:
-			if val.T.NotEqual(value.BoolType) {
-				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
+func (e *Evaluator) EvaluateUnaryMinusExpr(unary ast.Expr, typeArgs ...value.ValueType) (*value.Value, error) {
+	switch unary := unary.(type) {
+	case *ast.UnaryMinusExpr:
+		{
+			val, err := e.EvaluateUnaryMinusExpr(unary.Right)
+			if err != nil {
+				return val, err
 			}
-			val.V = !val.V.(bool)
+			if unary.Op != nil {
+				switch unary.Op.Tt {
+				case TT.Not:
+					if val.T.NotEqual(value.BoolType) {
+						return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
+					}
+					val.V = !val.V.(bool)
+					return val, nil
+				case TT.Minus:
+					switch {
+					case val.T.Equal(value.IntType):
+						val.V.(*big.Int).Neg(val.V.(*big.Int))
+					case val.T.Equal(value.DecType):
+						val.V.(*big.Float).Neg(val.V.(*big.Float))
+					default:
+						return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
+					}
+				}
+			}
 			return val, nil
-		case TT.Minus:
-			switch {
-			case val.T.Equal(value.IntType):
-				val.V.(*big.Int).Neg(val.V.(*big.Int))
-			case val.T.Equal(value.DecType):
-				val.V.(*big.Float).Neg(val.V.(*big.Float))
-			default:
-				return val, fmt.Errorf("incompatible type for %s: %s", unary.Op.Tt, val.T.Name)
-			}
 		}
+	default:
+		return e.EvaluateExpr(unary)
 	}
-	return val, nil
 }
+
 func (e *Evaluator) EvaluateBinaryExpr(binary *ast.BinaryExpr, typeArgs ...value.ValueType) (*value.Value, error) {
 	left, err := e.EvaluateExpr(binary.Left)
 	if err != nil {
@@ -342,14 +350,14 @@ func (e *Evaluator) EvaluateExpr(expr ast.Expr, typeArgs ...value.ValueType) (*v
 	// branches
 	case *ast.FunctionCall:
 		return e.EvaluateFunctionCall(expr, typeArgs...)
-	case *ast.UnaryExpr:
-		return e.EvaluateUnaryExpr(expr, typeArgs...)
+	case *ast.UnaryMinusExpr:
+		return e.EvaluateUnaryMinusExpr(expr, typeArgs...)
 	case *ast.BinaryExpr:
 		return e.EvaluateBinaryExpr(expr, typeArgs...)
 	case *ast.ConstantDeclaration, *ast.VariableDeclaration:
 		return e.EvaluateDeclaration(expr)
 	}
-	return nil, fmt.Errorf("unknown expr %v", expr)
+	return nil, fmt.Errorf("unknown expr %v of type %T", expr, expr)
 }
 
 func (e *Evaluator) EvaluateProgram(program ast.Program) error {

@@ -1,23 +1,24 @@
 program     ::= statement*
 statement   ::= expr ";" ;
-expr        ::= literal | identifier | funcCall | test | declaration | assignment | parenExpr | indexing ;
+expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing | primary ;
 parenExpr   ::= "(" expr ")" ;
 indexing    ::= expr "_" expr ;
 funcCall    ::= identifier "(" exprList ")" ;
 exprList    ::= (expr ",")* ;
-declaration ::= varDecl | constDecl ;
 varDecl     ::= "var" identifier "is" type expr ;
 constDecl   ::= "const" identifier "is" type expr ;
 assignment  ::= "set" identifier "is" expr ;
+primary     ::= literal | identifier | funcCall ;
 
-test       ::= orTest ;
-orTest     ::= andTest    | orTest "or" orTest ;
-andTest    ::= notTest    | andTest "and" andTest ;
-notTest    ::= comparison | "not" notTest ;
-comparison ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
-addExpr    ::= mulExpr   | addExpr ("+"|"-") addExpr ;
-mulExpr    ::= unaryExpr | mulExpr ("*"|"/"|"%") mulExpr ;
-unaryExpr  ::= expr      | "-" unaryExpr ;
+# test       ::= orTest ;
+# orTest     ::= andTest    | orTest "or" orTest ;
+# andTest    ::= notTest    | andTest "and" andTest ;
+test           ::= notTest    | test ("and"|"or") test ;
+notTest        ::= comparison | "not" notTest ;
+comparison     ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
+addExpr        ::= mulExpr        | addExpr ("+"|"-") addExpr ;
+mulExpr        ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
+unaryMinusExpr ::= expr           | "-" unaryMinusExpr ;
 
 literal     ::= primitive | compound ;
 compound    ::= listLiteral | mapLiteral ;

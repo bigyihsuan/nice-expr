@@ -5,6 +5,5 @@ println(56.78,);
 println(true,);
 println(false,);
 println([1,2,3,4,5,],);
-println(<|1:"a",2:"b",|>,);
 print("multiple","strings","in","a","single","call","\n",);
 println("each","on","a","new","line",);
