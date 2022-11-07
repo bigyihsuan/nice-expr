@@ -82,13 +82,13 @@ removing from the left side elements in common with the right side.
 Both sides of the expression must match in type.
 Always returns a boolean.
 
-| Op   | `int`    | `dec`    | `str`           | `bool`   | `list[T]`       | `map[K]V` |
-| ---- | -------- | -------- | --------------- | -------- | --------------- | --------- |
-| `=`  | Equality | Equality | Equality        | Equality | Equality        | Equality  |
-| `>`  | Gt       | Gt       | Lexicographical |          | Lexicographical |           |
-| `>=` | Ge       | Ge       | Lexicographical |          | Lexicographical |           |
-| `<`  | Lt       | Lt       | Lexicographical |          | Lexicographical |           |
-| `<=` | Le       | Le       | Lexicographical |          | Lexicographical |           |
+| Op   | `int`    | `dec`    | `str`           | `bool`   | `list[T]` | `map[K]V` |
+| ---- | -------- | -------- | --------------- | -------- | --------- | --------- |
+| `=`  | Equality | Equality | Equality        | Equality | Equality  | Equality  |
+| `>`  | Gt       | Gt       | Lexicographical |          |           |           |
+| `>=` | Ge       | Ge       | Lexicographical |          |           |           |
+| `<`  | Lt       | Lt       | Lexicographical |          |           |           |
+| `<=` | Le       | Le       | Lexicographical |          |           |           |
 
 ### Binary Logical
 

@@ -72,7 +72,7 @@ func (p *NiceExprParser) expectAny(tokTypes []TT.TokenType) (*token.Token, *Pars
 		return nil, err.addRule("expectAny")
 	}
 	for _, tokType := range tokTypes {
-		if token.Tt == tokType {
+		if token.Is(tokType) {
 			return token, nil
 		}
 	}
@@ -98,7 +98,7 @@ func (p *NiceExprParser) checkAny(tokTypes []TT.TokenType) (bool, *ParseError) {
 		return false, err.addRule("checkToken")
 	}
 	for _, tokType := range tokTypes {
-		if token.Tt == tokType {
+		if token.Is(tokType) {
 			return true, nil
 		}
 	}
@@ -124,7 +124,7 @@ func (p *NiceExprParser) optionalAny(tokTypes []TT.TokenType) (bool, *ParseError
 		return false, err.addRule("optionalAny")
 	}
 	for _, tokType := range tokTypes {
-		if token.Tt == tokType {
+		if token.Is(tokType) {
 			return true, nil
 		}
 	}
@@ -162,35 +162,36 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 	switch tok, err := p.peekToken(); {
 	case err != nil:
 		return expr, err.addRule("Expr")
-	case tok.Tt == TT.LeftParen: // nested
+	case tok.Is(TT.LeftParen): // nested
 		p.getNextToken()
-		expr, err = p.Expr()
-		if err != nil {
+		if expr, err = p.Expr(); err != nil {
 			return expr, err.addRule("Expr.ParenExpr")
 		}
 		if _, err := p.expectToken(TT.RightParen); err != nil {
 			return expr, err.addRule("Expr.ParenExprEnd")
 		}
-	case slices.Contains(TT.Literals, tok.Tt): // primary
-		expr, err = p.Literal()
-		if err != nil {
-			return expr, err.addRule("Expr.Literal")
-		}
-		return expr, err
-	case tok.Tt == TT.Identifier: // primary
-		expr, err = p.IdentifierOrFuncCall()
-		if err != nil {
-			return expr, err.addRule("Expr.IdentOrFuncCall")
-		}
-		return expr, err
 	case slices.Contains(TT.VarConstSet, tok.Tt): // decl or assignment
-		expr, err = p.AssOrDecl()
-		if err != nil {
+		if expr, err = p.AssOrDecl(); err != nil {
 			return expr, err.addRule("Expr.AssOrDecl")
 		}
 		return expr, err
 	default:
-		return p.Test()
+		if expr, err = p.Test(); err != nil {
+			return expr, err.addRule("Expr.Test")
+		}
+	}
+	if ok, err := p.optionalToken(TT.Underscore); err != nil {
+		return expr, err.addRule("Expr.Indexing?")
+	} else if ok {
+		indexing := new(ast.BinaryExpr)
+		indexing.Left = expr
+		if indexing.Op, err = p.expectToken(TT.Underscore); err != nil {
+			return indexing, err.addRule("Expr.Indexing")
+		}
+		if indexing.Right, err = p.Expr(); err != nil {
+			return indexing, err.addRule("Expr.Indexing.Right")
+		}
+		return indexing, nil
 	}
 	return expr, err
 	// return nil, NewParseError("unknown value expression", nil, "Expr")
@@ -359,12 +360,30 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 	unaryMinusExpr := new(ast.UnaryMinusExpr)
 	var ok bool
 	var err *ParseError
+	var expr ast.Expr
+
 	if ok, err = p.optionalToken(TT.Minus); err != nil {
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus?")
 	} else if !ok {
-		// just a comparison
-		return p.Expr()
+		// primary?
+		switch tok, err := p.peekToken(); {
+		case err != nil:
+			return unaryMinusExpr, err.addRule("UnaryMinusExpr.Primary?")
+		case slices.Contains(TT.Literals, tok.Tt): // primary
+			expr, err = p.Literal()
+			if err != nil {
+				return expr, err.addRule("UnaryMinusExpr.Primary.Literal")
+			}
+			return expr, err
+		case tok.Is(TT.Identifier): // primary
+			expr, err = p.IdentifierOrFuncCall()
+			if err != nil {
+				return expr, err.addRule("UnaryMinusExpr.Primary.IdentOrFuncCall")
+			}
+			return expr, err
+		}
 	}
+
 	// "-" unaryMinusExpr
 	if unaryMinusExpr.Op, err = p.expectToken(TT.Minus); err != nil {
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus")
@@ -377,11 +396,11 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 
 func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
 	switch tok, err := p.peekToken(); {
-	case tok.Tt == TT.Var:
+	case tok.Is(TT.Var):
 		return p.VariableDeclaration()
-	case tok.Tt == TT.Const:
+	case tok.Is(TT.Const):
 		return p.ConstantDeclaration()
-	case tok.Tt == TT.Set:
+	case tok.Is(TT.Set):
 		return p.Assignment()
 	case err != nil:
 		return nil, err.addRule("AssOrDecl.Start")

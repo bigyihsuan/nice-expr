@@ -10,6 +10,7 @@ println(4 % 3,); // 1
 println("hello" + " " + "world",); // "hello world"
 println("hello" - "l",); // "heo"
 println("hello" - "e",); // "hllo"
+println("hello" - "el",); // "hlo"
 
 // list
 var l is list[int] [1,2,3,4,5,];
@@ -23,11 +24,16 @@ println(false or true,); // true
 // comparison operators
 println(1 = 1,); // true
 println(2 > 1,); // true
-println(1 >= 1,); // true
-println(1 < 2,); // true
+println(1.1 >= 1.0,); // true
+println(0.3 < 2.2,); // true
 println(1 <= 1,); // true
 
 // indexing operator
 const s is str "abc123";
 println(s_4,); // 2
+
 println(l_4,); // 5
+
+const m is map[str]int <|"a":1,"b":2,|>;
+println(m_"a",); // 1
+println(m_"z",); // 0

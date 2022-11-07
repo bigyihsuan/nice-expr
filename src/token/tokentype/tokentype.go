@@ -8,7 +8,7 @@ import (
 type TokenType lex.Token
 
 const (
-	Invalid TokenType = iota
+	Invalid TokenType = iota - 1
 	EOF
 	// literals
 	Integer

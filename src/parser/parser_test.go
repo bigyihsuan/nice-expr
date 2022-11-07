@@ -113,29 +113,3 @@ func TestParseAssignments(t *testing.T) {
 		// t.Log(expr)
 	}
 }
-
-// func TestParseUnary(t *testing.T) {
-// 	fileName := "./../../test/unary.test.ne"
-// 	test, err := os.ReadFile(fileName)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	cases := strings.Split(string(test), "\n")
-// 	for _, c := range cases {
-// 		if c == "\n" || len(c) <= 0 {
-// 			continue
-// 		}
-// 		file := lex.NewFile(fileName, strings.NewReader(c))
-// 		nicerLexer := lexer.NewLexer(file)
-// 		tokens := nicerLexer.LexAll()
-// 		t.Log(tokens)
-// 		nicerParser := parser.NewNiceExprParser(tokens)
-// 		expr, perr := nicerParser.Unary()
-// 		if perr != nil {
-// 			t.Fatal(perr)
-// 		}
-// 		if expr == nil {
-// 			t.Fatal("parsed nil")
-// 		}
-// 	}
-// }

@@ -380,7 +380,7 @@ func TestEvaluateBuiltinFunctionsLen(t *testing.T) {
 }
 
 func TestEvaluateBinaryOperators(t *testing.T) {
-	fileName := "./../../test/func-builtin-len.test.ne"
+	fileName := "./../../test/binary.test.ne"
 	test, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -399,7 +399,7 @@ func TestEvaluateBinaryOperators(t *testing.T) {
 	if len(program.Statements) <= 0 {
 		t.Fatal("parsed nil")
 	}
-	// t.Log(program)
+	t.Log(program)
 
 	evaluator := evaluator.NewEvaluator()
 
@@ -418,7 +418,7 @@ func TestEvaluateBinaryOperators(t *testing.T) {
 hello world
 heo
 hllo
-[1,2,3,4,5,]
+hlo
 [1,2,3,4,5,6,]
 [1,2,4,5,]
 true
@@ -430,6 +430,8 @@ true
 true
 2
 5
+1
+0
 `
 	assert.Equal(t, expected, output)
 

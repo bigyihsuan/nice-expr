@@ -28,12 +28,18 @@ func main() {
 	nicerLexer := lexer.NewLexer(file)
 	tokens := nicerLexer.LexAll()
 
+	fmt.Println(tokens)
+	fmt.Println()
+
 	nicerParser := parser.NewNiceExprParser(tokens)
 	program, pe := nicerParser.Program()
 	if pe != nil {
 		fmt.Fprintln(os.Stderr, pe)
 		return
 	}
+
+	fmt.Println(program)
+	fmt.Println()
 
 	nicerEvaluator := evaluator.NewEvaluator()
 	ee := nicerEvaluator.EvaluateProgram(program)

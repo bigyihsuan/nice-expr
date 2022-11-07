@@ -28,3 +28,7 @@ func (t Token) String() string {
 		t.End,
 	)
 }
+
+func (t Token) Is(tt tokentype.TokenType) bool {
+	return t.Tt == tt
+}

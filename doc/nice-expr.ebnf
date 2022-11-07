@@ -1,6 +1,6 @@
 program     ::= statement*
 statement   ::= expr ";" ;
-expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing | primary ;
+expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing ;
 parenExpr   ::= "(" expr ")" ;
 indexing    ::= expr "_" expr ;
 funcCall    ::= identifier "(" exprList ")" ;
@@ -8,7 +8,6 @@ exprList    ::= (expr ",")* ;
 varDecl     ::= "var" identifier "is" type expr ;
 constDecl   ::= "const" identifier "is" type expr ;
 assignment  ::= "set" identifier "is" expr ;
-primary     ::= literal | identifier | funcCall ;
 
 # test       ::= orTest ;
 # orTest     ::= andTest    | orTest "or" orTest ;
@@ -18,7 +17,8 @@ notTest        ::= comparison | "not" notTest ;
 comparison     ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
 addExpr        ::= mulExpr        | addExpr ("+"|"-") addExpr ;
 mulExpr        ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
-unaryMinusExpr ::= expr           | "-" unaryMinusExpr ;
+unaryMinusExpr ::= primary | "-" unaryMinusExpr | expr ;
+primary        ::= literal | identifier | funcCall ;
 
 literal     ::= primitive | compound ;
 compound    ::= listLiteral | mapLiteral ;
