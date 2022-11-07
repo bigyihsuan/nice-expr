@@ -21,14 +21,14 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 * [x] Declarations (var, const): nested, mixed, type checking
 * [x] Function types: func(T,T,...)V, funcs as return type
 * [x] Using variables
-* [ ] Operators
+* [x] Operators
   * [x] Unary Operators
     * [x] `not`, `-`
-  * [ ] Binary Operators
-    * [ ] Arithmetic operators (+, -, *, /, %)
-    * [ ] Comparison operators (=, <, <=, >, >=)
-    * [ ] Logical operators (and, or)
-    * [ ] Indexing operator `_`
+  * [x] Binary Operators
+    * [x] Arithmetic operators (+, -, *, /, %)
+    * [x] Comparison operators (=, <, <=, >, >=)
+    * [x] Logical operators (and, or)
+    * [x] Indexing operator `_`
 * [ ] Assignments (set): check if var or const
 * [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
 * [x] Built-in functions
@@ -53,30 +53,32 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 ```go
 // assignments return the value of the variable
 // assignments must have the type
-var x int is 10;                  // returns 10
-const n int is 10;                // also returns 10, but `n` cannot be have its value changed
-const k int is (var y int is 10); // right-associative, parens are required
+var x is int 10;                  // returns 10
+const n is int 10;                // also returns 10, but `n` cannot be have its value changed
+const k is int (var y is int 10); // right-associative, parens are required
                                  // x = 10, y = 10
                                  // types must match
                                  // can mix const and var
 
 // types
 10          // int
-1.23        // float
-"a"         // string (no chars, just string)
+1.23        // dec
+"a"         // str (no chars, just str)
+true        // bool
 [1,2,3,4,5] // list, homogenous
 <|1:"a",2:"b",|> // map, key types must match, value types much match
 
 // type zero-values
-// int    -> 0
-// float  -> 0.0
-// string -> ""
-// list   -> []
-// map    -> <||>
+// int  -> 0
+// dec  -> 0.0
+// str  -> ""
+// bool -> false
+// list -> []
+// map  -> <||>
 
 // conditional expressions return the last expression in the option gone down
 // all branches must return the same type
-var z int is if x = 10 {
+var z is int if x = 10 {
     x / 2
 } else {
     x * 2
@@ -87,12 +89,12 @@ var z int is if x = 10 {
 for {};
 // `break` stops the loop immediately, and returns `value`
 for {break value};
-for var i int is 0 { /* use i... */ }; // loop with loop variable
-var x string is for { break 30 }; // x == 30
+for var i is int 0 { /* use i... */ }; // loop with loop variable
+var x is str for { break 30 }; // x == 30
 
 // example: getting and returning a sum
 var l list[int] is [1,2,3,4,5,6,];
-var sum is for var s int, var idx int {
+var sum is int for var s is int, var idx is int {
     if idx = len(l) { // built-in function len() returns the length
         break s // return the sum when no more items
     }
@@ -101,9 +103,9 @@ var sum is for var s int, var idx int {
 };
 
 // all functions are anonymous until assigned to a variable
-var greet func(string)string is func(name string)string{ "hello " + name };
-// type of `greet` is func(string)string
-var str string is greet("bob");
+var greet is func(str)str func(name str)str{ "hello " + name };
+// type of `greet` is func(str)str
+var str str is greet("bob");
 
 // recursion
 var factorial func(int)int is func(n int)int {
@@ -114,10 +116,10 @@ var factorial func(int)int is func(n int)int {
 var num int is factorial(4);
 
 // indexing
-// use underscore to index string, list, map
-// strings and list are 0-indexed
+// use underscore to index str, list, map
+// strs and list are 0-indexed
 // maps take their key
-// string -> string
+// str -> str
 // list_T -> T
 // map[K]V -> V
 "abcdefghij"_5 = "f"
