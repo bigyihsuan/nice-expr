@@ -103,6 +103,7 @@ var (
 	PrimitiveLiterals      = []TokenType{None, Integer, Floating, String, True, False}
 	CompositeLiteralStarts = []TokenType{LeftBracket, LeftTriangle}
 	Literals               = append(PrimitiveLiterals, CompositeLiteralStarts...)
+	Primaries              = append(Literals, Identifier)
 
 	PrimitiveTypes       = []TokenType{None, Int, Dec, Str, Bool}
 	CompoundTypes        = []TokenType{List, Map}

@@ -360,7 +360,6 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 	unaryMinusExpr := new(ast.UnaryMinusExpr)
 	var ok bool
 	var err *ParseError
-	var expr ast.Expr
 
 	if ok, err = p.optionalToken(TT.Minus); err != nil {
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus?")
@@ -369,18 +368,8 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 		switch tok, err := p.peekToken(); {
 		case err != nil:
 			return unaryMinusExpr, err.addRule("UnaryMinusExpr.Primary?")
-		case slices.Contains(TT.Literals, tok.Tt): // primary
-			expr, err = p.Literal()
-			if err != nil {
-				return expr, err.addRule("UnaryMinusExpr.Primary.Literal")
-			}
-			return expr, err
-		case tok.Is(TT.Identifier): // primary
-			expr, err = p.IdentifierOrFuncCall()
-			if err != nil {
-				return expr, err.addRule("UnaryMinusExpr.Primary.IdentOrFuncCall")
-			}
-			return expr, err
+		case slices.Contains(TT.Primaries, tok.Tt): // primary
+			return p.Primary()
 		}
 	}
 
@@ -392,6 +381,28 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.UnaryMinusExpr")
 	}
 	return unaryMinusExpr, nil
+}
+
+func (p *NiceExprParser) Primary() (ast.Expr, *ParseError) {
+	var expr ast.Expr
+	switch tok, err := p.peekToken(); {
+	case err != nil:
+		return nil, err.addRule("Primary")
+	case slices.Contains(TT.Literals, tok.Tt): // primary
+		expr, err = p.Literal()
+		if err != nil {
+			return expr, err.addRule("Primary.Literal")
+		}
+		return expr, err
+	case tok.Is(TT.Identifier): // primary
+		expr, err = p.IdentifierOrFuncCall()
+		if err != nil {
+			return expr, err.addRule("Primary.IdentOrFuncCall")
+		}
+		return expr, err
+	default:
+		return nil, NewParseError("unkown primary", tok, "Primary")
+	}
 }
 
 func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
