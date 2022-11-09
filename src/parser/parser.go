@@ -220,52 +220,6 @@ func (p *NiceExprParser) Test() (ast.Expr, *ParseError) {
 	return test, nil
 }
 
-// // orTest ::= andTest | orTest "or" orTest ;
-// func (p *NiceExprParser) OrTest() (ast.Expr, *ParseError) {
-// 	orTest := new(ast.BinaryExpr)
-// 	var err *ParseError
-// 	if orTest.Left, err = p.AndTest(); err != nil {
-// 		return orTest, err.addRule("OrTest.AndTest")
-// 	}
-// 	if ok, err := p.optionalToken(TT.Or); err != nil {
-// 		return orTest, err.addRule("OrTest.Or?")
-// 	} else if !ok {
-// 		// andTest only
-// 		return orTest.Left, nil
-// 	}
-// 	// orTest "or" orTest
-// 	if orTest.Op, err = p.expectToken(TT.Or); err != nil {
-// 		return orTest, err.addRule("OrTest.Or")
-// 	}
-// 	if orTest.Right, err = p.OrTest(); err != nil {
-// 		return orTest, err.addRule("OrTest.OrTest")
-// 	}
-// 	return orTest, nil
-// }
-
-// // andTest ::= notTest | andTest "and" andTest ;
-// func (p *NiceExprParser) AndTest() (ast.Expr, *ParseError) {
-// 	andTest := new(ast.BinaryExpr)
-// 	var err *ParseError
-// 	if andTest.Left, err = p.NotTest(); err != nil {
-// 		return andTest, err.addRule("AndTest.NotTest")
-// 	}
-// 	if ok, err := p.optionalToken(TT.Or); err != nil {
-// 		return andTest, err.addRule("AndTest.And?")
-// 	} else if !ok {
-// 		// notTest only
-// 		return andTest.Left, nil
-// 	}
-// 	// andTest "and" andTest
-// 	if andTest.Op, err = p.expectToken(TT.Or); err != nil {
-// 		return andTest, err.addRule("AndTest.And")
-// 	}
-// 	if andTest.Right, err = p.AndTest(); err != nil {
-// 		return andTest, err.addRule("AndTest.AndTest")
-// 	}
-// 	return andTest, nil
-// }
-
 // notTest ::= comparison | "not" notTest ;
 func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
 	notTest := new(ast.UnaryMinusExpr)
