@@ -411,28 +411,27 @@ func TestEvaluateBinaryOperators(t *testing.T) {
 	})
 
 	expected := `2
-0
-6.6
-1
-1
-hello world
-heo
-hllo
-hlo
-[1,2,3,4,5,6,]
-[1,2,4,5,]
-true
-true
-true
-true
-true
-true
-true
-2
-5
-1
-0
-`
+	0
+	6.6
+	1
+	1
+	hello world
+	heo
+	hllo
+	hlo
+	[1,2,3,4,5,6,]
+	[1,2,4,5,]
+	true
+	true
+	true
+	true
+	true
+	true
+	true
+	2
+	5
+	1
+	0
+	`
 	assert.Equal(t, expected, output)
-
 }

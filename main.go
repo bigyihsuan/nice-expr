@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"nice-expr/src/evaluator"
+	"nice-expr/src/ast"
 	"nice-expr/src/lexer"
 	"nice-expr/src/parser"
 	"os"
@@ -41,13 +41,18 @@ func main() {
 	fmt.Println(program)
 	fmt.Println()
 
-	nicerEvaluator := evaluator.NewEvaluator()
-	ee := nicerEvaluator.EvaluateProgram(program)
-	if ee != nil {
-		fmt.Fprintln(os.Stderr, ee)
-	}
+	streval := ast.NewStringVisitor()
+	program.Accept(streval)
 
-	fmt.Println("Constants:", nicerEvaluator.Constants)
-	fmt.Println("Variables:", nicerEvaluator.Variables)
-	fmt.Println("ValueStack:", nicerEvaluator.ValueStack)
+	fmt.Println(streval.String())
+
+	// nicerEvaluator := evaluator.NewEvaluator()
+	// ee := nicerEvaluator.EvaluateProgram(program)
+	// if ee != nil {
+	// 	fmt.Fprintln(os.Stderr, ee)
+	// }
+
+	// fmt.Println("Constants:", nicerEvaluator.Constants)
+	// fmt.Println("Variables:", nicerEvaluator.Variables)
+	// fmt.Println("ValueStack:", nicerEvaluator.ValueStack)
 }

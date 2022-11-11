@@ -7,39 +7,274 @@ import (
 	"strings"
 )
 
+type Visitable interface {
+	Accept(Visitor)
+}
+type Expr interface{ Visitable }
+
 type Program struct {
 	Statements []Expr
 }
 
-type Node interface{}
+func (p *Program) Accept(v Visitor) {
+	v.Program(v, p)
+}
 
-type Expr interface{ Node }
+type UnaryExpr struct {
+	Expr
+	Right Expr
+}
+
+func (e *UnaryExpr) Accept(v Visitor) {
+	v.UnaryExpr(v, e)
+}
 
 type BinaryExpr struct {
 	Expr
 	Left, Right Expr
-	Op          *token.Token
 }
 
-func (e BinaryExpr) String() string {
-	return fmt.Sprintf("(%v)%s(%v)", e.Left, e.Op.Lexeme, e.Right)
+func (e *BinaryExpr) Accept(v Visitor) {
+	v.BinaryExpr(v, e)
 }
 
-type UnaryMinusExpr struct {
-	Expr
-	Op    *token.Token
-	Right Expr
+// "statements"
+
+// TODO: Assignments
+// type Assignment struct {
+// 	Name  *Identifier
+//  Type Type
+// 	Op *token.Token
+//  Value Expr
+// }
+
+// func (s *Assignment) Accept(v Visitor) {
+// 	v.Assignment(v, s)
+// }
+
+// func (ae Assignment) String() string {
+// 	return fmt.Sprintf("(set (%v) (%v) (%v))", ae.Name, ae.Op.Lexeme, ae.Value)
+// }
+
+type Declaration interface{ Expr }
+
+type VariableDeclaration struct {
+	Declaration
+	Name  *Identifier
+	Type  Type
+	Value Expr
 }
 
-func (e UnaryMinusExpr) String() string {
-	return fmt.Sprintf("%s(%v)", e.Op.Lexeme, e.Right)
+func (s *VariableDeclaration) Accept(v Visitor) {
+	v.VariableDeclaration(v, s)
 }
 
-type Literal interface{ Expr }
+func (ae VariableDeclaration) String() string {
+	return fmt.Sprintf("(var (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
+}
+
+type ConstantDeclaration struct {
+	Declaration
+	Name  *Identifier
+	Type  Type
+	Value Expr
+}
+
+func (s *ConstantDeclaration) Accept(v Visitor) {
+	v.ConstantDeclaration(v, s)
+}
+
+func (ae ConstantDeclaration) String() string {
+	return fmt.Sprintf("(const (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
+}
+
+// tests
+
+type Test interface {
+	AcceptTest(v Visitor)
+}
+
+type AndTest struct {
+	*BinaryExpr
+}
+
+func (t *AndTest) Accept(v Visitor) {
+	v.AndTest(v, t)
+}
+func (t *AndTest) AcceptTest(v Visitor) {
+	v.AndTest(v, t)
+}
+
+type OrTest struct {
+	*BinaryExpr
+}
+
+func (t *OrTest) Accept(v Visitor) {
+	v.OrTest(v, t)
+}
+func (t *OrTest) AcceptTest(v Visitor) {
+	v.OrTest(v, t)
+}
+
+type NotTest struct {
+	*UnaryExpr
+}
+
+func (t *NotTest) Accept(v Visitor) {
+	v.NotTest(v, t)
+}
+
+// comparisons
+
+type Comparison interface {
+	AcceptCompare(v Visitor)
+}
+
+type Equal struct {
+	*BinaryExpr
+}
+
+func (c *Equal) AcceptCompare(v Visitor) {
+	v.Equal(v, c)
+}
+func (c *Equal) Accept(v Visitor) {
+	v.Equal(v, c)
+}
+
+type Greater struct {
+	*BinaryExpr
+}
+
+func (c *Greater) AcceptCompare(v Visitor) {
+	v.Greater(v, c)
+}
+func (c *Greater) Accept(v Visitor) {
+	v.Greater(v, c)
+}
+
+type Less struct {
+	*BinaryExpr
+}
+
+func (c *Less) AcceptCompare(v Visitor) {
+	v.Less(v, c)
+}
+func (c *Less) Accept(v Visitor) {
+	v.Less(v, c)
+}
+
+type GreaterEqual struct {
+	*BinaryExpr
+}
+
+func (c *GreaterEqual) AcceptCompare(v Visitor) {
+	v.GreaterEqual(v, c)
+}
+func (c *GreaterEqual) Accept(v Visitor) {
+	v.GreaterEqual(v, c)
+}
+
+type LessEqual struct {
+	*BinaryExpr
+}
+
+func (c *LessEqual) AcceptCompare(v Visitor) {
+	v.LessEqual(v, c)
+}
+func (c *LessEqual) Accept(v Visitor) {
+	v.LessEqual(v, c)
+}
+
+// arithmetic
+
+type AddExpr interface {
+	AcceptAddExpr(v Visitor)
+}
+
+type Add struct {
+	AddExpr
+	*BinaryExpr
+}
+
+func (a *Add) Accept(v Visitor) {
+	v.Add(v, a)
+}
+func (a *Add) AcceptAddExpr(v Visitor) {
+	v.Add(v, a)
+}
+
+type Sub struct {
+	AddExpr
+	*BinaryExpr
+}
+
+func (a *Sub) Accept(v Visitor) {
+	v.Sub(v, a)
+}
+func (a *Sub) AcceptAddExpr(v Visitor) {
+	v.Sub(v, a)
+}
+
+type MulExpr interface {
+	AcceptMulExpr(v Visitor)
+}
+
+type Mul struct {
+	MulExpr
+	*BinaryExpr
+}
+
+func (m *Mul) Accept(v Visitor) {
+	v.Mul(v, m)
+}
+func (m *Mul) AcceptMulExpr(v Visitor) {
+	v.Mul(v, m)
+}
+
+type Div struct {
+	MulExpr
+	*BinaryExpr
+}
+
+func (m *Div) Accept(v Visitor) {
+	v.Div(v, m)
+}
+func (m *Div) AcceptMulExpr(v Visitor) {
+	v.Div(v, m)
+}
+
+type Mod struct {
+	MulExpr
+	*BinaryExpr
+}
+
+func (m *Mod) Accept(v Visitor) {
+	v.Mod(v, m)
+}
+func (m *Mod) AcceptMulExpr(v Visitor) {
+	v.Mod(v, m)
+}
+
+type UnaryMinus struct {
+	UnaryExpr
+}
+
+func (u *UnaryMinus) Accept(v Visitor) {
+	v.UnaryMinus(v, u)
+}
+
+// primaries
+type Primary interface{ Expr }
+
+type Literal interface{ Primary }
 
 type PrimitiveLiteral struct {
 	Literal
 	Token *token.Token
+}
+
+func (l *PrimitiveLiteral) Accept(v Visitor) {
+	v.PrimitiveLiteral(v, l)
 }
 
 func (pl PrimitiveLiteral) String() string {
@@ -48,12 +283,19 @@ func (pl PrimitiveLiteral) String() string {
 
 type CompoundLiteral interface {
 	Literal
+	AcceptCompoundLiteral(v Visitor)
 }
 
 type ListLiteral struct {
-	Node
 	CompoundLiteral
 	Values []Expr
+}
+
+func (l *ListLiteral) Accept(v Visitor) {
+	v.ListLiteral(v, l)
+}
+func (l *ListLiteral) AcceptCompoundLiteral(v Visitor) {
+	v.ListLiteral(v, l)
 }
 
 func (ll ListLiteral) String() string {
@@ -68,9 +310,15 @@ func (ll ListLiteral) String() string {
 }
 
 type MapLiteral struct {
-	Node
 	CompoundLiteral
 	Values map[Expr]Expr
+}
+
+func (l *MapLiteral) Accept(v Visitor) {
+	v.MapLiteral(v, l)
+}
+func (l *MapLiteral) AcceptCompoundLiteral(v Visitor) {
+	v.MapLiteral(v, l)
 }
 
 func (ll MapLiteral) String() string {
@@ -87,8 +335,12 @@ func (ll MapLiteral) String() string {
 }
 
 type Identifier struct {
-	Expr
+	Primary
 	Name *token.Token
+}
+
+func (i *Identifier) Accept(v Visitor) {
+	v.Identifier(v, i)
 }
 
 func (id Identifier) String() string {
@@ -96,59 +348,30 @@ func (id Identifier) String() string {
 }
 
 type FunctionCall struct {
-	Expr
+	Primary
 	Ident     *Identifier
 	Arguments []Expr
+}
+
+func (f *FunctionCall) Accept(v Visitor) {
+	v.FunctionCall(v, f)
 }
 
 func (fn FunctionCall) String() string {
 	return fmt.Sprintf("(%s (%s))", fn.Ident, fn.Arguments)
 }
 
-// Assignment := Name is Value
-type Assignment struct {
-	Node
-	Name  *Identifier
-	Op    *token.Token
-	Value Node
+// other exprs
+
+type Indexing struct {
+	*BinaryExpr
 }
 
-func (ae Assignment) String() string {
-	return fmt.Sprintf("(set (%v) (%v) (%v))", ae.Name, ae.Op.Lexeme, ae.Value)
+func (i *Indexing) Accept(v Visitor) {
+	v.Indexing(v, i)
 }
 
-// Declaration := Name Type is Value
-type Declaration interface {
-	Expr
-}
-
-// Variable := var Name Type is Value
-type VariableDeclaration struct {
-	Declaration
-	Name  *Identifier
-	Type  Type
-	Value Expr
-}
-
-func (ae VariableDeclaration) String() string {
-	return fmt.Sprintf("(var (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
-}
-
-// Constant := const Name Type is Value
-type ConstantDeclaration struct {
-	Declaration
-	Name  *Identifier
-	Type  Type
-	Value Expr
-}
-
-func (ae ConstantDeclaration) String() string {
-	return fmt.Sprintf("(const (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
-}
-
-// --- TYPES --- //
-// ------------- //
-// Type := PrimitiveType | ListType | MapType | FuncType
+// types
 type Type interface {
 	Expr
 	ToValueType() value.ValueType
@@ -156,10 +379,12 @@ type Type interface {
 
 // PrimitiveType := Name
 type PrimitiveType struct {
-	Type
 	Name *token.Token
 }
 
+func (t *PrimitiveType) Accept(v Visitor) {
+	v.PrimitiveType(v, t)
+}
 func (t PrimitiveType) String() string {
 	return fmt.Sprint(t.Name.Tt)
 }
@@ -175,6 +400,9 @@ type ListType struct {
 	ValueType Type
 }
 
+func (t *ListType) Accept(v Visitor) {
+	v.ListType(v, t)
+}
 func (t ListType) String() string {
 	return fmt.Sprintf("List[%s]", t.ValueType)
 }
@@ -191,6 +419,9 @@ type MapType struct {
 	ValueType Type
 }
 
+func (t *MapType) Accept(v Visitor) {
+	v.MapType(v, t)
+}
 func (t MapType) String() string {
 	return fmt.Sprintf("Map[%s]%s", t.KeyType, t.ValueType)
 }

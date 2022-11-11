@@ -15,6 +15,7 @@ assignment  ::= "set" identifier "is" expr ;
 test           ::= notTest    | test ("and"|"or") test ;
 notTest        ::= comparison | "not" notTest ;
 comparison     ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
+# arthmetic
 addExpr        ::= mulExpr        | addExpr ("+"|"-") addExpr ;
 mulExpr        ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
 unaryMinusExpr ::= primary | "-" unaryMinusExpr | expr ;

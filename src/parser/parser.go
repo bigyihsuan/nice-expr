@@ -131,8 +131,8 @@ func (p *NiceExprParser) optionalAny(tokTypes []TT.TokenType) (bool, *ParseError
 	return false, nil
 }
 
-func (p *NiceExprParser) Program() (ast.Program, *ParseError) {
-	var program ast.Program
+func (p *NiceExprParser) Program() (*ast.Program, *ParseError) {
+	var program = new(ast.Program)
 	for p.hasMore() {
 		stmt, err := p.Statement()
 		if err != nil {
@@ -143,7 +143,7 @@ func (p *NiceExprParser) Program() (ast.Program, *ParseError) {
 	return program, nil
 }
 
-func (p *NiceExprParser) Statement() (ast.Node, *ParseError) {
+func (p *NiceExprParser) Statement() (ast.Expr, *ParseError) {
 	node, err := p.Expr()
 	if err != nil {
 		return node, err.addRule("Statement")
@@ -183,9 +183,9 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 	if ok, err := p.optionalToken(TT.Underscore); err != nil {
 		return expr, err.addRule("Expr.Indexing?")
 	} else if ok {
-		indexing := new(ast.BinaryExpr)
+		indexing := new(ast.Indexing)
 		indexing.Left = expr
-		if indexing.Op, err = p.expectToken(TT.Underscore); err != nil {
+		if _, err = p.expectToken(TT.Underscore); err != nil {
 			return indexing, err.addRule("Expr.Indexing")
 		}
 		if indexing.Right, err = p.Expr(); err != nil {
@@ -199,8 +199,12 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 
 // test ::= notTest | test ("and"|"or") test ;
 func (p *NiceExprParser) Test() (ast.Expr, *ParseError) {
-	test := new(ast.BinaryExpr)
-	var err *ParseError
+	var (
+		test = new(ast.BinaryExpr)
+		and  = new(ast.AndTest)
+		or   = new(ast.OrTest)
+		err  *ParseError
+	)
 	if test.Left, err = p.NotTest(); err != nil {
 		return test, err.addRule("Test.NotTest")
 	}
@@ -211,18 +215,28 @@ func (p *NiceExprParser) Test() (ast.Expr, *ParseError) {
 		return test.Left, nil
 	}
 	// test "and" test
-	if test.Op, err = p.expectAny(TT.BinLogOps); err != nil {
-		return test, err.addRule("Test.And")
+	tok, err := p.expectAny(TT.BinLogOps)
+	if err != nil {
+		return test, err.addRule("Test.TestOp")
 	}
 	if test.Right, err = p.Test(); err != nil {
 		return test, err.addRule("Test.Test")
 	}
-	return test, nil
+	switch tok.Tt {
+	case TT.And:
+		and.BinaryExpr = test
+		return and, nil
+	case TT.Or:
+		or.BinaryExpr = test
+		return or, nil
+	default:
+		return nil, NewParseError("unknown test operator %v", tok, "Test.TestOp")
+	}
 }
 
 // notTest ::= comparison | "not" notTest ;
 func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
-	notTest := new(ast.UnaryMinusExpr)
+	notTest := new(ast.NotTest)
 	var ok bool
 	var err *ParseError
 	if ok, err = p.optionalToken(TT.Not); err != nil {
@@ -232,7 +246,7 @@ func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
 		return p.Comparison()
 	}
 	// "not" notTest
-	if notTest.Op, err = p.expectToken(TT.Not); err != nil {
+	if _, err = p.expectToken(TT.Not); err != nil {
 		return notTest, err.addRule("NotTest.Not")
 	}
 	if notTest.Right, err = p.NotTest(); err != nil {
@@ -243,32 +257,62 @@ func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
 
 // comparison ::= addExpr (("<"|">"|"<="|">="|"=") comparison)* ;
 func (p *NiceExprParser) Comparison() (ast.Expr, *ParseError) {
-	comparison := new(ast.BinaryExpr)
-	var err *ParseError
+	var (
+		eq         = new(ast.Equal)
+		gr         = new(ast.Greater)
+		ls         = new(ast.Less)
+		ge         = new(ast.GreaterEqual)
+		le         = new(ast.LessEqual)
+		comparison = new(ast.BinaryExpr)
+		err        *ParseError
+	)
 	// required left addExpr
 	if comparison.Left, err = p.AddExpr(); err != nil {
-		return comparison, err.addRule("Comparison.AddExprRightLeft")
+		return nil, err.addRule("Comparison.AddExprRightLeft")
 	}
 	if ok, err := p.optionalAny(TT.ComparisonOps); err != nil {
-		return comparison, err.addRule("Comparison.ComparisonOp?")
+		return nil, err.addRule("Comparison.ComparisonOp?")
 	} else if !ok {
 		// only "addExpr"
 		return comparison.Left, nil
 	}
-	if comparison.Op, err = p.expectAny(TT.ComparisonOps); err != nil {
-		return comparison, err.addRule("Comparison.ComparisonOp")
+	tok, err := p.expectAny(TT.ComparisonOps)
+	if err != nil {
+		return nil, err.addRule("Comparison.ComparisonOp")
 	}
 	// optional right comparison
 	if comparison.Right, err = p.Comparison(); err != nil {
-		return comparison, err.addRule("Comparison.AddExprRight")
+		return nil, err.addRule("Comparison.AddExprRight")
 	}
-	return comparison, nil
+	switch tok.Tt {
+	case TT.Equal:
+		eq.BinaryExpr = comparison
+		return eq, nil
+	case TT.Greater:
+		gr.BinaryExpr = comparison
+		return gr, nil
+	case TT.Less:
+		ls.BinaryExpr = comparison
+		return le, nil
+	case TT.GreaterEqual:
+		ge.BinaryExpr = comparison
+		return ge, nil
+	case TT.LessEqual:
+		le.BinaryExpr = comparison
+		return le, nil
+	default:
+		return nil, NewParseError("unknown comparison operator: %v", tok, "Comparison.ComparisonOp")
+	}
 }
 
 // addExpr ::= mulExpr | addExpr ("+"|"-") addExpr ;
 func (p *NiceExprParser) AddExpr() (ast.Expr, *ParseError) {
-	addExpr := new(ast.BinaryExpr)
-	var err *ParseError
+	var (
+		add     = new(ast.Add)
+		sub     = new(ast.Sub)
+		addExpr = new(ast.BinaryExpr)
+		err     *ParseError
+	)
 	if addExpr.Left, err = p.MulExpr(); err != nil {
 		return addExpr, err.addRule("AddExpr.MulExpr")
 	}
@@ -278,44 +322,69 @@ func (p *NiceExprParser) AddExpr() (ast.Expr, *ParseError) {
 		// only "mulExpr"
 		return addExpr.Left, nil
 	}
-	if addExpr.Op, err = p.expectAny(TT.AddOps); err != nil {
+	tok, err := p.expectAny(TT.AddOps)
+	if err != nil {
 		return addExpr, err.addRule("AddExpr.AddOp")
 	}
 	if addExpr.Right, err = p.AddExpr(); err != nil {
 		return addExpr, err.addRule("AddExpr.AddExprRight")
 	}
-	return addExpr, nil
+	switch tok.Tt {
+	case TT.Plus:
+		add.BinaryExpr = addExpr
+		return add, nil
+	case TT.Minus:
+		sub.BinaryExpr = addExpr
+		return sub, nil
+	default:
+		return nil, NewParseError("unknown addition op: %v", tok, "AddExpr.AddOp")
+	}
 }
 
 // mulExpr ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
 func (p *NiceExprParser) MulExpr() (ast.Expr, *ParseError) {
-	mulExpr := new(ast.BinaryExpr)
-	var err *ParseError
+	var (
+		mul     = new(ast.Mul)
+		div     = new(ast.Div)
+		mod     = new(ast.Mod)
+		mulExpr = new(ast.BinaryExpr)
+		err     *ParseError
+	)
 	if mulExpr.Left, err = p.UnaryMinusExpr(); err != nil {
-		return mulExpr, err.addRule("MulExpr.UnaryMinusExpr")
+		return nil, err.addRule("MulExpr.UnaryMinusExpr")
 	}
 	if ok, err := p.optionalAny(TT.MulOps); err != nil {
-		return mulExpr, err.addRule("MulExpr.MulOp?")
+		return nil, err.addRule("MulExpr.MulOp?")
 	} else if !ok {
 		// only "unaryMinusExpr"
 		return mulExpr.Left, nil
 	}
-	if mulExpr.Op, err = p.expectAny(TT.MulOps); err != nil {
-		return mulExpr, err.addRule("MulExpr.MulOp")
+	tok, err := p.expectAny(TT.MulOps)
+	if err != nil {
+		return nil, err.addRule("MulExpr.MulOp")
 	}
 	if mulExpr.Right, err = p.MulExpr(); err != nil {
 		return mulExpr, err.addRule("MulExpr.MulExprRight")
 	}
-	return mulExpr, nil
+	switch tok.Tt {
+	case TT.Star:
+		mul.BinaryExpr = mulExpr
+		return mul, nil
+	case TT.Slash:
+		div.BinaryExpr = mulExpr
+		return div, nil
+	case TT.Percent:
+		mod.BinaryExpr = mulExpr
+		return mod, nil
+	default:
+		return nil, NewParseError("unknown multiplication op: %v", tok, "MulExpr.Op")
+	}
 }
 
 // unaryMinusExpr ::= expr | "-" unaryMinusExpr ;
 func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
-	unaryMinusExpr := new(ast.UnaryMinusExpr)
-	var ok bool
-	var err *ParseError
-
-	if ok, err = p.optionalToken(TT.Minus); err != nil {
+	unaryMinusExpr := new(ast.UnaryMinus)
+	if ok, err := p.optionalToken(TT.Minus); err != nil {
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus?")
 	} else if !ok {
 		// primary?
@@ -325,13 +394,8 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 		case slices.Contains(TT.Primaries, tok.Tt): // primary
 			return p.Primary()
 		}
-	}
-
-	// "-" unaryMinusExpr
-	if unaryMinusExpr.Op, err = p.expectToken(TT.Minus); err != nil {
-		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus")
-	}
-	if unaryMinusExpr.Right, err = p.UnaryMinusExpr(); err != nil {
+	} else if unaryMinusExpr.Right, err = p.UnaryMinusExpr(); err != nil {
+		// "-" unaryMinusExp
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.UnaryMinusExpr")
 	}
 	return unaryMinusExpr, nil
@@ -365,8 +429,8 @@ func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
 		return p.VariableDeclaration()
 	case tok.Is(TT.Const):
 		return p.ConstantDeclaration()
-	case tok.Is(TT.Set):
-		return p.Assignment()
+	// TODO: case tok.Is(TT.Set):
+	// 	return p.Assignment()
 	case err != nil:
 		return nil, err.addRule("AssOrDecl.Start")
 	default:
@@ -375,12 +439,11 @@ func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
 }
 
 func (p *NiceExprParser) IdentifierOrFuncCall() (ast.Expr, *ParseError) {
-	ident, err := p.expectToken(TT.Identifier)
-	if err != nil {
-		return ident, err.addRule("IdentifierOrFuncCall.Ident")
+	if _, err := p.expectToken(TT.Identifier); err != nil {
+		return nil, err.addRule("IdentifierOrFuncCall.Ident")
 	}
 	if ok, err := p.optionalToken(TT.LeftParen); err != nil {
-		return ident, err.addRule("IdentifierOrFuncCall.FuncCall?")
+		return nil, err.addRule("IdentifierOrFuncCall.FuncCall?")
 	} else if ok {
 		p.putBackToken() // put back the ident for func call
 		return p.FunctionCall()
@@ -442,29 +505,29 @@ func (p *NiceExprParser) ConstantDeclaration() (*ast.ConstantDeclaration, *Parse
 	return expr, nil
 }
 
-func (p *NiceExprParser) Assignment() (*ast.Assignment, *ParseError) {
-	ae := new(ast.Assignment)
+// TODO: func (p *NiceExprParser) Assignment() (*ast.Assignment, *ParseError) {
+// 	ae := new(ast.Assignment)
 
-	if _, err := p.expectToken(TT.Set); err != nil {
-		return ae, err.addRule("Assignment.Set")
-	}
-	name, err := p.Identifier()
-	if err != nil {
-		return ae, err.addRule("Assignment.Identifier")
-	}
-	ae.Name = name
-	op, err := p.expectAny(TT.AssignmentOperations)
-	if err != nil {
-		return ae, err.addRule("Assignment.AssignmentOp")
-	}
-	ae.Op = op
-	value, err := p.Expr()
-	if err != nil {
-		return ae, err.addRule("Assignment.Value")
-	}
-	ae.Value = value
-	return ae, nil
-}
+// 	if _, err := p.expectToken(TT.Set); err != nil {
+// 		return ae, err.addRule("Assignment.Set")
+// 	}
+// 	name, err := p.Identifier()
+// 	if err != nil {
+// 		return ae, err.addRule("Assignment.Identifier")
+// 	}
+// 	ae.Name = name
+// 	op, err := p.expectAny(TT.AssignmentOperations)
+// 	if err != nil {
+// 		return ae, err.addRule("Assignment.AssignmentOp")
+// 	}
+// 	ae.Op = op
+// 	value, err := p.Expr()
+// 	if err != nil {
+// 		return ae, err.addRule("Assignment.Value")
+// 	}
+// 	ae.Value = value
+// 	return ae, nil
+// }
 
 func (p *NiceExprParser) Identifier() (*ast.Identifier, *ParseError) {
 	id := new(ast.Identifier)
@@ -488,7 +551,7 @@ func (p *NiceExprParser) FunctionCall() (*ast.FunctionCall, *ParseError) {
 		return funcCall, err.addRule("FunctionCall.ArgsStart")
 	}
 	funcCall.Ident = ident
-	funcCall.Arguments, err = p.ParseExprList(TT.RightParen)
+	funcCall.Arguments, err = p.ExprList(TT.RightParen)
 	if err != nil {
 		return funcCall, err.addRule("FuncCall.Arguments")
 	}
@@ -498,7 +561,7 @@ func (p *NiceExprParser) FunctionCall() (*ast.FunctionCall, *ParseError) {
 	return funcCall, nil
 }
 
-func (p *NiceExprParser) ParseExprList(endingToken TT.TokenType) ([]ast.Expr, *ParseError) {
+func (p *NiceExprParser) ExprList(endingToken TT.TokenType) ([]ast.Expr, *ParseError) {
 	l := []ast.Expr{}
 	for {
 		if ok, err := p.optionalToken(endingToken); err != nil {
