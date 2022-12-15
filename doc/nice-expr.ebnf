@@ -1,6 +1,6 @@
 program     ::= statement*
 statement   ::= expr ";" ;
-expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing ;
+expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing | primary;
 parenExpr   ::= "(" expr ")" ;
 indexing    ::= expr "_" expr ;
 funcCall    ::= identifier "(" exprList ")" ;
@@ -18,7 +18,7 @@ comparison     ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
 # arthmetic
 addExpr        ::= mulExpr        | addExpr ("+"|"-") addExpr ;
 mulExpr        ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
-unaryMinusExpr ::= primary | "-" unaryMinusExpr | expr ;
+unaryMinusExpr ::= "-" unaryMinusExpr | expr ;
 primary        ::= literal | identifier | funcCall ;
 
 literal     ::= primitive | compound ;

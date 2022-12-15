@@ -45,6 +45,15 @@ func (nel *NiceExprLexer) LexAll() []token.Token {
 
 		tokens = append(tokens, tok)
 	}
+	tokens = append(tokens, token.Token{
+		Tt:      TT.Semicolon,
+		Lexeme:  ";",
+		Value:   "",
+		CodePos: nel.CurrentPos,
+		Line:    nel.Line,
+		Start:   nel.CurrentPos,
+		End:     nel.CurrentPos,
+	})
 	return tokens
 }
 

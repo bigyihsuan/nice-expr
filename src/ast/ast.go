@@ -41,20 +41,19 @@ func (e *BinaryExpr) Accept(v Visitor) {
 // "statements"
 
 // TODO: Assignments
-// type Assignment struct {
-// 	Name  *Identifier
-//  Type Type
-// 	Op *token.Token
-//  Value Expr
-// }
+type Assignment struct {
+	Name  *Identifier
+	Op    *token.Token
+	Value Expr
+}
 
-// func (s *Assignment) Accept(v Visitor) {
-// 	v.Assignment(v, s)
-// }
+func (s *Assignment) Accept(v Visitor) {
+	v.Assignment(v, s)
+}
 
-// func (ae Assignment) String() string {
-// 	return fmt.Sprintf("(set (%v) (%v) (%v))", ae.Name, ae.Op.Lexeme, ae.Value)
-// }
+func (ae Assignment) String() string {
+	return fmt.Sprintf("(set (%v) (%v) (%v))", ae.Name, ae.Op.Lexeme, ae.Value)
+}
 
 type Declaration interface{ Expr }
 
@@ -95,7 +94,7 @@ type Test interface {
 }
 
 type AndTest struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (t *AndTest) Accept(v Visitor) {
@@ -106,7 +105,7 @@ func (t *AndTest) AcceptTest(v Visitor) {
 }
 
 type OrTest struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (t *OrTest) Accept(v Visitor) {
@@ -131,7 +130,7 @@ type Comparison interface {
 }
 
 type Equal struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (c *Equal) AcceptCompare(v Visitor) {
@@ -142,7 +141,7 @@ func (c *Equal) Accept(v Visitor) {
 }
 
 type Greater struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (c *Greater) AcceptCompare(v Visitor) {
@@ -153,7 +152,7 @@ func (c *Greater) Accept(v Visitor) {
 }
 
 type Less struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (c *Less) AcceptCompare(v Visitor) {
@@ -164,7 +163,7 @@ func (c *Less) Accept(v Visitor) {
 }
 
 type GreaterEqual struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (c *GreaterEqual) AcceptCompare(v Visitor) {
@@ -175,7 +174,7 @@ func (c *GreaterEqual) Accept(v Visitor) {
 }
 
 type LessEqual struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (c *LessEqual) AcceptCompare(v Visitor) {
@@ -193,7 +192,7 @@ type AddExpr interface {
 
 type Add struct {
 	AddExpr
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (a *Add) Accept(v Visitor) {
@@ -205,7 +204,7 @@ func (a *Add) AcceptAddExpr(v Visitor) {
 
 type Sub struct {
 	AddExpr
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (a *Sub) Accept(v Visitor) {
@@ -221,7 +220,7 @@ type MulExpr interface {
 
 type Mul struct {
 	MulExpr
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (m *Mul) Accept(v Visitor) {
@@ -233,7 +232,7 @@ func (m *Mul) AcceptMulExpr(v Visitor) {
 
 type Div struct {
 	MulExpr
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (m *Div) Accept(v Visitor) {
@@ -245,7 +244,7 @@ func (m *Div) AcceptMulExpr(v Visitor) {
 
 type Mod struct {
 	MulExpr
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (m *Mod) Accept(v Visitor) {
@@ -336,7 +335,7 @@ func (ll MapLiteral) String() string {
 
 type Identifier struct {
 	Primary
-	Name *token.Token
+	Tok *token.Token
 }
 
 func (i *Identifier) Accept(v Visitor) {
@@ -344,7 +343,11 @@ func (i *Identifier) Accept(v Visitor) {
 }
 
 func (id Identifier) String() string {
-	return fmt.Sprintf("(Identifier %s)", id.Name.Lexeme)
+	return fmt.Sprintf("(Identifier %s)", id.Tok.Lexeme)
+}
+
+func (id Identifier) Name() string {
+	return id.Tok.Lexeme
 }
 
 type FunctionCall struct {
@@ -364,7 +367,7 @@ func (fn FunctionCall) String() string {
 // other exprs
 
 type Indexing struct {
-	*BinaryExpr
+	BinaryExpr
 }
 
 func (i *Indexing) Accept(v Visitor) {

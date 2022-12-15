@@ -1,0 +1,98 @@
+test/binary.test.ne
+[{Identifier `println` 36:1:36-43} {LeftParen `(` 43:1:43-44} {Integer `1` 45:1:45-46} {Plus `+` 46:1:46-47} {Integer `1` 48:1:48-49} {Comma `,` 49:1:49-50} {RightParen `)` 50:1:50-51} {Semicolon `;` 51:1:51-52} {Identifier `println` 58:1:58-65} {LeftParen `(` 65:1:65-66} {Integer `2` 67:1:67-68} {Minus `-` 68:1:68-69} {Integer `2` 70:1:70-71} {Comma `,` 71:1:71-72} {RightParen `)` 72:1:72-73} {Semicolon `;` 73:1:73-74} {Identifier `println` 80:1:80-87} {LeftParen `(` 87:1:87-88} {Floating `2.2` 91:1:91-94} {Star `*` 92:1:92-93} {Floating `3` 94:1:94-95} {Comma `,` 97:1:97-98} {RightParen `)` 98:1:98-99} {Semicolon `;` 99:1:99-100} {Identifier `println` 108:1:108-115} {LeftParen `(` 115:1:115-116} {Integer `4` 117:1:117-118} {Slash `/` 118:1:118-119} {Integer `4` 120:1:120-121} {Comma `,` 121:1:121-122} {RightParen `)` 122:1:122-123} {Semicolon `;` 123:1:123-124} {Identifier `println` 130:1:130-137} {LeftParen `(` 137:1:137-138} {Integer `4` 139:1:139-140} {Percent `%` 140:1:140-141} {Integer `3` 142:1:142-143} {Comma `,` 143:1:143-144} {RightParen `)` 144:1:144-145} {Semicolon `;` 145:1:145-146} {Identifier `println` 164:2:13-20} {LeftParen `(` 171:2:20-21} {String `hello` 172:2:21-26} {Plus `+` 180:2:29-30} {String ` ` 182:2:31-32} {Plus `+` 186:2:35-36} {String `world` 188:2:37-42} {Comma `,` 195:2:44-45} {RightParen `)` 196:2:45-46} {Semicolon `;` 197:2:46-47} {Identifier `println` 216:2:65-72} {LeftParen `(` 223:2:72-73} {String `hello` 224:2:73-78} {Minus `-` 232:2:81-82} {String `l` 234:2:83-84} {Comma `,` 237:2:86-87} {RightParen `)` 238:2:87-88} {Semicolon `;` 239:2:88-89} {Identifier `println` 250:2:99-106} {LeftParen `(` 257:2:106-107} {String `hello` 258:2:107-112} {Minus `-` 266:2:115-116} {String `e` 268:2:117-118} {Comma `,` 271:2:120-121} {RightParen `)` 272:2:121-122} {Semicolon `;` 273:2:122-123} {Identifier `println` 285:2:134-141} {LeftParen `(` 292:2:141-142} {String `hello` 293:2:142-147} {Minus `-` 301:2:150-151} {String `el` 303:2:152-154} {Comma `,` 307:2:156-157} {RightParen `)` 308:2:157-158} {Semicolon `;` 309:2:158-159} {Var `var` 329:3:10-13} {Identifier `l` 333:3:14-15} {Is `is` 335:3:16-18} {List `list` 338:3:19-23} {LeftBracket `[` 342:3:23-24} {Int `int` 343:3:24-27} {RightBracket `]` 346:3:27-28} {LeftBracket `[` 348:3:29-30} {Integer `1` 350:3:31-32} {Comma `,` 352:3:33-34} {Integer `2` 354:3:35-36} {Comma `,` 356:3:37-38} {Integer `3` 358:3:39-40} {Comma `,` 360:3:41-42} {Integer `4` 362:3:43-44} {Comma `,` 364:3:45-46} {Integer `5` 366:3:47-48} {Comma `,` 368:3:49-50} {RightBracket `]` 370:3:51-52} {Semicolon `;` 372:3:53-54} {Identifier `println` 380:3:61-68} {LeftParen `(` 382:3:63-64} {Identifier `l` 384:3:65-66} {Plus `+` 386:3:67-68} {LeftBracket `[` 388:3:69-70} {Integer `6` 390:3:71-72} {Comma `,` 392:3:73-74} {RightBracket `]` 394:3:75-76} {Comma `,` 396:3:77-78} {RightParen `)` 398:3:79-80} {Semicolon `;` 400:3:81-82} {Identifier `println` 408:3:89-96} {LeftParen `(` 410:3:91-92} {Identifier `l` 412:3:93-94} {Minus `-` 414:3:95-96} {LeftBracket `[` 416:3:97-98} {Integer `3` 418:3:99-100} {Comma `,` 420:3:101-102} {RightBracket `]` 422:3:103-104} {Comma `,` 424:3:105-106} {RightParen `)` 426:3:107-108} {Semicolon `;` 428:3:109-110} {Identifier `println` 454:4:23-30} {LeftParen `(` 461:4:30-31} {True `true` 462:4:31-35} {And `and` 467:4:36-39} {True `true` 471:4:40-44} {Comma `,` 475:4:44-45} {RightParen `)` 476:4:45-46} {Semicolon `;` 477:4:46-47} {Identifier `println` 487:4:56-63} {LeftParen `(` 494:4:63-64} {False `false` 495:4:64-69} {Or `or` 501:4:70-72} {True `true` 504:4:73-77} {Comma `,` 508:4:77-78} {RightParen `)` 509:4:78-79} {Semicolon `;` 510:4:79-80} {Identifier `println` 545:5:26-33} {LeftParen `(` 552:5:33-34} {Integer `1` 554:5:35-36} {Equal `=` 555:5:36-37} {Integer `1` 557:5:38-39} {Comma `,` 558:5:39-40} {RightParen `)` 559:5:40-41} {Semicolon `;` 560:5:41-42} {Identifier `println` 570:5:51-58} {LeftParen `(` 577:5:58-59} {Integer `2` 579:5:60-61} {Greater `>` 580:5:61-62} {Integer `1` 582:5:63-64} {Comma `,` 583:5:64-65} {RightParen `)` 584:5:65-66} {Semicolon `;` 585:5:66-67} {Identifier `println` 595:5:76-83} {LeftParen `(` 602:5:83-84} {Floating `1.1` 606:5:87-90} {GreaterEqual `>=` 607:5:88-90} {Floating `1` 609:5:90-91} {Comma `,` 613:5:94-95} {RightParen `)` 614:5:95-96} {Semicolon `;` 615:5:96-97} {Identifier `println` 625:5:106-113} {LeftParen `(` 632:5:113-114} {Floating `0.3` 636:5:117-120} {Less `<` 637:5:118-119} {Floating `2.2` 641:5:122-125} {Comma `,` 642:5:123-124} {RightParen `)` 643:5:124-125} {Semicolon `;` 644:5:125-126} {Identifier `println` 654:5:135-142} {LeftParen `(` 661:5:142-143} {Integer `1` 663:5:144-145} {LessEqual `<=` 664:5:145-147} {Integer `1` 666:5:147-148} {Comma `,` 668:5:149-150} {RightParen `)` 669:5:150-151} {Semicolon `;` 670:5:151-152} {Const `const` 702:6:23-28} {Identifier `s` 708:6:29-30} {Is `is` 710:6:31-33} {Str `str` 713:6:34-37} {String `abc123` 717:6:38-44} {Semicolon `;` 725:6:46-47} {Identifier `println` 727:6:48-55} {LeftParen `(` 734:6:55-56} {Identifier `s` 735:6:56-57} {Underscore `_` 736:6:57-58} {Integer `4` 738:6:59-60} {Comma `,` 740:6:61-62} {RightParen `)` 742:6:63-64} {Semicolon `;` 744:6:65-66} {Identifier `println` 748:7:2-9} {LeftParen `(` 755:7:9-10} {Identifier `l` 756:7:10-11} {Underscore `_` 757:7:11-12} {Integer `4` 759:7:13-14} {Comma `,` 761:7:15-16} {RightParen `)` 763:7:17-18} {Semicolon `;` 765:7:19-20} {Const `const` 769:8:2-7} {Identifier `m` 775:8:8-9} {Is `is` 777:8:10-12} {Map `map` 780:8:13-16} {LeftBracket `[` 783:8:16-17} {Str `str` 784:8:17-20} {RightBracket `]` 787:8:20-21} {Int `int` 788:8:21-24} {LeftTriangle `<|` 792:8:25-27} {String `a` 794:8:27-28} {Colon `:` 797:8:30-31} {Integer `1` 799:8:32-33} {Comma `,` 801:8:34-35} {String `b` 803:8:36-37} {Colon `:` 805:8:38-39} {Integer `2` 807:8:40-41} {Comma `,` 809:8:42-43} {RightTriangle `|>` 812:8:45-47} {Semicolon `;` 814:8:47-48} {Identifier `println` 822:8:55-62} {LeftParen `(` 824:8:57-58} {Identifier `m` 826:8:59-60} {Underscore `_` 828:8:61-62} {String `a` 830:8:63-64} {Comma `,` 832:8:65-66} {RightParen `)` 834:8:67-68} {Semicolon `;` 836:8:69-70} {Identifier `println` 844:8:77-84} {LeftParen `(` 846:8:79-80} {Identifier `m` 848:8:81-82} {Underscore `_` 850:8:83-84} {String `z` 852:8:85-86} {Comma `,` 854:8:87-88} {RightParen `)` 856:8:89-90} {Semicolon `;` 858:8:91-92} {Semicolon `;` 858:8:858-858}]
+
+program: [((Identifier println) ([%!s(*ast.Add=&{<nil> {<nil> 0xc000114948 0xc000114960}})])) ((Identifier println) ([%!s(*ast.Sub=&{<nil> {<nil> 0xc000114990 0xc0001149a8}})])) ((Identifier println) ([%!s(*ast.Mul=&{<nil> {<nil> 0xc0001149d8 0xc0001149f0}})])) ((Identifier println) ([%!s(*ast.Div=&{<nil> {<nil> 0xc000114a20 0xc000114a38}})])) ((Identifier println) ([%!s(*ast.Mod=&{<nil> {<nil> 0xc000114a68 0xc000114a80}})])) ((Identifier println) ([%!s(*ast.Add=&{<nil> {<nil> 0xc000114ab0 0xc000121c80}})])) ((Identifier println) ([%!s(*ast.Sub=&{<nil> {<nil> 0xc000114b10 0xc000114b28}})])) ((Identifier println) ([%!s(*ast.Sub=&{<nil> {<nil> 0xc000114b58 0xc000114b70}})])) ((Identifier println) ([%!s(*ast.Sub=&{<nil> {<nil> 0xc000114ba0 0xc000114bb8}})])) (var ((Identifier l)) (List[Int]) is ([1,2,3,4,5,])) ((Identifier println) ([%!s(*ast.Add=&{<nil> {<nil> 0xc000114c78 0xc0001c7b30}})])) ((Identifier println) ([%!s(*ast.Sub=&{<nil> {<nil> 0xc000114cc0 0xc0001f61b0}})])) ((Identifier println) ([%!s(*ast.AndTest=&{{<nil> 0xc000114d08 0xc000114d20}})])) ((Identifier println) ([%!s(*ast.OrTest=&{{<nil> 0xc000114d50 0xc000114d68}})])) ((Identifier println) ([%!s(*ast.Equal=&{{<nil> 0xc000114d98 0xc000114db0}})])) ((Identifier println) ([%!s(*ast.Greater=&{{<nil> 0xc000114de0 0xc000114df8}})])) ((Identifier println) ([%!s(*ast.GreaterEqual=&{{<nil> 0xc000114e28 0xc000114e40}})])) ((Identifier println) ([%!s(*ast.Less=&{{<nil> 0xc000114e70 0xc000114e88}})])) ((Identifier println) ([%!s(*ast.LessEqual=&{{<nil> 0xc000114eb8 0xc000114ed0}})])) (const ((Identifier s)) (Str) is (abc123)) ((Identifier println) ([%!s(*ast.Indexing=&{{<nil> 0xc000114f30 0xc000114f48}})])) ((Identifier println) ([%!s(*ast.Indexing=&{{<nil> 0xc000114f78 0xc000114f90}})])) (const ((Identifier m)) (Map[Str]Int) is (<|a:1,b:2,|>)) ((Identifier println) ([%!s(*ast.Indexing=&{{<nil> 0xc000115050 0xc000115068}})])) ((Identifier println) ([%!s(*ast.Indexing=&{{<nil> 0xc000115098 0xc0001150b0}})]))]
+
+string visitor
+println
+(+ 1 1)
+(println (+ 1 1))
+println
+(- 2 2)
+(println (- 2 2))
+println
+(* 2.2 3)
+(println (* 2.2 3))
+println
+(/ 4 4)
+(println (/ 4 4))
+println
+(% 4 3)
+(println (% 4 3))
+println
+(+   world)
+(+ hello (+   world))
+(println (+ hello (+   world)))
+println
+(- hello l)
+(println (- hello l))
+println
+(- hello e)
+(println (- hello e))
+println
+(- hello el)
+(println (- hello el))
+l
+[1 2 3 4 5]
+(var l is List[Int] [1 2 3 4 5])
+println
+l
+[6]
+(+ l [6])
+(println (+ l [6]))
+println
+l
+[3]
+(- l [3])
+(println (- l [3]))
+println
+(and true true)
+(println (and true true))
+println
+(or false true)
+(println (or false true))
+println
+(= 1 1)
+(println (= 1 1))
+println
+(> 2 1)
+(println (> 2 1))
+println
+(>= 1.1 1)
+(println (>= 1.1 1))
+println
+(< 0.3 2.2)
+(println (< 0.3 2.2))
+println
+(<= 1 1)
+(println (<= 1 1))
+s
+(const s is Str abc123)
+println
+s
+(_ s 4)
+(println (_ s 4))
+println
+l
+(_ l 4)
+(println (_ l 4))
+m
+<|a:1 b:2|>
+(const m is Map[Str]Int <|a:1 b:2|>)
+println
+m
+(_ m a)
+(println (_ m a))
+println
+m
+(_ m z)
+(println (_ m z))
+1
+str: ((println (+ 1 1)) (println (- 2 2)) (println (* 2.2 3)) (println (/ 4 4)) (println (% 4 3)) (println (+ hello (+   world))) (println (- hello l)) (println (- hello e)) (println (- hello el)) (var l is List[Int] [1 2 3 4 5]) (println (+ l [6])) (println (- l [3])) (println (and true true)) (println (or false true)) (println (= 1 1)) (println (> 2 1)) (println (>= 1.1 1)) (println (< 0.3 2.2)) (println (<= 1 1)) (const s is Str abc123) (println (_ s 4)) (println (_ l 4)) (const m is Map[Str]Int <|a:1 b:2|>) (println (_ m a)) (println (_ m z)))
+
+{[{List [{Int []}]} {Str []} {Map [{Str []} {Int []}]}]}
+util.Stack[error]{
+    stack: {
+        &errors.errorString{s:"mismatched types in ConstantDeclaration: got Map[Str]Int and List[Str]Int"},
+    },
+}

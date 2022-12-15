@@ -5,12 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "test",
+            "name": "debug",
             "type": "go",
-            "mode": "test",
-            "showLog": true,
             "request": "launch",
-            "program": "${file}"
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "args": [
+                "test/binary.test.ne"
+            ]
         }
     ]
 }
