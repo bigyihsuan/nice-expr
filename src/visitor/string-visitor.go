@@ -19,7 +19,7 @@ func NewStringVisitor() *StringVisitor {
 }
 
 func (v StringVisitor) String() string {
-	fmt.Println(v.stringStack.Len())
+	// fmt.Println(v.stringStack.Len())
 	s := *v.stringStack.Peek()
 	return s
 }
@@ -121,7 +121,7 @@ func (v *StringVisitor) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclar
 	s.Value.Accept(v)
 	expr, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(var %s is %s %s)", name, typ, expr)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
@@ -132,7 +132,7 @@ func (v *StringVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclar
 	s.Value.Accept(v)
 	expr, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(const %s is %s %s)", name, typ, expr)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
@@ -149,7 +149,7 @@ func (v *StringVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {
 	t.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(and %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) OrTest(_ ast.Visitor, t *ast.OrTest) {
@@ -158,14 +158,14 @@ func (v *StringVisitor) OrTest(_ ast.Visitor, t *ast.OrTest) {
 	t.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(or %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) NotTest(_ ast.Visitor, t *ast.NotTest) {
 	t.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(not %s)", right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Equal(_ ast.Visitor, c *ast.Equal) {
@@ -174,7 +174,7 @@ func (v *StringVisitor) Equal(_ ast.Visitor, c *ast.Equal) {
 	c.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(= %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Greater(_ ast.Visitor, c *ast.Greater) {
@@ -183,7 +183,7 @@ func (v *StringVisitor) Greater(_ ast.Visitor, c *ast.Greater) {
 	c.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(> %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Less(_ ast.Visitor, c *ast.Less) {
@@ -192,7 +192,7 @@ func (v *StringVisitor) Less(_ ast.Visitor, c *ast.Less) {
 	c.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(< %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) GreaterEqual(_ ast.Visitor, c *ast.GreaterEqual) {
@@ -201,7 +201,7 @@ func (v *StringVisitor) GreaterEqual(_ ast.Visitor, c *ast.GreaterEqual) {
 	c.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(>= %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) LessEqual(_ ast.Visitor, c *ast.LessEqual) {
@@ -210,7 +210,7 @@ func (v *StringVisitor) LessEqual(_ ast.Visitor, c *ast.LessEqual) {
 	c.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(<= %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Add(_ ast.Visitor, a *ast.Add) {
@@ -219,7 +219,7 @@ func (v *StringVisitor) Add(_ ast.Visitor, a *ast.Add) {
 	a.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(+ %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Sub(_ ast.Visitor, a *ast.Sub) {
@@ -228,7 +228,7 @@ func (v *StringVisitor) Sub(_ ast.Visitor, a *ast.Sub) {
 	a.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(- %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Mul(_ ast.Visitor, m *ast.Mul) {
@@ -237,7 +237,7 @@ func (v *StringVisitor) Mul(_ ast.Visitor, m *ast.Mul) {
 	m.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(* %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Div(_ ast.Visitor, m *ast.Div) {
@@ -246,7 +246,7 @@ func (v *StringVisitor) Div(_ ast.Visitor, m *ast.Div) {
 	m.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(/ %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Mod(_ ast.Visitor, m *ast.Mod) {
@@ -255,19 +255,19 @@ func (v *StringVisitor) Mod(_ ast.Visitor, m *ast.Mod) {
 	m.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(%% %s %s)", left, right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) UnaryMinus(_ ast.Visitor, t *ast.UnaryMinus) {
 	t.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(- %s)", right)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Identifier(_ ast.Visitor, i *ast.Identifier) {
 	str := i.Tok.Lexeme
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
@@ -280,7 +280,7 @@ func (v *StringVisitor) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
 		args = append(args, arg)
 	}
 	str := fmt.Sprintf("(%s %s)", name, strings.Join(args, " "))
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) PrimitiveLiteral(_ ast.Visitor, l *ast.PrimitiveLiteral) {
@@ -294,7 +294,7 @@ func (v *StringVisitor) ListLiteral(_ ast.Visitor, l *ast.ListLiteral) {
 		eles = append(eles, e)
 	}
 	str := fmt.Sprintf("[%s]", strings.Join(eles, " "))
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) MapLiteral(_ ast.Visitor, l *ast.MapLiteral) {
@@ -307,7 +307,7 @@ func (v *StringVisitor) MapLiteral(_ ast.Visitor, l *ast.MapLiteral) {
 		eles = append(eles, fmt.Sprintf("%s:%s", k, val))
 	}
 	str := fmt.Sprintf("<|%s|>", strings.Join(eles, " "))
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Indexing(_ ast.Visitor, i *ast.Indexing) {
@@ -316,7 +316,7 @@ func (v *StringVisitor) Indexing(_ ast.Visitor, i *ast.Indexing) {
 	i.Right.Accept(v)
 	index, _ := v.stringStack.Pop()
 	str := fmt.Sprintf("(_ %s %s)", collection, index)
-	fmt.Println(str)
+	// fmt.Println(str)
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) PrimitiveType(_ ast.Visitor, t *ast.PrimitiveType) {

@@ -71,20 +71,34 @@ func main() {
 
 	fmt.Println(typevis.TypeStack())
 	errs := typevis.Errors()
-	typeError, err := errs.Pop()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	} else if typeError != nil {
-		fmt.Println("got type error: ", typeError)
+	for errs.Len() > 0 {
+		typeError, err := errs.Pop()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		} else if typeError != nil {
+			fmt.Println("got type error: ", typeError)
+		}
 	}
 	fmt.Println(typevis.Identifiers())
+	fmt.Println()
 
-	// nicerEvaluator := evaluator.NewEvaluator()
-	// ee := nicerEvaluator.EvaluateProgram(program)
-	// if ee != nil {
-	// 	fmt.Fprintln(os.Stderr, ee)
-	// }
+	fmt.Println("evaluator")
+	nicerEvaluator := visitor.NewEvaluatingVisitor()
+	program.Accept(nicerEvaluator)
+
+	fmt.Println(nicerEvaluator.ValueStack())
+	valErrs := nicerEvaluator.Errors()
+	for valErrs.Len() > 0 {
+		valErr, err := valErrs.Pop()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		} else if valErr != nil {
+			fmt.Println("got evaluation error: ", valErr)
+		}
+	}
+	fmt.Println(nicerEvaluator.Identifiers())
 
 	// fmt.Println("Constants:", nicerEvaluator.Constants)
 	// fmt.Println("Variables:", nicerEvaluator.Variables)

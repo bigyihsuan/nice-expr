@@ -126,7 +126,7 @@ func (v *TypeChecker) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclarat
 		v.errors.Push(fmt.Errorf("mismatched types in VariableDeclaration: got %v and %v", varType, valType))
 	}
 	v.typeStack.Push(varType)
-	v.identifiers[s.Name.Name()] = IdentifierEntry[value.ValueType]{s.Name, varType}
+	v.identifiers[s.Name.Name()] = IdentifierEntry[value.ValueType]{s.Name, varType, Var}
 }
 func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
 	s.Type.Accept(v)
@@ -137,7 +137,7 @@ func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclarat
 		v.errors.Push(fmt.Errorf("mismatched types in ConstantDeclaration: got %v and %v", varType, valType))
 	}
 	v.typeStack.Push(varType)
-	v.identifiers[s.Name.Name()] = IdentifierEntry[value.ValueType]{s.Name, varType}
+	v.identifiers[s.Name.Name()] = IdentifierEntry[value.ValueType]{s.Name, varType, Const}
 }
 func (v *TypeChecker) Assignment(_ ast.Visitor, s *ast.Assignment) {
 	entry, ok := v.identifiers[s.Name.Name()]
