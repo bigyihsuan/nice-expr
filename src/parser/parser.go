@@ -260,6 +260,7 @@ func (p *NiceExprParser) Test() (ast.Expr, *ParseError) {
 // notTest ::= comparison | "not" notTest ;
 func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
 	notTest := new(ast.NotTest)
+	var unary ast.UnaryExpr
 	var ok bool
 	var err *ParseError
 	if ok, err = p.optionalToken(TT.Not); err != nil {
@@ -267,14 +268,14 @@ func (p *NiceExprParser) NotTest() (ast.Expr, *ParseError) {
 	} else if !ok {
 		// just a comparison
 		return p.Comparison()
-	}
-	// "not" notTest
-	if _, err = p.expectToken(TT.Not); err != nil {
+	} else if _, err = p.expectToken(TT.Not); err != nil {
 		return notTest, err.addRule("NotTest.Not")
 	}
-	if notTest.Right, err = p.NotTest(); err != nil {
+	// "not" notTest
+	if unary.Right, err = p.NotTest(); err != nil {
 		return notTest, err.addRule("NotTest.NotTest")
 	}
+	notTest.UnaryExpr = unary
 	return notTest, nil
 }
 
@@ -410,6 +411,8 @@ func (p *NiceExprParser) UnaryMinusExpr() (ast.Expr, *ParseError) {
 	if ok, err := p.optionalToken(TT.Minus); err != nil {
 		return unaryMinusExpr, err.addRule("UnaryMinusExpr.Minus?")
 	} else if ok {
+		// consume minus
+		p.getNextToken()
 		// have a minus, get another unary minus expr
 		if unaryMinusExpr.Right, err = p.UnaryMinusExpr(); err != nil {
 			// "-" unaryMinusExp

@@ -40,7 +40,6 @@ func (e *BinaryExpr) Accept(v Visitor) {
 
 // "statements"
 
-// TODO: Assignments
 type Assignment struct {
 	Name  *Identifier
 	Op    *token.Token
@@ -116,11 +115,15 @@ func (t *OrTest) AcceptTest(v Visitor) {
 }
 
 type NotTest struct {
-	*UnaryExpr
+	UnaryExpr
 }
 
 func (t *NotTest) Accept(v Visitor) {
 	v.NotTest(v, t)
+}
+
+func (t NotTest) String() string {
+	return fmt.Sprintf("-%s", t.Right)
 }
 
 // comparisons
