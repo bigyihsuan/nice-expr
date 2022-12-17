@@ -205,7 +205,6 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 			return expr, nil
 		}
 	}
-	return nil, NewParseError("unknown value expression", nil, "Expr")
 }
 
 func (p *NiceExprParser) Indexing(left ast.Expr) (ast.Expr, *ParseError) {
@@ -649,6 +648,15 @@ func (p *NiceExprParser) ExprList(endingToken TT.TokenType) ([]ast.Expr, *ParseE
 		if err != nil {
 			return l, err.addRule("ExprList.Expr")
 		}
+
+		// optional trailing comma
+		if ok, err := p.optionalToken(endingToken); err != nil {
+			return l, err.addRule("ExprList.Ending")
+		} else if ok {
+			l = append(l, expr)
+			break
+		}
+
 		if _, err = p.expectToken(TT.Comma); err != nil {
 			return l, err.addRule("ExprList.Comma")
 		}
@@ -715,7 +723,7 @@ func (p *NiceExprParser) ListLiteral() (*ast.ListLiteral, *ParseError) {
 func (p *NiceExprParser) ListElements() ([]ast.Expr, *ParseError) {
 	l := []ast.Expr{}
 	for {
-		// list items are comma.separated, and trailing comma is needed
+		// list items are comma.separated, and trailing comma is optional
 		if ok, err := p.checkToken(TT.RightBracket); err != nil {
 			return l, err.addRule("ListElements.End")
 		} else if ok {
@@ -724,6 +732,12 @@ func (p *NiceExprParser) ListElements() ([]ast.Expr, *ParseError) {
 		value, err := p.Expr()
 		if err != nil {
 			return l, err.addRule("ListElements.Elements")
+		}
+		if ok, err := p.checkToken(TT.RightBracket); err != nil {
+			return l, err.addRule("ListElements.End")
+		} else if ok {
+			l = append(l, value)
+			break
 		}
 		if _, err = p.expectToken(TT.Comma); err != nil {
 			return l, err.addRule("ListElements.Elements")
@@ -752,7 +766,7 @@ func (p *NiceExprParser) MapLiteral() (*ast.MapLiteral, *ParseError) {
 func (p *NiceExprParser) MapEntries() (map[ast.Expr]ast.Expr, *ParseError) {
 	m := make(map[ast.Expr]ast.Expr)
 	for {
-		// list items are comma.separated, and trailing comma is needed
+		// list items are comma.separated, and trailing comma is optional
 		if ok, err := p.checkToken(TT.RightTriangle); err != nil {
 			return m, err.addRule("MapEntry.End")
 		} else if ok {
@@ -769,6 +783,12 @@ func (p *NiceExprParser) MapEntries() (map[ast.Expr]ast.Expr, *ParseError) {
 		value, err := p.Expr()
 		if err != nil {
 			return m, err.addRule("MapEntry.Value")
+		}
+		if ok, err := p.checkToken(TT.RightTriangle); err != nil {
+			return m, err.addRule("MapEntry.End")
+		} else if ok {
+			m[key] = value
+			break
 		}
 		_, err = p.expectToken(TT.Comma)
 		if err != nil {

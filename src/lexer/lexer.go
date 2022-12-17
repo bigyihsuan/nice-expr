@@ -66,7 +66,7 @@ func (nel *NiceExprLexer) program(s *lex.State) lex.StateFn {
 		// s.Emit(pos, Semicolon, ";")
 		s.Emit(pos, TT.ToLt(TT.EOF), "")
 		return nil
-	case ';', '\n': // newlines separate statements
+	case ';': // semicolons separate statements
 		s.Emit(pos, TT.ToLt(TT.Semicolon), ";")
 		return nil
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
