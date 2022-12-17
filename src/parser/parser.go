@@ -555,7 +555,52 @@ func (p *NiceExprParser) Assignment() (*ast.Assignment, *ParseError) {
 		return ae, err.addRule("Assignment.Value")
 	}
 	ae.Value = value
-	return ae, nil
+
+	return p.DesugarAssignment(ae), nil
+}
+
+// convert an assignment from:
+//
+//	set name += val
+//
+// to:
+//
+//	set name is name + val
+func (p *NiceExprParser) DesugarAssignment(a *ast.Assignment) *ast.Assignment {
+	var (
+		ass     = new(ast.Assignment)
+		binExpr = ast.BinaryExpr{Left: a.Name, Right: a.Value}
+		add     ast.Add
+		sub     ast.Sub
+		mul     ast.Mul
+		div     ast.Div
+		mod     ast.Mod
+	)
+
+	ass.Name = a.Name
+	ass.Op = a.Op
+	ass.Op.Tt, ass.Op.Lexeme = TT.Is, "is"
+
+	switch a.Op.Tt {
+	case TT.PlusEqual:
+		add = ast.Add{BinaryExpr: binExpr}
+		ass.Value = add
+	case TT.MinusEqual:
+		sub = ast.Sub{BinaryExpr: binExpr}
+		ass.Value = sub
+	case TT.StarEqual:
+		mul = ast.Mul{BinaryExpr: binExpr}
+		ass.Value = mul
+	case TT.SlashEqual:
+		div = ast.Div{BinaryExpr: binExpr}
+		ass.Value = div
+	case TT.PercentEqual:
+		mod = ast.Mod{BinaryExpr: binExpr}
+		ass.Value = mod
+	default:
+		return a
+	}
+	return ass
 }
 
 func (p *NiceExprParser) Identifier() (*ast.Identifier, *ParseError) {

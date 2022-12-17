@@ -225,8 +225,8 @@ type Add struct {
 	BinaryExpr
 }
 
-func (a *Add) Accept(v Visitor) {
-	v.Add(v, a)
+func (a Add) Accept(v Visitor) {
+	v.Add(v, &a)
 }
 func (a *Add) AcceptAddExpr(v Visitor) {
 	v.Add(v, a)
@@ -240,8 +240,8 @@ type Sub struct {
 	BinaryExpr
 }
 
-func (a *Sub) Accept(v Visitor) {
-	v.Sub(v, a)
+func (a Sub) Accept(v Visitor) {
+	v.Sub(v, &a)
 }
 func (a *Sub) AcceptAddExpr(v Visitor) {
 	v.Sub(v, a)
@@ -259,8 +259,8 @@ type Mul struct {
 	BinaryExpr
 }
 
-func (m *Mul) Accept(v Visitor) {
-	v.Mul(v, m)
+func (m Mul) Accept(v Visitor) {
+	v.Mul(v, &m)
 }
 func (m *Mul) AcceptMulExpr(v Visitor) {
 	v.Mul(v, m)
@@ -274,8 +274,8 @@ type Div struct {
 	BinaryExpr
 }
 
-func (m *Div) Accept(v Visitor) {
-	v.Div(v, m)
+func (m Div) Accept(v Visitor) {
+	v.Div(v, &m)
 }
 func (m *Div) AcceptMulExpr(v Visitor) {
 	v.Div(v, m)
@@ -289,8 +289,8 @@ type Mod struct {
 	BinaryExpr
 }
 
-func (m *Mod) Accept(v Visitor) {
-	v.Mod(v, m)
+func (m Mod) Accept(v Visitor) {
+	v.Mod(v, &m)
 }
 func (m *Mod) AcceptMulExpr(v Visitor) {
 	v.Mod(v, m)
