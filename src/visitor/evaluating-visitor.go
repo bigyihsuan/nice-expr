@@ -9,7 +9,6 @@ import (
 	"nice-expr/src/value"
 	"strings"
 
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -38,6 +37,23 @@ func (v EvaluatingVisitor) Errors() util.Stack[error] {
 
 func (v EvaluatingVisitor) Identifiers() map[string]IdentifierEntry[*value.Value] {
 	return v.identifiers
+}
+
+func (e EvaluatingVisitor) GetConstant(name string) (*ast.Identifier, *value.Value) {
+	for n, entry := range e.identifiers {
+		if n == name && entry.VarType == Const {
+			return entry.Ident, entry.Value
+		}
+	}
+	return nil, nil
+}
+func (e EvaluatingVisitor) GetVariable(name string) (*ast.Identifier, *value.Value) {
+	for n, entry := range e.identifiers {
+		if n == name && entry.VarType == Var {
+			return entry.Ident, entry.Value
+		}
+	}
+	return nil, nil
 }
 
 func (v *EvaluatingVisitor) PrepareUnary(u ast.UnaryExpr) (right *value.Value) {
@@ -162,6 +178,7 @@ func (v *EvaluatingVisitor) VariableDeclaration(_ ast.Visitor, s *ast.VariableDe
 		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v`", name, existingValue.VarType, existingValue.Value.V))
 	}
 	v.identifiers[name] = IdentifierEntry[*value.Value]{s.Name, varVal, Var}
+	v.valueStack.Push(varVal)
 }
 func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
 	name := s.Name.Name()
@@ -176,6 +193,7 @@ func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDe
 		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v`", name, existingValue.VarType, existingValue.Value.V))
 	}
 	v.identifiers[name] = IdentifierEntry[*value.Value]{s.Name, varVal, Const}
+	v.valueStack.Push(varVal)
 }
 func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 	name := s.Name.Name()
@@ -199,7 +217,6 @@ func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 		v.errors.Push(fmt.Errorf("cannot assign `%v` to variable `%s` of type %s", assVal, name, entry.Value.T.String()))
 		return
 	}
-	// TODO: check s.Op for what operation to do. `is` is plain reassignment. call binaryexpr code on left OP value.
 	entry.Value = assVal
 	v.identifiers[name] = entry
 }
@@ -213,12 +230,8 @@ func (v *EvaluatingVisitor) OrTest(_ ast.Visitor, t *ast.OrTest) {
 	v.valueStack.Push(value.NewValue(value.BoolType, leftValue.V.(bool) || rightValue.V.(bool)))
 }
 func (v *EvaluatingVisitor) NotTest(_ ast.Visitor, t *ast.NotTest) {
-	t.Right.Accept(v)
-	rightValue, err := v.valueStack.Pop()
-	if err != nil {
-		v.errors.Push(fmt.Errorf("right: %s at %s", err, t))
-		return
-	} else if rightValue.IsNotType(value.BoolType) {
+	rightValue := v.PrepareUnary(t.UnaryExpr)
+	if rightValue.IsNotType(value.BoolType) {
 		v.errors.Push(fmt.Errorf("cannot take logical not of value %s of type %s at %s", rightValue.V, rightValue.T, t))
 		return
 	}
@@ -228,26 +241,8 @@ func (v *EvaluatingVisitor) NotTest(_ ast.Visitor, t *ast.NotTest) {
 func (v *EvaluatingVisitor) Equal(_ ast.Visitor, c *ast.Equal) {
 	left, right := v.PrepareBinary(c.BinaryExpr)
 	switch {
-	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
-		l, _ := left.BigInt()
-		r, _ := right.BigInt()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) == 0))
-	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
-		l, _ := left.BigDec()
-		r, _ := right.BigDec()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) == 0))
-	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
-		l, _ := left.Str()
-		r, _ := right.Str()
-		v.valueStack.Push(value.NewValue(left.T, l == r))
-	case left.EqualsType(value.ListType) && right.EqualsType(value.ListType):
-		l := left.V.([]*value.Value)
-		r := right.V.([]*value.Value)
-		v.valueStack.Push(value.NewValue(left.T, slices.Equal(l, r)))
-	case left.EqualsType(value.MapType) && right.EqualsType(value.MapType):
-		l := left.V.(map[*value.Value]*value.Value)
-		r := right.V.(map[*value.Value]*value.Value)
-		v.valueStack.Push(value.NewValue(left.T, maps.Equal(l, r)))
+	case left.EqualsValueType(right):
+		v.valueStack.Push(value.NewValue(value.BoolType, left.Equal(right)))
 	default:
 		v.errors.Push(fmt.Errorf("mismatched types for `=`: %s and %s at %s", left.T, right.T, c))
 	}
@@ -474,12 +469,7 @@ func (v *EvaluatingVisitor) Mod(_ ast.Visitor, m *ast.Mod) {
 }
 
 func (v *EvaluatingVisitor) UnaryMinus(_ ast.Visitor, t *ast.UnaryMinus) {
-	t.Accept(v)
-	rightVal, err := v.valueStack.Pop()
-	if err != nil {
-		v.errors.Push(fmt.Errorf("%s at %s", err, t))
-		return
-	}
+	rightVal := v.PrepareUnary(t.UnaryExpr)
 	if rightVal.IsNotType(value.IntType) && rightVal.IsNotType(value.DecType) {
 		v.errors.Push(fmt.Errorf("cannot use unary minus on value %s of type %s at %s", rightVal.V, rightVal.T, t))
 		return

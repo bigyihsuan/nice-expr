@@ -11,7 +11,8 @@
             "mode": "debug",
             "program": "${workspaceFolder}",
             "args": [
-                "test/assignments.test.ne"
+                "-d",
+                "test/nested-declarations.test.ne",
             ]
         }
     ]

@@ -179,12 +179,14 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 		return expr, err.addRule("Expr")
 	case tok.Is(TT.LeftParen): // nested
 		p.getNextToken()
-		if expr, err = p.Expr(); err != nil {
+		expr, err = p.Expr()
+		if err != nil {
 			return expr, err.addRule("Expr.ParenExpr")
 		}
 		if _, err := p.expectToken(TT.RightParen); err != nil {
 			return expr, err.addRule("Expr.ParenExprEnd")
 		}
+		return expr, nil
 	case slices.Contains(TT.VarConstSet, tok.Tt): // decl or assignment
 		if expr, err = p.AssOrDecl(); err != nil {
 			return expr, err.addRule("Expr.AssOrDecl")

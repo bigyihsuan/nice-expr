@@ -13,7 +13,8 @@ import (
 )
 
 type Options struct {
-	Code string `short:"c" default:""`
+	Debug bool   `short:"d" long:"debug"`
+	Code  string `short:"c" default:""`
 }
 
 func main() {
@@ -45,8 +46,10 @@ func main() {
 	nicerLexer := lexer.NewLexer(file)
 	tokens := nicerLexer.LexAll()
 
-	fmt.Println(tokens)
-	fmt.Println()
+	if options.Debug {
+		fmt.Println(tokens)
+		fmt.Println()
+	}
 
 	nicerParser := parser.NewNiceExprParser(tokens)
 	program, pe := nicerParser.Program()
@@ -56,20 +59,24 @@ func main() {
 		return
 	}
 
-	fmt.Println("program:", program.Statements)
-	fmt.Println()
+	if options.Debug {
+		fmt.Println("program:", program.Statements)
+		fmt.Println()
 
-	fmt.Println("string visitor")
+		fmt.Println("string visitor")
+	}
+
 	streval := visitor.NewStringVisitor()
 	program.Accept(streval)
 
-	fmt.Println("str:", streval.String())
-	fmt.Println()
+	if options.Debug {
 
+		fmt.Println("str:", streval.String())
+		fmt.Println()
+	}
 	typevis := visitor.NewTypeChecker()
 	program.Accept(typevis)
 
-	fmt.Println(typevis.TypeStack())
 	errs := typevis.Errors()
 	for errs.Len() > 0 {
 		typeError, err := errs.Pop()
@@ -80,27 +87,29 @@ func main() {
 			fmt.Println("got type error: ", typeError)
 		}
 	}
-	fmt.Println(typevis.Identifiers())
-	fmt.Println()
 
-	fmt.Println("evaluator")
+	if options.Debug {
+		fmt.Println(typevis.TypeStack())
+		fmt.Println(typevis.Identifiers())
+		fmt.Println()
+		fmt.Println("evaluator")
+	}
+
 	nicerEvaluator := visitor.NewEvaluatingVisitor()
 	program.Accept(nicerEvaluator)
 
-	fmt.Println(nicerEvaluator.ValueStack())
-	valErrs := nicerEvaluator.Errors()
-	for valErrs.Len() > 0 {
-		valErr, err := valErrs.Pop()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		} else if valErr != nil {
-			fmt.Println("got evaluation error:", valErr)
+	if options.Debug {
+		fmt.Println(nicerEvaluator.ValueStack())
+		valErrs := nicerEvaluator.Errors()
+		for valErrs.Len() > 0 {
+			valErr, err := valErrs.Pop()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			} else if valErr != nil {
+				fmt.Println("got evaluation error:", valErr)
+			}
 		}
+		fmt.Println(nicerEvaluator.Identifiers())
 	}
-	fmt.Println(nicerEvaluator.Identifiers())
-
-	// fmt.Println("Constants:", nicerEvaluator.Constants)
-	// fmt.Println("Variables:", nicerEvaluator.Variables)
-	// fmt.Println("ValueStack:", nicerEvaluator.ValueStack)
 }
