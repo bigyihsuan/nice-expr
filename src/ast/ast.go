@@ -28,6 +28,9 @@ type UnaryExpr struct {
 func (e *UnaryExpr) Accept(v Visitor) {
 	v.UnaryExpr(v, e)
 }
+func (e UnaryExpr) String() string {
+	return fmt.Sprintf("(%s)", e.Right)
+}
 
 type BinaryExpr struct {
 	Expr
@@ -36,6 +39,9 @@ type BinaryExpr struct {
 
 func (e *BinaryExpr) Accept(v Visitor) {
 	v.BinaryExpr(v, e)
+}
+func (e BinaryExpr) String() string {
+	return fmt.Sprintf("(%s %s)", e.Left, e.Right)
 }
 
 // "statements"
@@ -51,7 +57,7 @@ func (s *Assignment) Accept(v Visitor) {
 }
 
 func (ae Assignment) String() string {
-	return fmt.Sprintf("(set (%v) (%v) (%v))", ae.Name, ae.Op.Lexeme, ae.Value)
+	return fmt.Sprintf("(set %s %s %s)", ae.Name, ae.Op.Lexeme, ae.Value)
 }
 
 type Declaration interface{ Expr }
@@ -68,7 +74,7 @@ func (s *VariableDeclaration) Accept(v Visitor) {
 }
 
 func (ae VariableDeclaration) String() string {
-	return fmt.Sprintf("(var (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
+	return fmt.Sprintf("(var %s %s is %s)", ae.Name, ae.Type, ae.Value)
 }
 
 type ConstantDeclaration struct {
@@ -83,7 +89,7 @@ func (s *ConstantDeclaration) Accept(v Visitor) {
 }
 
 func (ae ConstantDeclaration) String() string {
-	return fmt.Sprintf("(const (%v) (%v) is (%v))", ae.Name, ae.Type, ae.Value)
+	return fmt.Sprintf("(const %s %s is %s)", ae.Name, ae.Type, ae.Value)
 }
 
 // tests
@@ -102,6 +108,9 @@ func (t *AndTest) Accept(v Visitor) {
 func (t *AndTest) AcceptTest(v Visitor) {
 	v.AndTest(v, t)
 }
+func (t *AndTest) String() string {
+	return fmt.Sprintf("(and %s)", t.BinaryExpr.String())
+}
 
 type OrTest struct {
 	BinaryExpr
@@ -113,6 +122,9 @@ func (t *OrTest) Accept(v Visitor) {
 func (t *OrTest) AcceptTest(v Visitor) {
 	v.OrTest(v, t)
 }
+func (t *OrTest) String() string {
+	return fmt.Sprintf("(or %s)", t.BinaryExpr.String())
+}
 
 type NotTest struct {
 	UnaryExpr
@@ -123,7 +135,7 @@ func (t *NotTest) Accept(v Visitor) {
 }
 
 func (t NotTest) String() string {
-	return fmt.Sprintf("-%s", t.Right)
+	return fmt.Sprintf("(not %s)", t.UnaryExpr.String())
 }
 
 // comparisons
@@ -142,6 +154,9 @@ func (c *Equal) AcceptCompare(v Visitor) {
 func (c *Equal) Accept(v Visitor) {
 	v.Equal(v, c)
 }
+func (c Equal) String() string {
+	return fmt.Sprintf("(= %s)", c.BinaryExpr.String())
+}
 
 type Greater struct {
 	BinaryExpr
@@ -152,6 +167,9 @@ func (c *Greater) AcceptCompare(v Visitor) {
 }
 func (c *Greater) Accept(v Visitor) {
 	v.Greater(v, c)
+}
+func (c Greater) String() string {
+	return fmt.Sprintf("(> %s)", c.BinaryExpr.String())
 }
 
 type Less struct {
@@ -164,6 +182,9 @@ func (c *Less) AcceptCompare(v Visitor) {
 func (c *Less) Accept(v Visitor) {
 	v.Less(v, c)
 }
+func (c Less) String() string {
+	return fmt.Sprintf("(< %s)", c.BinaryExpr.String())
+}
 
 type GreaterEqual struct {
 	BinaryExpr
@@ -175,6 +196,9 @@ func (c *GreaterEqual) AcceptCompare(v Visitor) {
 func (c *GreaterEqual) Accept(v Visitor) {
 	v.GreaterEqual(v, c)
 }
+func (c GreaterEqual) String() string {
+	return fmt.Sprintf("(>= %s)", c.BinaryExpr.String())
+}
 
 type LessEqual struct {
 	BinaryExpr
@@ -185,6 +209,9 @@ func (c *LessEqual) AcceptCompare(v Visitor) {
 }
 func (c *LessEqual) Accept(v Visitor) {
 	v.LessEqual(v, c)
+}
+func (c LessEqual) String() string {
+	return fmt.Sprintf("(=< %s)", c.BinaryExpr.String())
 }
 
 // arithmetic
@@ -204,6 +231,9 @@ func (a *Add) Accept(v Visitor) {
 func (a *Add) AcceptAddExpr(v Visitor) {
 	v.Add(v, a)
 }
+func (a *Add) String() string {
+	return fmt.Sprintf("(+ %s)", a.BinaryExpr.String())
+}
 
 type Sub struct {
 	AddExpr
@@ -215,6 +245,9 @@ func (a *Sub) Accept(v Visitor) {
 }
 func (a *Sub) AcceptAddExpr(v Visitor) {
 	v.Sub(v, a)
+}
+func (a *Sub) String() string {
+	return fmt.Sprintf("(- %s)", a.BinaryExpr.String())
 }
 
 type MulExpr interface {
@@ -232,6 +265,9 @@ func (m *Mul) Accept(v Visitor) {
 func (m *Mul) AcceptMulExpr(v Visitor) {
 	v.Mul(v, m)
 }
+func (m *Mul) String() string {
+	return fmt.Sprintf("(* %s)", m.BinaryExpr.String())
+}
 
 type Div struct {
 	MulExpr
@@ -243,6 +279,9 @@ func (m *Div) Accept(v Visitor) {
 }
 func (m *Div) AcceptMulExpr(v Visitor) {
 	v.Div(v, m)
+}
+func (m *Div) String() string {
+	return fmt.Sprintf("(/ %s)", m.BinaryExpr.String())
 }
 
 type Mod struct {
@@ -256,6 +295,9 @@ func (m *Mod) Accept(v Visitor) {
 func (m *Mod) AcceptMulExpr(v Visitor) {
 	v.Mod(v, m)
 }
+func (m *Mod) String() string {
+	return fmt.Sprintf("(%% %s)", m.BinaryExpr.String())
+}
 
 type UnaryMinus struct {
 	UnaryExpr
@@ -263,6 +305,9 @@ type UnaryMinus struct {
 
 func (u *UnaryMinus) Accept(v Visitor) {
 	v.UnaryMinus(v, u)
+}
+func (u UnaryMinus) String() string {
+	return fmt.Sprintf("(- %s)", u.UnaryExpr.String())
 }
 
 // primaries
@@ -346,7 +391,7 @@ func (i *Identifier) Accept(v Visitor) {
 }
 
 func (id Identifier) String() string {
-	return fmt.Sprintf("(Identifier %s)", id.Tok.Lexeme)
+	return fmt.Sprintf("(%s)", id.Tok.Lexeme)
 }
 
 func (id Identifier) Name() string {

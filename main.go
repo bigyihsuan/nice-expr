@@ -95,7 +95,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		} else if valErr != nil {
-			fmt.Println("got evaluation error: ", valErr)
+			fmt.Println("got evaluation error:", valErr)
 		}
 	}
 	fmt.Println(nicerEvaluator.Identifiers())

@@ -7,7 +7,9 @@ import (
 	"nice-expr/src/evaluator"
 	"nice-expr/src/util"
 	"nice-expr/src/value"
+	"strings"
 
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -38,86 +40,112 @@ func (v EvaluatingVisitor) Identifiers() map[string]IdentifierEntry[*value.Value
 	return v.identifiers
 }
 
-func (v *EvaluatingVisitor) UnaryExpr(o ast.Visitor, e *ast.UnaryExpr) {
+func (v *EvaluatingVisitor) PrepareUnary(u ast.UnaryExpr) (right *value.Value) {
+	var err error
+	u.Accept(v)
+	right, err = v.valueStack.Pop()
+	if err != nil {
+		v.errors.Push(fmt.Errorf("%s at %s (right)", err, u))
+		return
+	}
+	return right
+}
+func (v *EvaluatingVisitor) PrepareBinary(b ast.BinaryExpr) (left, right *value.Value) {
+	var err error
+	b.Accept(v)
+	right, err = v.valueStack.Pop()
+	if err != nil {
+		v.errors.Push(fmt.Errorf("%s at %s (right)", err, b))
+		return
+	}
+	left, err = v.valueStack.Pop()
+	if err != nil {
+		v.errors.Push(fmt.Errorf("%s at %s (left)", err, b))
+		return
+	}
+	return left, right
+}
+
+func (v *EvaluatingVisitor) UnaryExpr(_ ast.Visitor, e *ast.UnaryExpr) {
 	e.Right.Accept(v)
 }
-func (v *EvaluatingVisitor) BinaryExpr(o ast.Visitor, e *ast.BinaryExpr) {
+func (v *EvaluatingVisitor) BinaryExpr(_ ast.Visitor, e *ast.BinaryExpr) {
 	e.Left.Accept(v)
 	e.Right.Accept(v)
 }
 
-func (v *EvaluatingVisitor) Program(o ast.Visitor, p *ast.Program) {
+func (v *EvaluatingVisitor) Program(_ ast.Visitor, p *ast.Program) {
 	for _, e := range p.Statements {
 		e.Accept(v)
 	}
 }
-func (v *EvaluatingVisitor) Expr(o ast.Visitor, p ast.Expr) {
+func (v *EvaluatingVisitor) Expr(_ ast.Visitor, p ast.Expr) {
 	switch p := p.(type) {
 	case *ast.Indexing:
 		p.Accept(v)
 	case *ast.Assignment:
 		p.Accept(v)
-	case ast.Declaration:
-		p.Accept(v)
+	case *ast.VariableDeclaration, *ast.ConstantDeclaration:
+		v.Declaration(v, p)
 	case ast.Test:
-		p.AcceptTest(v)
+		v.Test(v, p)
 	}
 }
 
-func (v *EvaluatingVisitor) Declaration(o ast.Visitor, d ast.Declaration) {
+func (v *EvaluatingVisitor) Declaration(_ ast.Visitor, d ast.Declaration) {
 	switch d := d.(type) {
 	case *ast.VariableDeclaration:
-		o.VariableDeclaration(o, d)
+		v.VariableDeclaration(v, d)
 	case *ast.ConstantDeclaration:
-		o.ConstantDeclaration(o, d)
+		v.ConstantDeclaration(v, d)
 	}
 }
-func (v *EvaluatingVisitor) Test(o ast.Visitor, t ast.Test) {
+func (v *EvaluatingVisitor) Test(_ ast.Visitor, t ast.Test) {
 	switch t := t.(type) {
 	case *ast.AndTest:
-		o.AndTest(o, t)
+		v.AndTest(v, t)
 	case *ast.OrTest:
-		o.OrTest(o, t)
+		v.OrTest(v, t)
 	}
 }
-func (v *EvaluatingVisitor) Comparison(o ast.Visitor, c ast.Comparison) {
-	c.AcceptCompare(o)
+func (v *EvaluatingVisitor) Comparison(_ ast.Visitor, c ast.Comparison) {
+	c.AcceptCompare(v)
 }
-func (v *EvaluatingVisitor) AddExpr(o ast.Visitor, a ast.AddExpr) {
-	a.AcceptAddExpr(o)
+func (v *EvaluatingVisitor) AddExpr(_ ast.Visitor, a ast.AddExpr) {
+	a.AcceptAddExpr(v)
 }
-func (v *EvaluatingVisitor) MulExpr(o ast.Visitor, m ast.MulExpr) {
-	m.AcceptMulExpr(o)
+func (v *EvaluatingVisitor) MulExpr(_ ast.Visitor, m ast.MulExpr) {
+	m.AcceptMulExpr(v)
 }
-func (v *EvaluatingVisitor) Primary(o ast.Visitor, p ast.Primary) {
+func (v *EvaluatingVisitor) Primary(_ ast.Visitor, p ast.Primary) {
 	switch p := p.(type) {
 	case *ast.Identifier:
-		p.Accept(o)
+		p.Accept(v)
 	case *ast.FunctionCall:
-		p.Accept(o)
+		p.Accept(v)
 	case ast.Literal:
-		p.Accept(o)
+		p.Accept(v)
 	}
 }
-func (v *EvaluatingVisitor) Literal(o ast.Visitor, l ast.Literal) {
+func (v *EvaluatingVisitor) Literal(_ ast.Visitor, l ast.Literal) {
 	switch l := l.(type) {
 	case *ast.PrimitiveLiteral:
-		l.Accept(o)
+		l.Accept(v)
 	case ast.CompoundLiteral:
-		l.AcceptCompoundLiteral(o)
+		l.AcceptCompoundLiteral(v)
 	}
 }
-func (v *EvaluatingVisitor) CompoundLiteral(o ast.Visitor, l ast.CompoundLiteral) {
-	l.AcceptCompoundLiteral(o)
+func (v *EvaluatingVisitor) CompoundLiteral(_ ast.Visitor, l ast.CompoundLiteral) {
+	l.AcceptCompoundLiteral(v)
 }
-func (v *EvaluatingVisitor) Type(o ast.Visitor, t ast.Type) {
+func (v *EvaluatingVisitor) Type(_ ast.Visitor, t ast.Type) {
 	switch t := t.(type) {
 	case *ast.PrimitiveType:
-		v.PrimitiveType(o, t)
+		v.PrimitiveType(v, t)
 	case *ast.ListType:
-		v.ListType(o, t)
+		v.ListType(v, t)
 	case *ast.MapType:
-		v.MapType(o, t)
+		v.MapType(v, t)
 	}
 }
 
@@ -177,33 +205,11 @@ func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 }
 
 func (v *EvaluatingVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {
-	t.Left.Accept(v)
-	leftValue, err := v.valueStack.Pop()
-	if err != nil {
-		v.errors.Push(fmt.Errorf("left: %s at %s", err, t))
-		return
-	}
-	t.Right.Accept(v)
-	rightValue, err := v.valueStack.Pop()
-	if err != nil {
-		v.errors.Push(fmt.Errorf("right: %s at %s", err, t))
-		return
-	}
+	leftValue, rightValue := v.PrepareBinary(t.BinaryExpr)
 	v.valueStack.Push(value.NewValue(value.BoolType, leftValue.V.(bool) && rightValue.V.(bool)))
 }
 func (v *EvaluatingVisitor) OrTest(_ ast.Visitor, t *ast.OrTest) {
-	t.Left.Accept(v)
-	leftValue, err := v.valueStack.Pop()
-	if err != nil {
-		v.errors.Push(fmt.Errorf("left: %s at %s", err, t))
-		return
-	}
-	t.Right.Accept(v)
-	rightValue, err := v.valueStack.Pop()
-	if err != nil {
-		v.errors.Push(fmt.Errorf("right: %s at %s", err, t))
-		return
-	}
+	leftValue, rightValue := v.PrepareBinary(t.BinaryExpr)
 	v.valueStack.Push(value.NewValue(value.BoolType, leftValue.V.(bool) || rightValue.V.(bool)))
 }
 func (v *EvaluatingVisitor) NotTest(_ ast.Visitor, t *ast.NotTest) {
@@ -219,17 +225,253 @@ func (v *EvaluatingVisitor) NotTest(_ ast.Visitor, t *ast.NotTest) {
 	v.valueStack.Push(value.NewValue(value.BoolType, !rightValue.V.(bool)))
 }
 
-func (v *EvaluatingVisitor) Equal(_ ast.Visitor, c *ast.Equal)               {}
-func (v *EvaluatingVisitor) Greater(_ ast.Visitor, c *ast.Greater)           {}
-func (v *EvaluatingVisitor) Less(_ ast.Visitor, c *ast.Less)                 {}
-func (v *EvaluatingVisitor) GreaterEqual(_ ast.Visitor, c *ast.GreaterEqual) {}
-func (v *EvaluatingVisitor) LessEqual(_ ast.Visitor, c *ast.LessEqual)       {}
+func (v *EvaluatingVisitor) Equal(_ ast.Visitor, c *ast.Equal) {
+	left, right := v.PrepareBinary(c.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) == 0))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) == 0))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, l == r))
+	case left.EqualsType(value.ListType) && right.EqualsType(value.ListType):
+		l := left.V.([]*value.Value)
+		r := right.V.([]*value.Value)
+		v.valueStack.Push(value.NewValue(left.T, slices.Equal(l, r)))
+	case left.EqualsType(value.MapType) && right.EqualsType(value.MapType):
+		l := left.V.(map[*value.Value]*value.Value)
+		r := right.V.(map[*value.Value]*value.Value)
+		v.valueStack.Push(value.NewValue(left.T, maps.Equal(l, r)))
+	default:
+		v.errors.Push(fmt.Errorf("mismatched types for `=`: %s and %s at %s", left.T, right.T, c))
+	}
+}
+func (v *EvaluatingVisitor) Greater(_ ast.Visitor, c *ast.Greater) {
+	left, right := v.PrepareBinary(c.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) > 0))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) > 0))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, l > r))
+	default:
+		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `>`: %s and %s at %s", left.T, right.T, c))
+	}
+}
+func (v *EvaluatingVisitor) Less(_ ast.Visitor, c *ast.Less) {
+	left, right := v.PrepareBinary(c.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) < 0))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) < 0))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, l < r))
+	default:
+		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `<`: %s and %s at %s", left.T, right.T, c))
+	}
+}
+func (v *EvaluatingVisitor) GreaterEqual(_ ast.Visitor, c *ast.GreaterEqual) {
+	left, right := v.PrepareBinary(c.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) >= 0))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) >= 0))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, l >= r))
+	default:
+		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `>=`: %s and %s at %s", left.T, right.T, c))
+	}
+}
+func (v *EvaluatingVisitor) LessEqual(_ ast.Visitor, c *ast.LessEqual) {
+	left, right := v.PrepareBinary(c.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) <= 0))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) <= 0))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, l <= r))
+	default:
+		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `<=`: %s and %s at %s", left.T, right.T, c))
+	}
+}
 
-func (v *EvaluatingVisitor) Add(_ ast.Visitor, a *ast.Add) {}
-func (v *EvaluatingVisitor) Sub(_ ast.Visitor, a *ast.Sub) {}
-func (v *EvaluatingVisitor) Mul(_ ast.Visitor, m *ast.Mul) {}
-func (v *EvaluatingVisitor) Div(_ ast.Visitor, m *ast.Div) {}
-func (v *EvaluatingVisitor) Mod(_ ast.Visitor, m *ast.Mod) {}
+func (v *EvaluatingVisitor) Add(_ ast.Visitor, a *ast.Add) {
+	left, right := v.PrepareBinary(a.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, big.NewInt(0).Add(l, r)))
+	case left.EqualsType(value.IntType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Add(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.IntType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Add(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Add(l, r)))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, l+r))
+	case left.IsType(value.ListType) && right.IsType(value.ListType) && left.EqualsValueType(right):
+		l, _ := left.List()
+		r, _ := right.List()
+		v.valueStack.Push(value.NewValue(left.T, append(l, r...)))
+	default:
+		v.errors.Push(fmt.Errorf("invalid type combo `%s` + `%s` at %s", left.T, right.T, a))
+	}
+}
+func (v *EvaluatingVisitor) Sub(_ ast.Visitor, a *ast.Sub) {
+	left, right := v.PrepareBinary(a.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, big.NewInt(0).Sub(l, r)))
+	case left.EqualsType(value.IntType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Sub(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.IntType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Sub(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Sub(l, r)))
+	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
+		l, _ := left.Str()
+		r, _ := right.Str()
+		v.valueStack.Push(value.NewValue(left.T, strings.ReplaceAll(l, r, "")))
+	case left.IsType(value.ListType) && right.IsType(value.ListType) && left.EqualsValueType(right):
+		l, _ := left.List()
+		r, _ := right.List()
+		var diff []*value.Value
+		for _, x := range l {
+			for _, y := range r {
+				if !x.Equal(y) {
+					diff = append(diff, x)
+				}
+			}
+		}
+		v.valueStack.Push(value.NewValue(left.T, diff))
+	default:
+		v.errors.Push(fmt.Errorf("invalid type combo `%s` - `%s` at %s", left.T, right.T, a))
+	}
+}
+
+func (v *EvaluatingVisitor) Mul(_ ast.Visitor, m *ast.Mul) {
+	left, right := v.PrepareBinary(m.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		v.valueStack.Push(value.NewValue(left.T, big.NewInt(0).Mul(l, r)))
+	case left.EqualsType(value.IntType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Mul(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.IntType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Mul(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Mul(l, r)))
+	default:
+		v.errors.Push(fmt.Errorf("invalid type combo `%s` * `%s` at %s", left.T, right.T, m))
+	}
+}
+func (v *EvaluatingVisitor) Div(_ ast.Visitor, m *ast.Div) {
+	left, right := v.PrepareBinary(m.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		if r.Cmp(big.NewInt(0)) == 0 {
+			v.errors.Push(fmt.Errorf("division by 0 at %s", m))
+		}
+		v.valueStack.Push(value.NewValue(left.T, big.NewInt(0).Div(l, r)))
+	case left.EqualsType(value.IntType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		if r.Cmp(big.NewFloat(0.0)) == 0 {
+			v.errors.Push(fmt.Errorf("division by 0 at %s", m))
+		}
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Quo(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.IntType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		if r.Cmp(big.NewFloat(0.0)) == 0 {
+			v.errors.Push(fmt.Errorf("division by 0 at %s", m))
+		}
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Quo(l, r)))
+	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
+		l, _ := left.BigDec()
+		r, _ := right.BigDec()
+		if r.Cmp(big.NewFloat(0.0)) == 0 {
+			v.errors.Push(fmt.Errorf("division by 0 at %s", m))
+		}
+		v.valueStack.Push(value.NewValue(left.T, big.NewFloat(0.0).Quo(l, r)))
+	default:
+		v.errors.Push(fmt.Errorf("invalid type combo `%s` / `%s` at %s", left.T, right.T, m))
+	}
+}
+func (v *EvaluatingVisitor) Mod(_ ast.Visitor, m *ast.Mod) {
+	left, right := v.PrepareBinary(m.BinaryExpr)
+	switch {
+	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
+		l, _ := left.BigInt()
+		r, _ := right.BigInt()
+		if r.Cmp(big.NewInt(0)) == 0 {
+			v.errors.Push(fmt.Errorf("division by 0 at %s", m))
+		}
+		v.valueStack.Push(value.NewValue(left.T, big.NewInt(0).Mod(l, r)))
+	default:
+		v.errors.Push(fmt.Errorf("invalid type combo `%s` %% `%s` at %s", left.T, right.T, m))
+	}
+}
 
 func (v *EvaluatingVisitor) UnaryMinus(_ ast.Visitor, t *ast.UnaryMinus) {
 	t.Accept(v)
@@ -265,6 +507,10 @@ func (v *EvaluatingVisitor) Identifier(_ ast.Visitor, i *ast.Identifier) {
 func (v *EvaluatingVisitor) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
 	if slices.Contains(evaluator.BuiltinFunctionNames, f.Ident.Name()) {
 		v.BuiltinFunction(f)
+		return
+	} else {
+		// TODO: call user-defined functions
+		fmt.Println(f)
 	}
 }
 
@@ -351,7 +597,47 @@ func (v *EvaluatingVisitor) MapLiteral(_ ast.Visitor, l *ast.MapLiteral) {
 	v.valueStack.Push(val)
 }
 
-func (v *EvaluatingVisitor) Indexing(_ ast.Visitor, i *ast.Indexing) {}
+func (v *EvaluatingVisitor) Indexing(_ ast.Visitor, i *ast.Indexing) {
+	left, right := v.PrepareBinary(i.BinaryExpr)
+	if !left.T.IsIndexable() {
+		v.errors.Push(fmt.Errorf("type `%s` is not indexable at %s", left.T, i))
+		return
+	}
+	switch {
+	case left.IsType(value.StrType) && right.IsType(value.IntType):
+		str, _ := left.Str()
+		runes := []rune(str)
+		id, _ := right.Int64()
+		index := int(id)
+		if index >= len(runes) {
+			v.errors.Push(fmt.Errorf("index `%d` out of range for `%s` (length %d) at %s", index, str, len(runes), i))
+			return
+		}
+		v.valueStack.Push(value.NewValue(left.T, string(runes[index])))
+	case left.IsType(value.ListType) && right.IsType(value.IntType):
+		list, _ := left.List()
+		id, _ := right.Int64()
+		index := int(id)
+		if index >= len(list) {
+			v.errors.Push(fmt.Errorf("index `%d` out of range for `%s` (length %d) at %s", index, list, len(list), i))
+			return
+		}
+		v.valueStack.Push(list[index])
+	case left.IsType(value.MapType) && right.EqualsType(left.T.TypeArgs[0]):
+		m, _ := left.Map()
+		for key, value := range m {
+			if key.Equal(right) {
+				v.valueStack.Push(value)
+				return
+			}
+		}
+		// v.errors.Push(fmt.Errorf("key `%s` does not exist in map `%s` at %s", right, m, i))
+		v.valueStack.Push(value.NewZeroValue(left.T.TypeArgs[1]))
+	default:
+		v.errors.Push(fmt.Errorf("type `%s` cannot be indexed by type `%s` at %s", left.T, right.T, i))
+		return
+	}
+}
 
 func (v *EvaluatingVisitor) PrimitiveType(_ ast.Visitor, t *ast.PrimitiveType) { /* nop */ }
 func (v *EvaluatingVisitor) ListType(_ ast.Visitor, t *ast.ListType)           { /* nop */ }
@@ -365,7 +651,6 @@ func (v *EvaluatingVisitor) BuiltinFunction(f *ast.FunctionCall) {
 			fmt.Print()
 		} else {
 			for _, ex := range arguments {
-
 				ex.Accept(v)
 				val, err := v.valueStack.Pop()
 				if err != nil {
@@ -383,6 +668,7 @@ func (v *EvaluatingVisitor) BuiltinFunction(f *ast.FunctionCall) {
 				val, err := v.valueStack.Pop()
 				if err != nil {
 					v.errors.Push(fmt.Errorf("%s at %s", err, f))
+					return
 				}
 				fmt.Println(val.Sprint())
 			}
@@ -390,11 +676,13 @@ func (v *EvaluatingVisitor) BuiltinFunction(f *ast.FunctionCall) {
 	case "len":
 		if len(arguments) != 1 {
 			v.errors.Push(fmt.Errorf("incorrect number of arguments for `len`: got %d, want %d", len(arguments), 1))
+			return
 		}
 		arguments[0].Accept(v)
 		collection, err := v.valueStack.Pop()
 		if err != nil {
 			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
 		}
 		switch {
 		case collection.EqualsType(value.StrType):

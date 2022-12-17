@@ -64,7 +64,7 @@ func (v Value) Sprint() string {
 	return fmt.Sprint(v.V)
 }
 
-func (v Value) Int() (int64, error) {
+func (v Value) Int64() (int64, error) {
 	if val, ok := v.V.(*big.Int); ok {
 		return val.Int64(), nil
 	}
@@ -167,9 +167,12 @@ func (v Value) Equal(other *Value) bool {
 	}
 }
 
+// checks if another value has a type **exactly*** equal to this value's type.
 func (v Value) EqualsValueType(other *Value) bool {
 	return v.EqualsType(other.T)
 }
+
+// checks if another value has the same base type as this value's base type.
 func (v Value) IsValueType(other *Value) bool {
 	return v.IsType(other.T)
 }
