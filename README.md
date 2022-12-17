@@ -29,8 +29,8 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
     * [x] Comparison operators (=, <, <=, >, >=)
     * [x] Logical operators (and, or)
     * [x] Indexing operator `_`
-* [ ] Assignments (set): check if var or const
-* [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
+* [x] Assignments (set): check if var or const
+* [x] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
 * [x] Built-in functions
   * [x] print()/println()
   * [x] len(): lists, maps
