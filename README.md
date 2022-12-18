@@ -27,15 +27,15 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
   * [x] Binary Operators
     * [x] Arithmetic operators (+, -, *, /, %)
     * [x] Comparison operators (=, <, <=, >, >=)
-    * [x] Logical operators (and, or)
+    * [x] Logical operators (`and`, `or`)
     * [x] Indexing operator `_`
 * [x] Assignments (set): check if var or const
 * [x] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
 * [x] Built-in functions
   * [x] print()/println()
   * [x] len(): lists, maps
-* [ ] Blocks
-  * [ ] return value with `return` keyword
+* [x] Blocks
+  * [x] return value with `return` keyword
 * [ ] Functions
   * [ ] return value with `return` keyword
   * [ ] recursion
@@ -46,6 +46,8 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
   * [ ] break
   * [ ] for
   * [ ] for-with-local-variable
+* [ ] More builtin functions (input)
+* [ ] Type conversions `type(val)`
 
 ## Examples?
 

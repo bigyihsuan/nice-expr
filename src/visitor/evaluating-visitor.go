@@ -161,10 +161,17 @@ func (v *EvaluatingVisitor) VariableDeclaration(_ ast.Visitor, s *ast.VariableDe
 		v.errors.Push(fmt.Errorf("%s at %s", err, s))
 		return
 	}
-	if existingValue, alreadyExists := v.currentContext.Identifiers[name]; alreadyExists {
-		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v` at %s", name, existingValue.VarType, existingValue.Value.V, s))
-	}
-	v.currentContext.Identifiers[name] = evaluator.IdentifierEntry[*value.Value]{Ident: s.Name, Value: varVal, VarType: evaluator.Var}
+	// if existingValue, alreadyExists := v.currentContext.Identifiers[name]; alreadyExists {
+	// 	v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v` at %s", name, existingValue.VarType, existingValue.Value.V, s))
+	// }
+	v.currentContext.AddIdentifier(
+		name,
+		evaluator.IdentifierEntry[*value.Value]{
+			Ident:   s.Name,
+			Value:   varVal,
+			VarType: evaluator.Var,
+		},
+	)
 	v.valueStack.Push(varVal)
 }
 func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
@@ -176,10 +183,17 @@ func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDe
 		v.errors.Push(fmt.Errorf("%s at %s", err, s))
 		return
 	}
-	if existingValue, alreadyExists := v.currentContext.Identifiers[name]; alreadyExists {
-		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v` at %s", name, existingValue.VarType, existingValue.Value.V, s))
-	}
-	v.currentContext.Identifiers[name] = evaluator.IdentifierEntry[*value.Value]{Ident: s.Name, Value: varVal, VarType: evaluator.Const}
+	// if existingValue, alreadyExists := v.currentContext.Identifiers[name]; alreadyExists {
+	// 	v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v` at %s", name, existingValue.VarType, existingValue.Value.V, s))
+	// }
+	v.currentContext.AddIdentifier(
+		name,
+		evaluator.IdentifierEntry[*value.Value]{
+			Ident:   s.Name,
+			Value:   varVal,
+			VarType: evaluator.Const,
+		},
+	)
 	v.valueStack.Push(varVal)
 }
 func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {

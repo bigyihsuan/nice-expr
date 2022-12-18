@@ -60,9 +60,9 @@ var baz is dec {
 }; // 20.2
 
 {
-    set foo is 1234; // can set on outside variables, but they won't change the outside value
-    println(foo);
+    set foo is 1234; // can reassign outside variables, but they won't change the outside value
+    println("inside anonymous block", foo);
 }; // block not attached to anything
 
-println(quux, foo, bar, baz);
+println("at the end", quux, foo, bar, baz);
 ```
