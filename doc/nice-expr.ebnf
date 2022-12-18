@@ -1,38 +1,37 @@
 program     ::= statement*
-statement   ::= expr ";" ;
-expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing | primary;
+statement   ::= (expr | return) ";" ;
+expr        ::= test | varDecl | constDecl | assignment | parenExpr | indexing | block;
 parenExpr   ::= "(" expr ")" ;
 indexing    ::= expr "_" expr ;
 funcCall    ::= identifier "(" exprList ")" ;
-exprList    ::= (expr ",")* ;
+exprList    ::= (expr ",")* (expr ","?)?;
 varDecl     ::= "var" identifier "is" type expr ;
 constDecl   ::= "const" identifier "is" type expr ;
 assignment  ::= "set" identifier "is" expr ;
+block       ::= "{" statement* "}"
+return      ::= "return" expr? ;
 
-# test       ::= orTest ;
-# orTest     ::= andTest    | orTest "or" orTest ;
-# andTest    ::= notTest    | andTest "and" andTest ;
-test           ::= notTest    | test ("and"|"or") test ;
+test           ::= notTest | test ("and"|"or") test ;
 notTest        ::= comparison | "not" notTest ;
 comparison     ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
 # arthmetic
-addExpr        ::= mulExpr        | addExpr ("+"|"-") addExpr ;
+addExpr        ::= mulExpr | addExpr ("+"|"-") addExpr ;
 mulExpr        ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;
 unaryMinusExpr ::= "-" unaryMinusExpr | expr ;
 primary        ::= literal | identifier | funcCall ;
 
 literal     ::= primitive | compound ;
 compound    ::= listLiteral | mapLiteral ;
-listLiteral ::= "[" listItem* "]" ;
-mapLiteral  ::= "<|" mapItem* "|>" ;
+listLiteral ::= "[" listItem* (expr ","?)? "]" ;
+mapLiteral  ::= "<|" mapItem* (expr ":" expr ","?)? "|>" ;
 listItem    ::= expr "," ;
 mapItem     ::= expr ":" expr "," ;
-primitive   ::= "INT" | "FLOAT" | "STRING"
+primitive   ::= "INT" | "FLOAT" | "STRING" ;
 
 type          ::= primitiveType | compoundType | funcType ;
-funcType      ::= "func" "(" typeList* ")" type?
-typeList      ::= type ","
+funcType      ::= "func" "(" typeList* ")" type? ;
+typeList      ::= type "," ;
 compoundType  ::= listType | mapType ;
-listType      ::= "list" "[" type "]"
+listType      ::= "list" "[" type "]" ;
 mapType       ::= "map" "[" type "]" type ;
 primitiveType ::= "int" | "dec" | "str" ;

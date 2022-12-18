@@ -3,6 +3,7 @@ package visitor
 import (
 	"fmt"
 	"nice-expr/src/ast"
+	"nice-expr/src/evaluator"
 	"nice-expr/src/token/tokentype"
 	"nice-expr/src/util"
 	"nice-expr/src/value"
@@ -10,16 +11,16 @@ import (
 
 type TypeChecker struct {
 	ast.DefaultVisitor
-	identifiers map[string]IdentifierEntry[value.ValueType]
-	typeStack   util.Stack[value.ValueType]
-	errors      util.Stack[error]
+	typeStack      util.Stack[value.ValueType]
+	errors         util.Stack[error]
+	currentContext *evaluator.Context[value.ValueType]
 }
 
 func NewTypeChecker() *TypeChecker {
 	tc := new(TypeChecker)
-	tc.identifiers = make(map[string]IdentifierEntry[value.ValueType])
 	tc.typeStack = util.Stack[value.ValueType]{}
 	tc.errors = util.Stack[error]{}
+	tc.currentContext = evaluator.NewContext[value.ValueType]()
 	return tc
 }
 
@@ -31,8 +32,21 @@ func (v TypeChecker) Errors() util.Stack[error] {
 	return v.errors
 }
 
-func (v TypeChecker) Identifiers() map[string]IdentifierEntry[value.ValueType] {
-	return v.identifiers
+func (v TypeChecker) Identifiers() map[string]evaluator.IdentifierEntry[value.ValueType] {
+	return v.currentContext.Identifiers
+}
+
+func (v TypeChecker) HasErrors() bool {
+	return v.errors.Len() > 0
+}
+
+// make a new context with optional parent
+func (v TypeChecker) NewContext(parent ...*evaluator.Context[value.ValueType]) *evaluator.Context[value.ValueType] {
+	return evaluator.NewContext(parent...)
+}
+
+func (v *TypeChecker) AddError(format string, args ...any) {
+	v.errors.Push(fmt.Errorf(format, args...))
 }
 
 func (v *TypeChecker) UnaryExpr(_ ast.Visitor, e *ast.UnaryExpr) {
@@ -53,7 +67,11 @@ func (v *TypeChecker) Expr(_ ast.Visitor, p ast.Expr) {
 		p.Accept(v)
 	case *ast.Assignment:
 		p.Accept(v)
-	case ast.Declaration:
+	case *ast.VariableDeclaration, *ast.ConstantDeclaration:
+		p.Accept(v)
+	case *ast.Return:
+		p.Accept(v)
+	case *ast.Block:
 		p.Accept(v)
 	case ast.Test:
 		p.AcceptTest(v)
@@ -123,10 +141,21 @@ func (v *TypeChecker) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclarat
 	s.Value.Accept(v)
 	valType, _ := v.typeStack.Pop()
 	if varType.NotEqual(valType) {
-		v.errors.Push(fmt.Errorf("mismatched types in VariableDeclaration: got %v and %v", varType, valType))
+		v.AddError("mismatched types: got %v and %v at %s", varType, valType, s)
+		return
 	}
+
+	name := s.Name.Name()
+	// overwrite any entries in the current context
 	v.typeStack.Push(varType)
-	v.identifiers[s.Name.Name()] = IdentifierEntry[value.ValueType]{s.Name, varType, Var}
+	v.currentContext.AddIdentifier(
+		name,
+		evaluator.IdentifierEntry[value.ValueType]{
+			Ident:   s.Name,
+			Value:   varType,
+			VarType: evaluator.Var,
+		},
+	)
 }
 func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
 	s.Type.Accept(v)
@@ -134,23 +163,73 @@ func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclarat
 	s.Value.Accept(v)
 	valType, _ := v.typeStack.Pop()
 	if varType.NotEqual(valType) {
-		v.errors.Push(fmt.Errorf("mismatched types in ConstantDeclaration: got %v and %v", varType, valType))
+		v.AddError("mismatched types: got %v and %v at %s", varType, valType, s)
+		return
 	}
+
+	name := s.Name.Name()
+	// overwrite any entries in the current context
 	v.typeStack.Push(varType)
-	v.identifiers[s.Name.Name()] = IdentifierEntry[value.ValueType]{s.Name, varType, Const}
+	v.currentContext.AddIdentifier(
+		name,
+		evaluator.IdentifierEntry[value.ValueType]{
+			Ident:   s.Name,
+			Value:   varType,
+			VarType: evaluator.Const,
+		},
+	)
 }
 func (v *TypeChecker) Assignment(_ ast.Visitor, s *ast.Assignment) {
-	entry, ok := v.identifiers[s.Name.Name()]
-	if !ok {
-		v.errors.Push(fmt.Errorf("identifier `%s` not defined before use", s.Name.Name()))
+	var ident *ast.Identifier
+	var kind evaluator.VariableType
+	name := s.Name.Name()
+	_, identType, _, source := v.currentContext.GetIdentifier(name)
+	if source != v.currentContext {
+		// make a copy for this context
+		ident, identType, kind, _ = source.GetIdentifier(name)
+		v.currentContext.AddIdentifier(
+			name,
+			evaluator.IdentifierEntry[value.ValueType]{
+				Ident:   ident,
+				Value:   identType,
+				VarType: kind,
+			},
+		)
 	}
-	varType := entry.Value
+
 	s.Value.Accept(v)
 	valType, _ := v.typeStack.Pop()
-	if varType.NotEqual(valType) {
-		v.errors.Push(fmt.Errorf("mismatched types in Assignment: got %v and %v", varType, valType))
+	if identType.NotEqual(valType) {
+		v.AddError("mismatched types: got %v and %v at %s", identType, valType, s)
+		return
 	}
-	v.typeStack.Push(varType)
+	v.typeStack.Push(identType)
+}
+func (v *TypeChecker) Return(_ ast.Visitor, r *ast.Return) {
+	r.Right.Accept(v)
+	right, _ := v.typeStack.Pop()
+	v.typeStack.Push(right)
+}
+func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
+	// when entering a block, make a new context, with outside variables available
+	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
+	// move contexts into this block
+	v.currentContext = blockContext
+	// blocks have the type of the first return statement
+	for _, e := range b.Statements {
+		e.Accept(v)
+		t, err := v.typeStack.Pop()
+		if err != nil {
+			v.AddError("%s at %s in %s", err, e, b)
+		}
+		_, isReturn := e.(*ast.Return)
+		if isReturn {
+			v.typeStack.Push(t)
+			break
+		}
+	}
+	// exit this context
+	v.currentContext = v.currentContext.Parent
 }
 
 func (v *TypeChecker) AndTest(_ ast.Visitor, t *ast.AndTest) {
@@ -159,7 +238,7 @@ func (v *TypeChecker) AndTest(_ ast.Visitor, t *ast.AndTest) {
 	t.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if right.IsNot(value.BoolType) {
-		v.errors.Push(fmt.Errorf("operation And only allowed on Bool and Bool: got %v and %v", left, right))
+		v.AddError("operation And only allowed on Bool and Bool: got %v and %v at %s", left, right, t)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -169,7 +248,7 @@ func (v *TypeChecker) OrTest(_ ast.Visitor, t *ast.OrTest) {
 	t.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if right.IsNot(value.BoolType) {
-		v.errors.Push(fmt.Errorf("operation Or only allowed on Bool and Bool: got %v and %v", left, right))
+		v.AddError("operation Or only allowed on Bool and Bool: got %v and %v at %s", left, right, t)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -177,7 +256,7 @@ func (v *TypeChecker) NotTest(_ ast.Visitor, t *ast.NotTest) {
 	t.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if right.IsNot(value.BoolType) {
-		v.errors.Push(fmt.Errorf("operation Not only allowed on Bool: got %v", right))
+		v.AddError("operation Not only allowed on Bool: got %v at %s", right, t)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -188,7 +267,7 @@ func (v *TypeChecker) Equal(_ ast.Visitor, c *ast.Equal) {
 	c.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Equal: got %v and %v", left, right))
+		v.AddError("mismatched types for Equal: got %v and %v at %s", left, right, c)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -198,10 +277,10 @@ func (v *TypeChecker) Greater(_ ast.Visitor, c *ast.Greater) {
 	c.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Greater: got %v and %v", left, right))
+		v.AddError("mismatched types for Greater: got %v and %v at %s", left, right, c)
 	}
 	if !left.IsComparable() || !right.IsComparable() {
-		v.errors.Push(fmt.Errorf("types are not comparable for Greater: got %v and %v", left, right))
+		v.AddError("types are not comparable for Greater: got %v and %v at %s", left, right, c)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -211,10 +290,10 @@ func (v *TypeChecker) Less(_ ast.Visitor, c *ast.Less) {
 	c.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Less: got %v and %v", left, right))
+		v.AddError("mismatched types for Less: got %v and %v at %s", left, right, c)
 	}
 	if !left.IsComparable() || !right.IsComparable() {
-		v.errors.Push(fmt.Errorf("types are not comparable for Less: got %v and %v", left, right))
+		v.AddError("types are not comparable for Less: got %v and %v at %s", left, right, c)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -224,10 +303,10 @@ func (v *TypeChecker) GreaterEqual(_ ast.Visitor, c *ast.GreaterEqual) {
 	c.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for GreaterEqual: got %v and %v", left, right))
+		v.AddError("mismatched types for GreaterEqual: got %v and %v at %s", left, right, c)
 	}
 	if !left.IsComparable() || !right.IsComparable() {
-		v.errors.Push(fmt.Errorf("types are not comparable for GreaterEqual: got %v and %v", left, right))
+		v.AddError("types are not comparable for GreaterEqual: got %v and %v at %s", left, right, c)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -237,10 +316,10 @@ func (v *TypeChecker) LessEqual(_ ast.Visitor, c *ast.LessEqual) {
 	c.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for LessEqual: got %v and %v", left, right))
+		v.AddError("mismatched types for LessEqual: got %v and %v at %s", left, right, c)
 	}
 	if !left.IsComparable() || !right.IsComparable() {
-		v.errors.Push(fmt.Errorf("types are not comparable for LessEqual: got %v and %v", left, right))
+		v.AddError("types are not comparable for LessEqual: got %v and %v at %s", left, right, c)
 	}
 	v.typeStack.Push(value.BoolType)
 }
@@ -250,8 +329,16 @@ func (v *TypeChecker) Add(_ ast.Visitor, a *ast.Add) {
 	left, _ := v.typeStack.Pop()
 	a.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Add: got %v and %v", left, right))
+	switch {
+	case left.Equal(value.IntType) && right.Equal(value.IntType) ||
+		left.Equal(value.IntType) && right.Equal(value.DecType) ||
+		left.Equal(value.DecType) && right.Equal(value.IntType) ||
+		left.Equal(value.DecType) && right.Equal(value.DecType) ||
+		left.Equal(value.StrType) && right.Equal(value.StrType) ||
+		left.Is(value.ListType) && right.Is(value.ListType) && left.Equal(right):
+		// nop
+	default:
+		v.AddError("mismatched types for Add: got %v and %v at %s", left, right, a)
 	}
 	v.typeStack.Push(left)
 }
@@ -261,8 +348,16 @@ func (v *TypeChecker) Sub(_ ast.Visitor, a *ast.Sub) {
 	left, _ := v.typeStack.Pop()
 	a.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Sub: got %v and %v", left, right))
+	switch {
+	case left.Equal(value.IntType) && right.Equal(value.IntType) ||
+		left.Equal(value.IntType) && right.Equal(value.DecType) ||
+		left.Equal(value.DecType) && right.Equal(value.IntType) ||
+		left.Equal(value.DecType) && right.Equal(value.DecType) ||
+		left.Equal(value.StrType) && right.Equal(value.StrType) ||
+		left.Is(value.ListType) && right.Is(value.ListType) && left.Equal(right):
+		// nop
+	default:
+		v.AddError("mismatched types for Sub: got %v and %v at %s", left, right, a)
 	}
 	v.typeStack.Push(left)
 }
@@ -272,8 +367,14 @@ func (v *TypeChecker) Mul(_ ast.Visitor, m *ast.Mul) {
 	left, _ := v.typeStack.Pop()
 	m.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Mul: got %v and %v", left, right))
+	switch {
+	case left.Equal(value.IntType) && right.Equal(value.IntType) ||
+		left.Equal(value.IntType) && right.Equal(value.DecType) ||
+		left.Equal(value.DecType) && right.Equal(value.IntType) ||
+		left.Equal(value.DecType) && right.Equal(value.DecType):
+		// nop
+	default:
+		v.AddError("mismatched types for Mul: got %v and %v at %s", left, right, m)
 	}
 	v.typeStack.Push(left)
 }
@@ -282,8 +383,14 @@ func (v *TypeChecker) Div(_ ast.Visitor, m *ast.Div) {
 	left, _ := v.typeStack.Pop()
 	m.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Div: got %v and %v", left, right))
+	switch {
+	case left.Equal(value.IntType) && right.Equal(value.IntType) ||
+		left.Equal(value.IntType) && right.Equal(value.DecType) ||
+		left.Equal(value.DecType) && right.Equal(value.IntType) ||
+		left.Equal(value.DecType) && right.Equal(value.DecType):
+		// nop
+	default:
+		v.AddError("mismatched types for Div: got %v and %v at %s", left, right, m)
 	}
 	v.typeStack.Push(left)
 }
@@ -292,11 +399,11 @@ func (v *TypeChecker) Mod(_ ast.Visitor, m *ast.Mod) {
 	left, _ := v.typeStack.Pop()
 	m.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	if left.NotEqual(right) {
-		v.errors.Push(fmt.Errorf("mismatched types for Mod: got %v and %v", left, right))
-	}
 	if left.IsNot(value.IntType) || right.IsNot(value.IntType) {
-		v.errors.Push(fmt.Errorf("only Int allowed for Mod, got %v and %v", left, right))
+		v.AddError("only Int allowed for Mod, got %v and %v at %s", left, right, m)
+	}
+	if left.NotEqual(right) {
+		v.AddError("mismatched types for Mod: got %v and %v at %s", left, right, m)
 	}
 	v.typeStack.Push(left)
 }
@@ -305,15 +412,15 @@ func (v *TypeChecker) UnaryMinus(_ ast.Visitor, t *ast.UnaryMinus) {
 	t.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
 	if right.IsNot(value.IntType) || right.IsNot(value.DecType) {
-		v.errors.Push(fmt.Errorf("UnaryMinus only allowed on Int or Dec: got %v", right))
+		v.AddError("UnaryMinus only allowed on Int or Dec: got %v at %s", right, t)
 	}
 	v.typeStack.Push(right)
 }
 
 func (v *TypeChecker) Identifier(_ ast.Visitor, i *ast.Identifier) {
-	entry, ok := v.identifiers[i.Name()]
+	entry, ok := v.currentContext.Identifiers[i.Name()]
 	if !ok {
-		v.errors.Push(fmt.Errorf("identifier not found: %s", i.Name()))
+		v.AddError("identifier not found: %s at %s", i.Name(), i)
 		v.typeStack.Push(value.NoneType)
 	} else {
 		v.typeStack.Push(entry.Value)
@@ -332,7 +439,7 @@ func (v *TypeChecker) PrimitiveLiteral(_ ast.Visitor, l *ast.PrimitiveLiteral) {
 	case tokentype.True, tokentype.False:
 		v.typeStack.Push(value.BoolType)
 	default:
-		v.errors.Push(fmt.Errorf("unknown primitive literal: %s", l.Token))
+		v.AddError("unknown primitive literal: %s", l.Token)
 	}
 }
 
@@ -348,7 +455,7 @@ func (v *TypeChecker) ListLiteral(_ ast.Visitor, l *ast.ListLiteral) {
 	if len(elementTypes) > 0 {
 		first = elementTypes[0]
 		if util.Any(elementTypes, func(e value.ValueType) bool { return e.NotEqual(first) }) {
-			v.errors.Push(fmt.Errorf("mixed types in list: %v", elementTypes))
+			v.AddError("mixed types in list: %v at %s", elementTypes, l)
 			return
 		}
 		t.AddTypeArg(first)
@@ -382,11 +489,11 @@ func (v *TypeChecker) MapLiteral(_ ast.Visitor, l *ast.MapLiteral) {
 	if len(valueTypes) > 0 {
 		firstKey, firstValue = keyTypes[0], valueTypes[0]
 		if util.Any(keyTypes, func(e value.ValueType) bool { return e.NotEqual(firstKey) }) {
-			v.errors.Push(fmt.Errorf("mixed key types in map: %v", keyTypes))
+			v.AddError("mixed key types in map: %v at %s", keyTypes, l)
 			return
 		}
 		if util.Any(valueTypes, func(e value.ValueType) bool { return e.NotEqual(firstValue) }) {
-			v.errors.Push(fmt.Errorf("mixed value in map: %v", valueTypes))
+			v.AddError("mixed value in map: %v at %s", valueTypes, l)
 			return
 		}
 		t.AddTypeArg(firstKey)
@@ -402,7 +509,7 @@ func (v *TypeChecker) Indexing(_ ast.Visitor, i *ast.Indexing) {
 	i.Left.Accept(v)
 	collection, _ := v.typeStack.Pop()
 	if util.All(value.IndexableTypes, func(t value.ValueType) bool { return t.IsNot(collection) }) {
-		v.errors.Push(fmt.Errorf("type not indexable: %v", collection))
+		v.AddError("type not indexable: %v at %s", collection, i)
 	}
 	i.Right.Accept(v)
 	index, _ := v.typeStack.Pop()
@@ -410,20 +517,20 @@ func (v *TypeChecker) Indexing(_ ast.Visitor, i *ast.Indexing) {
 	case collection.Is(value.StrType):
 		// int index only
 		if index.IsNot(value.IntType) {
-			v.errors.Push(fmt.Errorf("collection Str is not indexable by %v, expect Int", index))
+			v.AddError("collection Str is not indexable by %v, expect Int at %s", index, i)
 		}
 		v.typeStack.Push(value.StrType)
 	case collection.Is(value.ListType):
 		// int index only
 		if index.IsNot(value.IntType) {
-			v.errors.Push(fmt.Errorf("collection List is not indexable by %v, expect Int", index))
+			v.AddError("collection List is not indexable by %v, expect Int at %s", index, i)
 		}
 		v.typeStack.Push(collection.TypeArgs[0])
 	case collection.Is(value.MapType):
 		// match keytype
 		keyType := collection.TypeArgs[0]
 		if index.IsNot(keyType) {
-			v.errors.Push(fmt.Errorf("collection Map is not indexable by %v, expect %v", index, keyType))
+			v.AddError("collection Map is not indexable by %v, expect %v at %s", index, keyType, i)
 		}
 		v.typeStack.Push(collection.TypeArgs[1])
 	}

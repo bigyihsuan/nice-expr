@@ -14,16 +14,16 @@ import (
 
 type EvaluatingVisitor struct {
 	ast.DefaultVisitor
-	identifiers map[string]IdentifierEntry[*value.Value]
-	valueStack  util.Stack[*value.Value]
-	errors      util.Stack[error]
+	valueStack     util.Stack[*value.Value]
+	errors         util.Stack[error]
+	currentContext *evaluator.Context[*value.Value]
 }
 
 func NewEvaluatingVisitor() *EvaluatingVisitor {
 	ev := new(EvaluatingVisitor)
-	ev.identifiers = make(map[string]IdentifierEntry[*value.Value])
 	ev.valueStack = util.Stack[*value.Value]{}
 	ev.errors = util.Stack[error]{}
+	ev.currentContext = evaluator.NewContext[*value.Value]()
 	return ev
 }
 
@@ -35,25 +35,12 @@ func (v EvaluatingVisitor) Errors() util.Stack[error] {
 	return v.errors
 }
 
-func (v EvaluatingVisitor) Identifiers() map[string]IdentifierEntry[*value.Value] {
-	return v.identifiers
+func (v EvaluatingVisitor) Identifiers() map[string]evaluator.IdentifierEntry[*value.Value] {
+	return v.currentContext.Identifiers
 }
 
-func (e EvaluatingVisitor) GetConstant(name string) (*ast.Identifier, *value.Value) {
-	for n, entry := range e.identifiers {
-		if n == name && entry.VarType == Const {
-			return entry.Ident, entry.Value
-		}
-	}
-	return nil, nil
-}
-func (e EvaluatingVisitor) GetVariable(name string) (*ast.Identifier, *value.Value) {
-	for n, entry := range e.identifiers {
-		if n == name && entry.VarType == Var {
-			return entry.Ident, entry.Value
-		}
-	}
-	return nil, nil
+func (v EvaluatingVisitor) NewContext(parent ...*evaluator.Context[*value.Value]) *evaluator.Context[*value.Value] {
+	return evaluator.NewContext(parent...)
 }
 
 func (v *EvaluatingVisitor) PrepareUnary(u ast.UnaryExpr) (right *value.Value) {
@@ -174,10 +161,10 @@ func (v *EvaluatingVisitor) VariableDeclaration(_ ast.Visitor, s *ast.VariableDe
 		v.errors.Push(fmt.Errorf("%s at %s", err, s))
 		return
 	}
-	if existingValue, alreadyExists := v.identifiers[name]; alreadyExists {
-		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v`", name, existingValue.VarType, existingValue.Value.V))
+	if existingValue, alreadyExists := v.currentContext.Identifiers[name]; alreadyExists {
+		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v` at %s", name, existingValue.VarType, existingValue.Value.V, s))
 	}
-	v.identifiers[name] = IdentifierEntry[*value.Value]{s.Name, varVal, Var}
+	v.currentContext.Identifiers[name] = evaluator.IdentifierEntry[*value.Value]{Ident: s.Name, Value: varVal, VarType: evaluator.Var}
 	v.valueStack.Push(varVal)
 }
 func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
@@ -189,10 +176,10 @@ func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDe
 		v.errors.Push(fmt.Errorf("%s at %s", err, s))
 		return
 	}
-	if existingValue, alreadyExists := v.identifiers[name]; alreadyExists {
-		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v`", name, existingValue.VarType, existingValue.Value.V))
+	if existingValue, alreadyExists := v.currentContext.Identifiers[name]; alreadyExists {
+		v.errors.Push(fmt.Errorf("name `%s` already exists as `%s` with value `%v` at %s", name, existingValue.VarType, existingValue.Value.V, s))
 	}
-	v.identifiers[name] = IdentifierEntry[*value.Value]{s.Name, varVal, Const}
+	v.currentContext.Identifiers[name] = evaluator.IdentifierEntry[*value.Value]{Ident: s.Name, Value: varVal, VarType: evaluator.Const}
 	v.valueStack.Push(varVal)
 }
 func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
@@ -203,22 +190,47 @@ func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 		v.errors.Push(fmt.Errorf("%s at %s", err, s))
 		return
 	}
-	entry, exists := v.identifiers[name]
+	entry, exists := v.currentContext.Identifiers[name]
 	typesMatch := entry.Value.T.Equal(assVal.T)
-	isVariable := entry.VarType == Var
+	isVariable := entry.VarType == evaluator.Var
 	switch {
 	case !exists:
-		v.errors.Push(fmt.Errorf("variable `%s` used before defintion", name))
+		v.errors.Push(fmt.Errorf("variable `%s` used before defintion at %s", name, s))
 		return
 	case !isVariable:
-		v.errors.Push(fmt.Errorf("cannot assign `%v` to name `%s` because it is not a variable", assVal, name))
+		v.errors.Push(fmt.Errorf("cannot assign `%v` to name `%s` because it is not a variable at %s", assVal, name, s))
 		return
 	case !typesMatch:
-		v.errors.Push(fmt.Errorf("cannot assign `%v` to variable `%s` of type %s", assVal, name, entry.Value.T.String()))
+		v.errors.Push(fmt.Errorf("cannot assign `%v` to variable `%s` of type %s at %s", assVal, name, entry.Value.T.String(), s))
 		return
 	}
 	entry.Value = assVal
-	v.identifiers[name] = entry
+	v.currentContext.Identifiers[name] = entry
+}
+func (v *EvaluatingVisitor) Return(_ ast.Visitor, r *ast.Return) {
+	right := v.PrepareUnary(r.UnaryExpr)
+	v.valueStack.Push(right)
+}
+func (v *EvaluatingVisitor) Block(_ ast.Visitor, b *ast.Block) {
+	// when entering a block, make a new context, with outside variables available
+	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
+	// move contexts into this block
+	v.currentContext = blockContext
+	for _, e := range b.Statements {
+		e.Accept(v)
+		val, err := v.valueStack.Pop()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s in %s", err, e, b))
+		}
+		// if finds a return, will return early
+		_, isReturn := e.(*ast.Return)
+		if isReturn {
+			v.valueStack.Push(val)
+			break
+		}
+	}
+	// at the end of the block return to the parent context
+	v.currentContext = v.currentContext.Parent
 }
 
 func (v *EvaluatingVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {
@@ -487,7 +499,7 @@ func (v *EvaluatingVisitor) UnaryMinus(_ ast.Visitor, t *ast.UnaryMinus) {
 
 func (v *EvaluatingVisitor) Identifier(_ ast.Visitor, i *ast.Identifier) {
 	name := i.Name()
-	ident, ok := v.identifiers[name]
+	ident, ok := v.currentContext.Identifiers[name]
 	if !ok {
 		v.errors.Push(fmt.Errorf("name `%s` does not exist", name))
 		return

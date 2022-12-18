@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}",
             "args": [
                 "-d",
-                "test/func-builtin-len.test.ne",
+                "test/blocks.test.ne",
             ]
         }
     ]

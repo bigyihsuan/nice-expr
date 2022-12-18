@@ -35,10 +35,9 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
   * [x] print()/println()
   * [x] len(): lists, maps
 * [ ] Blocks
-  * [ ] last un-semicolon-terminated return value
+  * [ ] return value with `return` keyword
 * [ ] Functions
-  * [ ] return (early)
-  * [ ] last un-semicolon-terminated return value
+  * [ ] return value with `return` keyword
   * [ ] recursion
 * [ ] Conditionals:
   * [ ] if-else
@@ -50,15 +49,15 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 
 ## Examples?
 
-```go
+```cs
 // assignments return the value of the variable
 // assignments must have the type
 var x is int 10;                  // returns 10
 const n is int 10;                // also returns 10, but `n` cannot be have its value changed
 const k is int (var y is int 10); // right-associative, parens are required
-                                 // x = 10, y = 10
-                                 // types must match
-                                 // can mix const and var
+                                  // x = 10, y = 10
+                                  // types must match
+                                  // can mix const and var
 
 // types
 10          // int
@@ -66,7 +65,7 @@ const k is int (var y is int 10); // right-associative, parens are required
 "a"         // str (no chars, just str)
 true        // bool
 [1,2,3,4,5] // list, homogenous
-<|1:"a",2:"b",|> // map, key types must match, value types much match
+<|1:"a",2:"b"|> // map, key types must match, value types much match
 
 // type zero-values
 // int  -> 0
@@ -76,13 +75,14 @@ true        // bool
 // list -> []
 // map  -> <||>
 
+// blocks denote a new scope, variables and constants are local to that block
+// blocks can return a value if it has the `return` keyword
+// execution of the block stops on the first `return` and continues on the outside of the block
+var v is dec {return (3 + 4 + 5) / 2};
+
 // conditional expressions return the last expression in the option gone down
 // all branches must return the same type
-var z is int if x = 10 {
-    x / 2
-} else {
-    x * 2
-};
+var z is int if x = 10 {return x / 2;} else {return x * 2;};
 
 // loops
 // infinite loop
@@ -111,7 +111,7 @@ var str str is greet("bob");
 var factorial func(int)int is func(n int)int {
     if n < 1 { return 1 } // early return
     if n = 2 { return 2 } // early return
-    n * factorial(n-1) // recursive call
+    return n * factorial(n-1); // recursive call
 };
 var num int is factorial(4);
 

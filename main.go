@@ -40,6 +40,7 @@ func main() {
 			return
 		}
 	}
+	text = append(text, '\n')
 	byteReader := bytes.NewBuffer(text)
 	file := lex.NewFile(fileName, byteReader)
 	fmt.Println(file.Name())
@@ -47,7 +48,7 @@ func main() {
 	tokens := nicerLexer.LexAll()
 
 	if options.Debug {
-		fmt.Println(tokens)
+		fmt.Println("tokens:", tokens)
 		fmt.Println()
 	}
 
@@ -62,7 +63,6 @@ func main() {
 	if options.Debug {
 		fmt.Println("program:", program.Statements)
 		fmt.Println()
-
 		fmt.Println("string visitor")
 	}
 
@@ -70,9 +70,9 @@ func main() {
 	program.Accept(streval)
 
 	if options.Debug {
-
 		fmt.Println("str:", streval.String())
 		fmt.Println()
+		fmt.Println("type checker")
 	}
 	typevis := visitor.NewTypeChecker()
 	program.Accept(typevis)
@@ -84,32 +84,33 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		} else if typeError != nil {
-			fmt.Println("got type error: ", typeError)
+			fmt.Println("type error:", typeError)
 		}
 	}
 
 	if options.Debug {
-		fmt.Println(typevis.TypeStack())
-		fmt.Println(typevis.Identifiers())
+		fmt.Println("type stack:", typevis.TypeStack())
+		fmt.Println("identifiers:", typevis.Identifiers())
 		fmt.Println()
-		fmt.Println("evaluator")
 	}
+	if !typevis.HasErrors() {
+		nicerEvaluator := visitor.NewEvaluatingVisitor()
+		program.Accept(nicerEvaluator)
 
-	nicerEvaluator := visitor.NewEvaluatingVisitor()
-	program.Accept(nicerEvaluator)
-
-	if options.Debug {
-		fmt.Println(nicerEvaluator.ValueStack())
-		valErrs := nicerEvaluator.Errors()
-		for valErrs.Len() > 0 {
-			valErr, err := valErrs.Pop()
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			} else if valErr != nil {
-				fmt.Println("got evaluation error:", valErr)
+		if options.Debug {
+			fmt.Println("evaluator")
+			fmt.Println("value stack:", nicerEvaluator.ValueStack())
+			valErrs := nicerEvaluator.Errors()
+			for valErrs.Len() > 0 {
+				valErr, err := valErrs.Pop()
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return
+				} else if valErr != nil {
+					fmt.Println("evaluation error:", valErr)
+				}
 			}
+			fmt.Println("identifiers:", nicerEvaluator.Identifiers())
 		}
-		fmt.Println(nicerEvaluator.Identifiers())
 	}
 }

@@ -81,13 +81,17 @@ func (v Value) BigInt() (*big.Int, error) {
 	if val, ok := v.V.(*big.Int); ok {
 		return val, nil
 	}
-	return NewZeroValue(v.T).V.(*big.Int), fmt.Errorf("incorrect type for Int: %s", v.T.String())
+	// v is a float
+	i, _ := v.V.(*big.Float).Int(nil)
+	return i, fmt.Errorf("incorrect type for Int: %s", v.T.String())
 }
 func (v Value) BigDec() (*big.Float, error) {
 	if val, ok := v.V.(*big.Float); ok {
 		return val, nil
 	}
-	return NewZeroValue(v.T).V.(*big.Float), fmt.Errorf("incorrect type for Dec: %s", v.T.String())
+	// v is an int
+	f := big.NewFloat(0).SetInt(v.V.(*big.Int))
+	return f, fmt.Errorf("incorrect type for Dec: %s", v.T.String())
 }
 func (v Value) Str() (string, error) {
 	if val, ok := v.V.(string); ok {
