@@ -11,6 +11,8 @@ type Visitor interface {
 	VariableDeclaration(v Visitor, s *VariableDeclaration)
 	ConstantDeclaration(v Visitor, s *ConstantDeclaration)
 	Assignment(v Visitor, s *Assignment)
+	Return(v Visitor, r *Return)
+	Block(v Visitor, b *Block)
 	// tests
 	Test(v Visitor, t Test)
 	AndTest(v Visitor, t *AndTest)
@@ -142,6 +144,8 @@ func (v *DefaultVisitor) Type(o Visitor, t Type) {
 func (v *DefaultVisitor) VariableDeclaration(_ Visitor, s *VariableDeclaration) {}
 func (v *DefaultVisitor) ConstantDeclaration(_ Visitor, s *ConstantDeclaration) {}
 func (v *DefaultVisitor) Assignment(_ Visitor, s *Assignment)                   {}
+func (v *DefaultVisitor) Return(_ Visitor, r *Return)                           {}
+func (v *DefaultVisitor) Block(_ Visitor, b *Block)                             {}
 func (v *DefaultVisitor) AndTest(_ Visitor, t *AndTest)                         {}
 func (v *DefaultVisitor) OrTest(_ Visitor, t *OrTest)                           {}
 func (v *DefaultVisitor) NotTest(_ Visitor, t *NotTest)                         {}

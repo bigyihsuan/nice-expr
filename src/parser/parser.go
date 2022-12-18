@@ -157,18 +157,30 @@ func (p *NiceExprParser) Program() (*ast.Program, *ParseError) {
 }
 
 func (p *NiceExprParser) Statement() (ast.Expr, *ParseError) {
-	node, err := p.Expr()
+	var expr ast.Expr
+	tok, err := p.peekToken()
 	if err != nil {
-		return node, err.addRule("Statement")
+		return nil, err.addRule("Statement.Return?")
+	} else if tok.Is(TT.Return) {
+		p.getNextToken()
+		ret, err := p.Return()
+		if err != nil {
+			return ret, err
+		}
+		expr = ret
+	} else {
+		expr, err = p.Expr()
+		if err != nil {
+			return expr, err.addRule("Statement")
+		} else if expr == nil {
+			return nil, nil
+		}
 	}
 	_, err = p.expectToken(TT.Semicolon)
 	if err != nil {
-		return node, err.addRule("Statement.Semicolon")
+		return expr, err.addRule("Statement.Semicolon")
 	}
-	if node == nil {
-		return nil, nil
-	}
-	return node, nil
+	return expr, nil
 }
 
 func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
@@ -187,6 +199,9 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 			return expr, err.addRule("Expr.ParenExprEnd")
 		}
 		return expr, nil
+	case tok.Is(TT.LeftBrace): // block
+		p.getNextToken()
+		return p.Block()
 	case slices.Contains(TT.VarConstSet, tok.Tt): // decl or assignment
 		if expr, err = p.AssOrDecl(); err != nil {
 			return expr, err.addRule("Expr.AssOrDecl")
@@ -205,6 +220,59 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 			return expr, nil
 		}
 	}
+}
+
+func (p *NiceExprParser) Return() (*ast.Return, *ParseError) {
+	ret := new(ast.Return)
+	unary := new(ast.UnaryExpr)
+	if tok, err := p.peekToken(); err != nil {
+		return ret, err.addRule("Return.End?")
+	} else if tok.Is(TT.Semicolon) {
+		ret.UnaryExpr = *unary
+		ret.UnaryExpr.Right = nil // no expr after return
+		return ret, nil
+	}
+	// optional expr
+	expr, err := p.Expr()
+	if err != nil {
+		return ret, err.addRule("Return.Expr")
+	}
+	unary.Right = expr
+	ret.UnaryExpr = *unary
+	return ret, nil
+}
+
+func (p *NiceExprParser) Block() (*ast.Block, *ParseError) {
+	var block = new(ast.Block)
+	for {
+		if tok, err := p.peekToken(); err != nil {
+			return block, err.addRule("Block")
+		} else if tok.Is(TT.RightBrace) { // leaving block
+			p.getNextToken()
+			break
+		}
+		if isSc, err := p.optionalToken(TT.Semicolon); err != nil {
+			return block, err.addRule("Block.EarlySemicolon")
+		} else if isSc {
+			// skip empty statements
+			p.getNextToken()
+			continue
+		}
+		stmt, err := p.Statement()
+		if err != nil {
+			return block, err.addRule("Block")
+		} else if stmt == nil {
+			continue
+		}
+		block.Statements = append(block.Statements, stmt)
+		if tok, err := p.peekToken(); err != nil {
+			return block, err.addRule("Block")
+		} else if tok.Is(TT.RightBrace) { // leaving block
+			p.getNextToken()
+			break
+		}
+	}
+	return block, nil
 }
 
 func (p *NiceExprParser) Indexing(left ast.Expr) (ast.Expr, *ParseError) {

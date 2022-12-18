@@ -142,6 +142,23 @@ func (v *StringVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 	expr, _ := v.stringStack.Pop()
 	v.stringStack.Push(fmt.Sprintf("(set %s is %s)", name, expr))
 }
+func (v *StringVisitor) Return(_ ast.Visitor, r *ast.Return) {
+	r.Right.Accept(v)
+	right, _ := v.stringStack.Pop()
+	v.stringStack.Push(fmt.Sprintf("(return %s)", right))
+}
+func (v *StringVisitor) Block(_ ast.Visitor, b *ast.Block) {
+	stmts := []string{}
+	for _, e := range b.Statements {
+		e.Accept(v)
+		str, err := v.stringStack.Pop()
+		if err != nil {
+			panic(err)
+		}
+		stmts = append(stmts, str)
+	}
+	v.stringStack.Push("{" + strings.Join(stmts, " ") + "}")
+}
 
 func (v *StringVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {
 	t.Left.Accept(v)

@@ -10,7 +10,10 @@ import (
 type Visitable interface {
 	Accept(Visitor)
 }
-type Expr interface{ Visitable }
+type Expr interface {
+	Visitable
+	fmt.Stringer
+}
 
 type Program struct {
 	Statements []Expr
@@ -18,6 +21,14 @@ type Program struct {
 
 func (p *Program) Accept(v Visitor) {
 	v.Program(v, p)
+}
+func (p Program) String() string {
+	out := ""
+	for _, statement := range p.Statements {
+		out += statement.String()
+	}
+	out += ""
+	return out
 }
 
 type UnaryExpr struct {
@@ -55,7 +66,6 @@ type Assignment struct {
 func (s *Assignment) Accept(v Visitor) {
 	v.Assignment(v, s)
 }
-
 func (ae Assignment) String() string {
 	return fmt.Sprintf("(set %s %s %s)", ae.Name, ae.Op.Lexeme, ae.Value)
 }
@@ -72,7 +82,6 @@ type VariableDeclaration struct {
 func (s *VariableDeclaration) Accept(v Visitor) {
 	v.VariableDeclaration(v, s)
 }
-
 func (ae VariableDeclaration) String() string {
 	return fmt.Sprintf("(var %s %s is %s)", ae.Name, ae.Type, ae.Value)
 }
@@ -87,9 +96,35 @@ type ConstantDeclaration struct {
 func (s *ConstantDeclaration) Accept(v Visitor) {
 	v.ConstantDeclaration(v, s)
 }
-
 func (ae ConstantDeclaration) String() string {
 	return fmt.Sprintf("(const %s %s is %s)", ae.Name, ae.Type, ae.Value)
+}
+
+type Return struct {
+	UnaryExpr
+}
+
+func (r *Return) Accept(v Visitor) {
+	v.Return(v, r)
+}
+func (r Return) String() string {
+	return fmt.Sprintf("(return %s)", r.Right)
+}
+
+type Block struct {
+	Statements []Expr
+}
+
+func (b *Block) Accept(v Visitor) {
+	v.Block(v, b)
+}
+func (b Block) String() string {
+	out := "{"
+	for _, statement := range b.Statements {
+		out += statement.String()
+	}
+	out += "}"
+	return out
 }
 
 // tests
@@ -231,7 +266,7 @@ func (a Add) Accept(v Visitor) {
 func (a *Add) AcceptAddExpr(v Visitor) {
 	v.Add(v, a)
 }
-func (a *Add) String() string {
+func (a Add) String() string {
 	return fmt.Sprintf("(+ %s)", a.BinaryExpr.String())
 }
 
@@ -246,7 +281,7 @@ func (a Sub) Accept(v Visitor) {
 func (a *Sub) AcceptAddExpr(v Visitor) {
 	v.Sub(v, a)
 }
-func (a *Sub) String() string {
+func (a Sub) String() string {
 	return fmt.Sprintf("(- %s)", a.BinaryExpr.String())
 }
 
@@ -265,7 +300,7 @@ func (m Mul) Accept(v Visitor) {
 func (m *Mul) AcceptMulExpr(v Visitor) {
 	v.Mul(v, m)
 }
-func (m *Mul) String() string {
+func (m Mul) String() string {
 	return fmt.Sprintf("(* %s)", m.BinaryExpr.String())
 }
 
@@ -280,7 +315,7 @@ func (m Div) Accept(v Visitor) {
 func (m *Div) AcceptMulExpr(v Visitor) {
 	v.Div(v, m)
 }
-func (m *Div) String() string {
+func (m Div) String() string {
 	return fmt.Sprintf("(/ %s)", m.BinaryExpr.String())
 }
 
@@ -295,7 +330,7 @@ func (m Mod) Accept(v Visitor) {
 func (m *Mod) AcceptMulExpr(v Visitor) {
 	v.Mod(v, m)
 }
-func (m *Mod) String() string {
+func (m Mod) String() string {
 	return fmt.Sprintf("(%% %s)", m.BinaryExpr.String())
 }
 

@@ -34,3 +34,35 @@ set y *= 10; // y = 50
 set y += 4;  // y = 54
 set y %= 9;  // y = 6
 ```
+
+## Declarations, Assignments, and Blocks
+
+By default, when you declare a variable,
+it goes into a global "scope" that keeps track of the variables and constants that exist.
+When the interpreter enters a block, it creates a new scope,
+where identifiers defined outside of it are accessible.
+
+You can declare variables with names that already exist in the outer context,
+and (inside the inner scope) the name will be overwritten.
+When doing assignments, a copy of the outer variable is made for the inner scope,
+and then changed to the new value.
+
+In the below example, in the first block, the variables `foo` and `bar` are
+
+```cs
+var quux is int 2;
+var foo is int {return quux + 4;}; // 6
+var bar is dec {return 0.5 + foo / quux;}; // 3.5
+var baz is dec {
+    var foo is dec 10.1; // is 10.1 in this block only
+    var bar is dec 2.0; // is 2.0 in this block only
+    return foo * bar;
+}; // 20.2
+
+{
+    set foo is 1234; // can set on outside variables, but they won't change the outside value
+    println(foo);
+}; // block not attached to anything
+
+println(quux, foo, bar, baz);
+```
