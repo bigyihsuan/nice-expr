@@ -7,6 +7,8 @@ import (
 	"nice-expr/src/token/tokentype"
 	"nice-expr/src/util"
 	"nice-expr/src/value"
+
+	"golang.org/x/exp/slices"
 )
 
 type TypeChecker struct {
@@ -72,6 +74,8 @@ func (v *TypeChecker) Expr(_ ast.Visitor, p ast.Expr) {
 	case *ast.Return:
 		p.Accept(v)
 	case *ast.Block:
+		p.Accept(v)
+	case *ast.If:
 		p.Accept(v)
 	case ast.Test:
 		p.AcceptTest(v)
@@ -141,7 +145,7 @@ func (v *TypeChecker) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclarat
 	s.Value.Accept(v)
 	valType, _ := v.typeStack.Pop()
 	if varType.NotEqual(valType) {
-		v.AddError("mismatched types: got %v and %v at %s", varType, valType, s)
+		v.AddError("mismatched types for Variable Declaration: got %v and %v at %s", varType, valType, s)
 		return
 	}
 
@@ -163,7 +167,7 @@ func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclarat
 	s.Value.Accept(v)
 	valType, _ := v.typeStack.Pop()
 	if varType.NotEqual(valType) {
-		v.AddError("mismatched types: got %v and %v at %s", varType, valType, s)
+		v.AddError("mismatched types for Constant Declaration: got %v and %v at %s", varType, valType, s)
 		return
 	}
 
@@ -200,7 +204,7 @@ func (v *TypeChecker) Assignment(_ ast.Visitor, s *ast.Assignment) {
 	s.Value.Accept(v)
 	valType, _ := v.typeStack.Pop()
 	if identType.NotEqual(valType) {
-		v.AddError("mismatched types: got %v and %v at %s", identType, valType, s)
+		v.AddError("mismatched types for Assignment: got %v and %v at %s", identType, valType, s)
 		return
 	}
 	v.typeStack.Push(identType)
@@ -215,6 +219,7 @@ func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
 	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
 	// move contexts into this block
 	v.currentContext = blockContext
+	broke := false
 	// blocks have the type of the first return statement
 	for _, e := range b.Statements {
 		e.Accept(v)
@@ -225,11 +230,46 @@ func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
 		_, isReturn := e.(*ast.Return)
 		if isReturn {
 			v.typeStack.Push(t)
+			broke = true
 			break
 		}
 	}
 	// exit this context
 	v.currentContext = v.currentContext.Parent
+	if !broke {
+		// push a none-value
+		v.typeStack.Push(value.NoneType)
+	}
+}
+func (v *TypeChecker) If(_ ast.Visitor, i *ast.If) {
+	clauses := []value.ValueType{}
+	i.Condition.Accept(v)
+	condition, _ := v.typeStack.Pop()
+	if condition.IsNot(value.BoolType) {
+		v.errors.Push(fmt.Errorf("condition expects Bool, got %s at %s", condition, i))
+		return
+	}
+	i.Then.Accept(v)
+	then, _ := v.typeStack.Pop()
+	fmt.Println("then:", then)
+	clauses = append(clauses, then)
+	if i.ElseIf != nil {
+		i.ElseIf.Accept(v)
+		elseif, _ := v.typeStack.Pop()
+		fmt.Println("elseif:", elseif)
+		clauses = append(clauses, elseif)
+	}
+	if i.Else != nil {
+		i.Else.Accept(v)
+		elseExpr, _ := v.typeStack.Pop()
+		fmt.Println("elseExpr:", elseExpr)
+		clauses = append(clauses, elseExpr)
+	}
+	if util.Any(clauses, func(e value.ValueType) bool { return e.NotEqual(then) }) {
+		v.errors.Push(fmt.Errorf("not all branches in conditional have same return type (%s) at %s", clauses, i))
+		return
+	}
+	v.typeStack.Push(then)
 }
 
 func (v *TypeChecker) AndTest(_ ast.Visitor, t *ast.AndTest) {
@@ -426,7 +466,15 @@ func (v *TypeChecker) Identifier(_ ast.Visitor, i *ast.Identifier) {
 		v.typeStack.Push(entry.Value)
 	}
 }
-func (v *TypeChecker) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {}
+func (v *TypeChecker) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
+	if slices.Contains(evaluator.BuiltinFunctionNames, f.Ident.Name()) {
+		v.BuiltinFunction(f)
+		return
+	} else {
+		// TODO: call user-defined functions
+		fmt.Println(f)
+	}
+}
 
 func (v *TypeChecker) PrimitiveLiteral(_ ast.Visitor, l *ast.PrimitiveLiteral) {
 	switch l.Token.Tt {
@@ -544,4 +592,43 @@ func (v *TypeChecker) ListType(_ ast.Visitor, t *ast.ListType) {
 }
 func (v *TypeChecker) MapType(_ ast.Visitor, t *ast.MapType) {
 	v.typeStack.Push(t.ToValueType())
+}
+
+func (v *TypeChecker) BuiltinFunction(f *ast.FunctionCall) {
+	name, arguments := f.Ident.Name(), f.Arguments
+	switch name {
+	case "print":
+		v.typeStack.Push(value.NoneType)
+	case "println":
+		v.typeStack.Push(value.NoneType)
+	case "len":
+		if len(arguments) != 1 {
+			v.errors.Push(fmt.Errorf("incorrect number of arguments for `len`: got %d, want %d", len(arguments), 1))
+			return
+		}
+		arguments[0].Accept(v)
+		collection, err := v.typeStack.Pop()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		switch {
+		case collection.Equal(value.StrType):
+			v.typeStack.Push(value.IntType)
+			return
+		case collection.Is(value.ListType):
+			v.typeStack.Push(value.IntType)
+			return
+		case collection.Is(value.MapType):
+			v.typeStack.Push(value.IntType)
+			return
+		default:
+			v.errors.Push(fmt.Errorf("invalid type for `len`: %s", collection))
+			v.typeStack.Push(value.NoneType)
+			return
+		}
+	default:
+		v.errors.Push(fmt.Errorf("function `%s` does not exist at %s", name, f))
+		v.typeStack.Push(value.NoneType)
+	}
 }

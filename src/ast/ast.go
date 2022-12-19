@@ -127,6 +127,29 @@ func (b Block) String() string {
 	return out
 }
 
+type If struct {
+	Expr
+	Condition Expr
+	Then      *Block
+	ElseIf    *If
+	Else      *Block
+}
+
+func (i *If) Accept(v Visitor) {
+	v.If(v, i)
+}
+func (i If) String() string {
+	s := fmt.Sprintf("(if %s then %s", i.Condition, i.Then)
+	if i.ElseIf != nil {
+		s += fmt.Sprintf(" else %s", i.ElseIf)
+	}
+	if i.Else != nil {
+		s += fmt.Sprintf(" else %s", i.Else)
+	}
+	s += ")"
+	return s
+}
+
 // tests
 
 type Test interface {

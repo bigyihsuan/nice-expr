@@ -60,6 +60,7 @@ const (
 	Return
 	Func
 	If
+	Then
 	Else
 	// built-in
 	None
@@ -87,6 +88,7 @@ var Keywords = map[string]TokenType{
 	"or":     Or,
 	"not":    Not,
 	"if":     If,
+	"then":   Then,
 	"else":   Else,
 	"none":   None,
 	"int":    Int,

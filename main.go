@@ -13,7 +13,6 @@ import (
 )
 
 type Options struct {
-	Debug           bool   `short:"d" long:"debug"`
 	ShowTokens      bool   `short:"t" long:"showTokens"`
 	ShowParseTree   bool   `short:"p" long:"showParseTree"`
 	ShowStringVisit bool   `short:"s" long:"showStringVisit"`

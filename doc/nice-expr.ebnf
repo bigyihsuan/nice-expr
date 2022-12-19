@@ -13,8 +13,7 @@ assignment  ::= "set" identifier "is" expr ;
 block  ::= "{" statement* "}" ;
 return ::= "return" expr? ;
 break  ::= "break" expr? ;
-if     ::= ifThen ("else" ifThen)? ("else" block)? ;
-ifThen ::= "if" expr "then" block
+if     ::= "if" expr "then" block ("else" (if | block))? ;
 for    ::= "for" exprList "then" block ;
 # functions
 function ::= func "(" argList ")" type block ;

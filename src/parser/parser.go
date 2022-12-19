@@ -200,8 +200,9 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 		}
 		return expr, nil
 	case tok.Is(TT.LeftBrace): // block
-		p.getNextToken()
 		return p.Block()
+	case tok.Is(TT.If):
+		return p.If()
 	case slices.Contains(TT.VarConstSet, tok.Tt): // decl or assignment
 		if expr, err = p.AssOrDecl(); err != nil {
 			return expr, err.addRule("Expr.AssOrDecl")
@@ -244,6 +245,7 @@ func (p *NiceExprParser) Return() (*ast.Return, *ParseError) {
 
 func (p *NiceExprParser) Block() (*ast.Block, *ParseError) {
 	var block = new(ast.Block)
+	p.getNextToken()
 	for {
 		if tok, err := p.peekToken(); err != nil {
 			return block, err.addRule("Block")
@@ -273,6 +275,51 @@ func (p *NiceExprParser) Block() (*ast.Block, *ParseError) {
 		}
 	}
 	return block, nil
+}
+func (p *NiceExprParser) If() (*ast.If, *ParseError) {
+	ifExpr := new(ast.If)
+	if _, err := p.expectToken(TT.If); err != nil {
+		return ifExpr, err.addRule("If.If")
+	}
+	condition, err := p.Expr()
+	if err != nil {
+		return ifExpr, err.addRule("If.Condition")
+	}
+	ifExpr.Condition = condition
+	if _, err := p.expectToken(TT.Then); err != nil {
+		return ifExpr, err.addRule("If.Then")
+	}
+	then, err := p.Block()
+	if err != nil {
+		return ifExpr, err.addRule("If.ThenBlock")
+	}
+	ifExpr.Then = then
+	// optional else
+	if hasElse, err := p.optionalToken(TT.Else); err != nil {
+		return ifExpr, err.addRule("If.Else?")
+	} else if !hasElse {
+		// no else, just if-then
+		return ifExpr, nil
+	}
+	// has an else, check if nested if
+	p.getNextToken()
+	if hasNestedIf, err := p.optionalToken(TT.If); err != nil {
+		return ifExpr, err.addRule("If.NestedIf?")
+	} else if hasNestedIf {
+		nestedIf, err := p.If()
+		if err != nil {
+			return ifExpr, err.addRule("If.NestedIf")
+		}
+		ifExpr.ElseIf = nestedIf
+	} else {
+		// get else block
+		elseBlock, err := p.Block()
+		if err != nil {
+			return ifExpr, err.addRule("If.Else")
+		}
+		ifExpr.Else = elseBlock
+	}
+	return ifExpr, nil
 }
 
 func (p *NiceExprParser) Indexing(left ast.Expr) (ast.Expr, *ParseError) {

@@ -49,6 +49,8 @@ func (v *StringVisitor) Expr(_ ast.Visitor, p ast.Expr) {
 		p.Accept(v)
 	case *ast.Assignment:
 		p.Accept(v)
+	case *ast.If:
+		p.Accept(v)
 	case ast.Declaration:
 		p.Accept(v)
 	case ast.Test:
@@ -158,6 +160,25 @@ func (v *StringVisitor) Block(_ ast.Visitor, b *ast.Block) {
 		stmts = append(stmts, str)
 	}
 	v.stringStack.Push("{" + strings.Join(stmts, " ") + "}")
+}
+func (v *StringVisitor) If(_ ast.Visitor, i *ast.If) {
+	var condition, then, elif, el string
+	i.Condition.Accept(v)
+	condition, _ = v.stringStack.Pop()
+	i.Then.Accept(v)
+	then, _ = v.stringStack.Pop()
+
+	if i.ElseIf != nil {
+		i.ElseIf.Accept(v)
+		elif, _ = v.stringStack.Pop()
+		elif = "else " + elif
+	}
+	if i.Else != nil {
+		i.Else.Accept(v)
+		el, _ = v.stringStack.Pop()
+		el = "else " + el
+	}
+	v.stringStack.Push(fmt.Sprintf("(if %s then %s (%s) (%s))", condition, then, elif, el))
 }
 
 func (v *StringVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {

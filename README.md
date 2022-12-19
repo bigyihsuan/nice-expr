@@ -93,7 +93,7 @@ if x < 10 then {
   println("equal to 10");
 } else {
   println("more than 10");
-}
+};
 
 // loops
 // infinite loop

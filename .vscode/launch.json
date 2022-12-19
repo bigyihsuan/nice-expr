@@ -11,8 +11,8 @@
             "mode": "debug",
             "program": "${workspaceFolder}",
             "args": [
-                "-d",
-                "test/blocks.test.ne",
+                "-tpsT",
+                "test/if.test.ne",
             ]
         }
     ]

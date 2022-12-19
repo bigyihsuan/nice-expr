@@ -53,21 +53,22 @@ func _() {
 	_ = x[Return-41]
 	_ = x[Func-42]
 	_ = x[If-43]
-	_ = x[Else-44]
-	_ = x[None-45]
-	_ = x[Int-46]
-	_ = x[Dec-47]
-	_ = x[Str-48]
-	_ = x[Bool-49]
-	_ = x[List-50]
-	_ = x[Map-51]
-	_ = x[True-52]
-	_ = x[False-53]
+	_ = x[Then-44]
+	_ = x[Else-45]
+	_ = x[None-46]
+	_ = x[Int-47]
+	_ = x[Dec-48]
+	_ = x[Str-49]
+	_ = x[Bool-50]
+	_ = x[List-51]
+	_ = x[Map-52]
+	_ = x[True-53]
+	_ = x[False-54]
 }
 
-const _TokenType_name = "InvalidEOFIntegerFloatingStringLeftBracketRightBracketLeftBraceRightBraceLeftParenRightParenLeftTriangleRightTrianglePlusMinusStarSlashPercentPlusEqualMinusEqualStarEqualSlashEqualPercentEqualEqualGreaterGreaterEqualLessLessEqualAndOrNotIdentifierCommaColonSemicolonUnderscoreVarConstSetIsForBreakReturnFuncIfElseNoneIntDecStrBoolListMapTrueFalse"
+const _TokenType_name = "InvalidEOFIntegerFloatingStringLeftBracketRightBracketLeftBraceRightBraceLeftParenRightParenLeftTriangleRightTrianglePlusMinusStarSlashPercentPlusEqualMinusEqualStarEqualSlashEqualPercentEqualEqualGreaterGreaterEqualLessLessEqualAndOrNotIdentifierCommaColonSemicolonUnderscoreVarConstSetIsForBreakReturnFuncIfThenElseNoneIntDecStrBoolListMapTrueFalse"
 
-var _TokenType_index = [...]uint16{0, 7, 10, 17, 25, 31, 42, 54, 63, 73, 82, 92, 104, 117, 121, 126, 130, 135, 142, 151, 161, 170, 180, 192, 197, 204, 216, 220, 229, 232, 234, 237, 247, 252, 257, 266, 276, 279, 284, 287, 289, 292, 297, 303, 307, 309, 313, 317, 320, 323, 326, 330, 334, 337, 341, 346}
+var _TokenType_index = [...]uint16{0, 7, 10, 17, 25, 31, 42, 54, 63, 73, 82, 92, 104, 117, 121, 126, 130, 135, 142, 151, 161, 170, 180, 192, 197, 204, 216, 220, 229, 232, 234, 237, 247, 252, 257, 266, 276, 279, 284, 287, 289, 292, 297, 303, 307, 309, 313, 317, 321, 324, 327, 330, 334, 338, 341, 345, 350}
 
 func (i TokenType) String() string {
 	i -= -1
