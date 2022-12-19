@@ -99,13 +99,13 @@ if x < 10 then {
 // infinite loop
 for {};
 // `break` stops the loop immediately, and returns `value`
-for {break value};
+for {break value;};
 for var i is int 0 { /* use i... */ }; // loop with loop variable
-var x is str for { break 30 }; // x == 30
+var x is int for { break 30; }; // x == 30
 
 // example: getting and returning a sum
-var l list[int] is [1,2,3,4,5,6,];
-var sum is int for var s is int, var idx is int then {
+var l is list[int] [1,2,3,4,5,6,];
+var sum is int for var s is int 0, var idx is int 0 {
     if idx = len(l) { // built-in function len() returns the length
         break s // return the sum when no more items
     }

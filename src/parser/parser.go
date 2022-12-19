@@ -322,6 +322,24 @@ func (p *NiceExprParser) If() (*ast.If, *ParseError) {
 	return ifExpr, nil
 }
 
+func (p *NiceExprParser) For() (*ast.For, *ParseError) {
+	forExpr := new(ast.For)
+	if _, err := p.expectToken(TT.For); err != nil {
+		return forExpr, err.addRule("For.For")
+	}
+	locals, err := p.ExprList(TT.Comma, TT.LeftBrace)
+	if err != nil {
+		return forExpr, err.addRule("For.Locals")
+	}
+	forExpr.LocalVariables = locals
+	body, err := p.Block()
+	if err != nil {
+		return forExpr, err.addRule("For.Body")
+	}
+	forExpr.Body = body
+	return forExpr, nil
+}
+
 func (p *NiceExprParser) Indexing(left ast.Expr) (ast.Expr, *ParseError) {
 	indexing := new(ast.Indexing)
 	indexing.Left = left
@@ -741,7 +759,7 @@ func (p *NiceExprParser) FunctionCall() (*ast.FunctionCall, *ParseError) {
 		return funcCall, err.addRule("FunctionCall.ArgsStart")
 	}
 	funcCall.Ident = ident
-	funcCall.Arguments, err = p.ExprList(TT.RightParen)
+	funcCall.Arguments, err = p.ExprList(TT.Comma, TT.RightParen)
 	if err != nil {
 		return funcCall, err.addRule("FuncCall.Arguments")
 	}
@@ -751,7 +769,7 @@ func (p *NiceExprParser) FunctionCall() (*ast.FunctionCall, *ParseError) {
 	return funcCall, nil
 }
 
-func (p *NiceExprParser) ExprList(endingToken TT.TokenType) ([]ast.Expr, *ParseError) {
+func (p *NiceExprParser) ExprList(separator, endingToken TT.TokenType) ([]ast.Expr, *ParseError) {
 	l := []ast.Expr{}
 	for {
 		if ok, err := p.optionalToken(endingToken); err != nil {
@@ -772,7 +790,7 @@ func (p *NiceExprParser) ExprList(endingToken TT.TokenType) ([]ast.Expr, *ParseE
 			break
 		}
 
-		if _, err = p.expectToken(TT.Comma); err != nil {
+		if _, err = p.expectToken(separator); err != nil {
 			return l, err.addRule("ExprList.Comma")
 		}
 		l = append(l, expr)

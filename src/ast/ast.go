@@ -150,6 +150,19 @@ func (i If) String() string {
 	return s
 }
 
+type For struct {
+	Expr
+	LocalVariables []Expr
+	Body           *Block
+}
+
+func (f *For) Accept(v Visitor) {
+	// v.For(v,i)
+}
+func (f For) String() string {
+	return fmt.Sprintf("(for %s %s)", f.LocalVariables, f.Body)
+}
+
 // tests
 
 type Test interface {
