@@ -251,18 +251,15 @@ func (v *TypeChecker) If(_ ast.Visitor, i *ast.If) {
 	}
 	i.Then.Accept(v)
 	then, _ := v.typeStack.Pop()
-	fmt.Println("then:", then)
 	clauses = append(clauses, then)
 	if i.ElseIf != nil {
 		i.ElseIf.Accept(v)
 		elseif, _ := v.typeStack.Pop()
-		fmt.Println("elseif:", elseif)
 		clauses = append(clauses, elseif)
 	}
 	if i.Else != nil {
 		i.Else.Accept(v)
 		elseExpr, _ := v.typeStack.Pop()
-		fmt.Println("elseExpr:", elseExpr)
 		clauses = append(clauses, elseExpr)
 	}
 	if util.Any(clauses, func(e value.ValueType) bool { return e.NotEqual(then) }) {

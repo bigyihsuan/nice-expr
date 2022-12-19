@@ -247,60 +247,28 @@ func (v *EvaluatingVisitor) Block(_ ast.Visitor, b *ast.Block) {
 	v.currentContext = v.currentContext.Parent
 }
 func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
-	// var ifthen, elseif, elseval *value.Value
-	// var err error
-	// i.If.Accept(v)
-	// ifthen, err = v.valueStack.Pop()
-	// if err != nil {
-	// 	v.errors.Push(fmt.Errorf("%s at %s", err, i))
-	// 	return
-	// }
-	// if i.ElseIf != nil {
-	// 	i.ElseIf.Accept(v)
-	// 	elseif, err = v.valueStack.Pop()
-	// 	if err != nil {
-	// 		v.errors.Push(fmt.Errorf("%s at %s", err, i))
-	// 		return
-	// 	}
-	// }
-	// if i.Else != nil {
-	// 	i.Else.Accept(v)
-	// 	elseval, err = v.valueStack.Pop()
-	// 	if err != nil {
-	// 		v.errors.Push(fmt.Errorf("%s at %s", err, i))
-	// 		return
-	// 	}
-	// }
-	// if ifthen != nil {
-	// 	v.valueStack.Push(ifthen)
-	// } else if elseif != nil {
-	// 	v.valueStack.Push(elseif)
-	// } else if elseval != nil {
-	// 	v.valueStack.Push(elseval)
-	// } else {
-	// 	v.valueStack.Push(value.NewZeroValue(value.NoneType))
-	// }
+	i.Condition.Accept(v)
+	condition, err := v.valueStack.Pop()
+	if err != nil {
+		v.errors.Push(fmt.Errorf("%s at %s", err, i))
+	}
+	conditionResult, err := condition.Bool()
+	if err != nil {
+		v.errors.Push(fmt.Errorf("%s at %s", err, i))
+		return
+	}
+	if conditionResult {
+		// run then block
+		i.Then.Accept(v)
+		return
+	} else if i.ElseIf != nil {
+		i.ElseIf.Accept(v)
+		return
+	} else if i.Else != nil {
+		i.Else.Accept(v)
+		return
+	}
 }
-
-// func (v *EvaluatingVisitor) IfThen(_ ast.Visitor, i *ast.IfThen) {
-// 	i.Condition.Accept(v)
-// 	condition, err := v.valueStack.Pop()
-// 	if err != nil {
-// 		v.errors.Push(fmt.Errorf("%s at %s", err, i))
-// 		return
-// 	} else if condition.IsNotType(value.BoolType) {
-// 		v.errors.Push(fmt.Errorf("condition expects Bool, got %s at %s", condition, i))
-// 	}
-// 	if ok, _ := condition.Bool(); ok {
-// 		i.Body.Accept(v)
-// 		body, _ := v.valueStack.Pop()
-// 		v.valueStack.Push(body)
-// 	} else {
-// 		v.valueStack.Push(value.NewZeroValue(value.NoneType))
-// 	}
-// 	// push the condition as a signal
-// 	v.valueStack.Push(condition)
-// }
 
 func (v *EvaluatingVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {
 	leftValue, rightValue := v.PrepareBinary(t.BinaryExpr)
