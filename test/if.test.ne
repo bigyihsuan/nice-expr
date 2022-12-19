@@ -12,5 +12,11 @@ if x < 10 then {
 };
 
 if z > 5 then {
-    println("this should NOT print");
-}
+  println("this should NOT print");
+};
+
+if x < 3 then {
+  println("this should NOT print");
+} else {
+  println("more than 3");
+};
