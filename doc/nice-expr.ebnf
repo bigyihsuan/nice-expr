@@ -8,12 +8,21 @@ exprList    ::= (expr ",")* (expr ","?)?;
 varDecl     ::= "var" identifier "is" type expr ;
 constDecl   ::= "const" identifier "is" type expr ;
 assignment  ::= "set" identifier "is" expr ;
-block       ::= "{" statement* "}"
-return      ::= "return" expr? ;
 
-test           ::= notTest | test ("and"|"or") test ;
-notTest        ::= comparison | "not" notTest ;
-comparison     ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
+# block-related
+block  ::= "{" statement* "}" ;
+return ::= "return" expr? ;
+break  ::= "break" expr? ;
+if     ::= "if" expr "then" block ("else" block)? ;
+for    ::= "for" exprList "then" block ;
+# functions
+function ::= func "(" argList ")" type block ;
+argList  ::= (ident type ",")* (ident type ","?)? ;
+
+# values
+test       ::= notTest | test ("and"|"or") test ;
+notTest    ::= comparison | "not" notTest ;
+comparison ::= addExpr (("<"|">"|"<="|">="|"=") addExpr)* ;
 # arthmetic
 addExpr        ::= mulExpr | addExpr ("+"|"-") addExpr ;
 mulExpr        ::= unaryMinusExpr | mulExpr ("*"|"/"|"%") mulExpr ;

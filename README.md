@@ -84,7 +84,7 @@ var v is dec {return (3 + 4 + 5) / 2};
 
 // conditional expressions return the last expression in the option gone down
 // all branches must return the same type
-var z is int if x = 10 {return x / 2;} else {return x * 2;};
+var z is int if x = 10 then {return x / 2;} else {return x * 2;};
 
 // loops
 // infinite loop
@@ -96,7 +96,7 @@ var x is str for { break 30 }; // x == 30
 
 // example: getting and returning a sum
 var l list[int] is [1,2,3,4,5,6,];
-var sum is int for var s is int, var idx is int {
+var sum is int for var s is int, var idx is int then {
     if idx = len(l) { // built-in function len() returns the length
         break s // return the sum when no more items
     }
@@ -105,9 +105,9 @@ var sum is int for var s is int, var idx is int {
 };
 
 // all functions are anonymous until assigned to a variable
-var greet is func(str)str func(name str)str{ "hello " + name };
+var greet is func(str)str func(start str, name str)str{ return start + name };
 // type of `greet` is func(str)str
-var str str is greet("bob");
+var string str is greet("bob");
 
 // recursion
 var factorial func(int)int is func(n int)int {
