@@ -57,9 +57,9 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 var x is int 10;                  // returns 10
 const n is int 10;                // also returns 10, but `n` cannot be have its value changed
 const k is int (var y is int 10); // right-associative, parens are required
-                                  // x = 10, y = 10
-                                  // types must match
-                                  // can mix const and var
+// x = 10, y = 10
+// types must match
+// can mix const and var
 
 // types
 10          // int
@@ -85,6 +85,15 @@ var v is dec {return (3 + 4 + 5) / 2};
 // conditional expressions return the last expression in the option gone down
 // all branches must return the same type
 var z is int if x = 10 then {return x / 2;} else {return x * 2;};
+
+// standalone nested if-else
+if x < 10 then {
+  println("less than 10");
+} else if x = 10 then {
+  println("equal to 10");
+} else {
+  println("more than 10");
+}
 
 // loops
 // infinite loop
