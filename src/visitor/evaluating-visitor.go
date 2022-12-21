@@ -250,10 +250,6 @@ func (v *EvaluatingVisitor) Break(_ ast.Visitor, r *ast.Break) {
 	v.valueStack.Push(right)
 }
 func (v *EvaluatingVisitor) Block(_ ast.Visitor, b *ast.Block) {
-	// when entering a block, make a new context, with outside variables available
-	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
-	// move contexts into this block
-	v.currentContext = blockContext
 	for _, e := range b.Statements {
 		e.Accept(v)
 		returnVal, err := v.valueStack.Pop()
@@ -269,7 +265,6 @@ func (v *EvaluatingVisitor) Block(_ ast.Visitor, b *ast.Block) {
 		}
 		v.valueStack.Push(returnVal)
 	}
-	v.currentContext = v.currentContext.Parent
 }
 func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
 	i.Condition.Accept(v)
@@ -283,6 +278,10 @@ func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
 		v.errors.Push(fmt.Errorf("%s at %s", err, i))
 		return
 	}
+	// when entering a block, make a new context, with outside variables available
+	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
+	// move contexts into this block
+	v.currentContext = blockContext
 	if conditionResult {
 		i.Then.Accept(v)
 	} else if i.ElseIf != nil {
@@ -290,15 +289,29 @@ func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
 	} else if i.Else != nil {
 		i.Else.Accept(v)
 	}
+	v.currentContext = v.currentContext.Parent
 }
 func (v *EvaluatingVisitor) For(_ ast.Visitor, f *ast.For) {
 	// let the variables declare themselves
 	for _, local := range f.LocalVariables {
 		local.Accept(v)
 	}
-	// for {
-	f.Body.Accept(v)
-	// }
+	// when entering a block, make a new context, with outside variables available
+	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
+	// move contexts into this block
+	v.currentContext = blockContext
+	for {
+		f.Body.Accept(v)
+		maybeBreak, err := v.valueStack.Pop()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+		}
+		if maybeBreak != nil && (maybeBreak.IsType(value.ReturnedType) || maybeBreak.IsType(value.BrokeType)) {
+			// push back the return value of this loop
+			v.valueStack.Push(maybeBreak.UnwrapReturn())
+			break
+		}
+	}
 	// remove the for local variables from the parent context
 	for _, local := range f.LocalVariables {
 		var name string
@@ -308,8 +321,11 @@ func (v *EvaluatingVisitor) For(_ ast.Visitor, f *ast.For) {
 		case *ast.ConstantDeclaration:
 			name = local.Name.Name()
 		}
-		v.currentContext.DeleteIdentifier(name)
+		if name != "" {
+			v.currentContext.DeleteIdentifier(name)
+		}
 	}
+	v.currentContext = v.currentContext.Parent
 }
 
 func (v *EvaluatingVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {

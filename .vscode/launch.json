@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}",
             "args": [
                 "-d",
-                "test/if.test.ne",
+                "test/for.test.ne",
             ]
         }
     ]

@@ -212,13 +212,11 @@ func (v *TypeChecker) Assignment(_ ast.Visitor, s *ast.Assignment) {
 func (v *TypeChecker) Return(_ ast.Visitor, r *ast.Return) {
 	r.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	v.currentContext.ReturnValue = right
 	v.typeStack.Push(right)
 }
 func (v *TypeChecker) Break(_ ast.Visitor, r *ast.Break) {
 	r.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
-	v.currentContext.ReturnValue = right
 	v.typeStack.Push(right)
 }
 func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
@@ -237,7 +235,6 @@ func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
 		}
 	}
 	// exit this context
-	v.currentContext.BubbleUpReturnValue()
 	v.currentContext = v.currentContext.Parent
 }
 func (v *TypeChecker) If(_ ast.Visitor, i *ast.If) {
