@@ -1,5 +1,5 @@
-var z is int if x = 10 {
-    x / 2
+var z is int if x = 10 then {
+    return x / 2;
 } else {
-    x * 2
+    return x * 2;
 };

@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	BuiltinFunctionNames = []string{"print", "println", "len"}
+	BuiltinFunctionNames = []string{"print", "println", "len", "range"}
 )
 
 type IdentifierEntry[T any] struct {

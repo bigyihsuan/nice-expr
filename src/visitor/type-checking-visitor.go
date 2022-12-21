@@ -609,9 +609,9 @@ func (v *TypeChecker) BuiltinFunction(f *ast.FunctionCall) {
 	name, arguments := f.Ident.Name(), f.Arguments
 	switch name {
 	case "print":
-		v.typeStack.Push(value.NoneType)
+		// nop
 	case "println":
-		v.typeStack.Push(value.NoneType)
+		// nop
 	case "len":
 		if len(arguments) != 1 {
 			v.errors.Push(fmt.Errorf("incorrect number of arguments for `len`: got %d, want %d", len(arguments), 1))
@@ -635,11 +635,15 @@ func (v *TypeChecker) BuiltinFunction(f *ast.FunctionCall) {
 			return
 		default:
 			v.errors.Push(fmt.Errorf("invalid type for `len`: %s", collection))
-			v.typeStack.Push(value.NoneType)
 			return
 		}
+	case "range":
+		if len(arguments) < 3 {
+			v.errors.Push(fmt.Errorf("incorrect number of arguments for `range`: got %d, want %d", len(arguments), 3))
+			return
+		}
+		v.typeStack.Push(*value.ListType.AddTypeArg(value.IntType))
 	default:
 		v.errors.Push(fmt.Errorf("function `%s` does not exist at %s", name, f))
-		v.typeStack.Push(value.NoneType)
 	}
 }

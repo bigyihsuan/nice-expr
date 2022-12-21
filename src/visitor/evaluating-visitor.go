@@ -800,6 +800,60 @@ func (v *EvaluatingVisitor) BuiltinFunction(f *ast.FunctionCall) {
 			v.errors.Push(fmt.Errorf("invalid type for `len`: %s", collection.T.Name))
 			return
 		}
+	case "range":
+		if len(arguments) < 3 {
+			v.errors.Push(fmt.Errorf("incorrect number of arguments for `range`: got %d, want %d", len(arguments), 3))
+			return
+		}
+		var start, end, step int64
+		arguments[0].Accept(v)
+		startVal, err := v.valueStack.Pop()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		arguments[1].Accept(v)
+		endVal, err := v.valueStack.Pop()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		arguments[2].Accept(v)
+		stepVal, err := v.valueStack.Pop()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		start, err = startVal.Int64()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		end, err = endVal.Int64()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		step, err = stepVal.Int64()
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, f))
+			return
+		}
+		if step == 0 {
+			v.errors.Push(fmt.Errorf("step of 0 at %s", f))
+			return
+		}
+		out := []*value.Value{}
+		for i := start; i < end; i += step {
+			if end > i && i+step < start {
+				// if step causes i to go less than the start value when the ending value is larger than start,
+				// return an empty list.
+				break
+			}
+			iVal := value.NewValue(value.IntType, big.NewInt(i))
+			out = append(out, iVal)
+		}
+		v.valueStack.Push(value.NewValue(*value.ListType.AddTypeArg(value.IntType), out))
 	default:
 		v.errors.Push(fmt.Errorf("function `%s` does not exist at %s", name, f))
 	}
