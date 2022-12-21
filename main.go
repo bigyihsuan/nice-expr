@@ -13,6 +13,7 @@ import (
 )
 
 type Options struct {
+	Debug           bool   `short:"d" long:"debug"`
 	ShowTokens      bool   `short:"t" long:"showTokens"`
 	ShowParseTree   bool   `short:"p" long:"showParseTree"`
 	ShowStringVisit bool   `short:"s" long:"showStringVisit"`
@@ -29,6 +30,13 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
+	}
+	if options.Debug {
+		options.ShowTokens = true
+		options.ShowParseTree = true
+		options.ShowStringVisit = true
+		options.ShowTypeCheck = true
+		options.ShowEvaluation = true
 	}
 	if options.Code != "" {
 		text = []byte(options.Code)

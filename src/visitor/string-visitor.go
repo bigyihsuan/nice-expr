@@ -145,9 +145,22 @@ func (v *StringVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 	v.stringStack.Push(fmt.Sprintf("(set %s is %s)", name, expr))
 }
 func (v *StringVisitor) Return(_ ast.Visitor, r *ast.Return) {
+	if r.UnaryExpr.Right == nil {
+		v.stringStack.Push("(return ())")
+		return
+	}
 	r.Right.Accept(v)
 	right, _ := v.stringStack.Pop()
 	v.stringStack.Push(fmt.Sprintf("(return %s)", right))
+}
+func (v *StringVisitor) Break(_ ast.Visitor, r *ast.Break) {
+	if r.UnaryExpr.Right == nil {
+		v.stringStack.Push("(break ())")
+		return
+	}
+	r.Right.Accept(v)
+	right, _ := v.stringStack.Pop()
+	v.stringStack.Push(fmt.Sprintf("(break %s)", right))
 }
 func (v *StringVisitor) Block(_ ast.Visitor, b *ast.Block) {
 	stmts := []string{}
@@ -179,6 +192,17 @@ func (v *StringVisitor) If(_ ast.Visitor, i *ast.If) {
 		el = "else " + el
 	}
 	v.stringStack.Push(fmt.Sprintf("(if %s then %s (%s) (%s))", condition, then, elif, el))
+}
+func (v *StringVisitor) For(_ ast.Visitor, f *ast.For) {
+	variables := []string{}
+	for _, locals := range f.LocalVariables {
+		locals.Accept(v)
+		variable, _ := v.stringStack.Pop()
+		variables = append(variables, variable)
+	}
+	f.Body.Accept(v)
+	body, _ := v.stringStack.Pop()
+	v.stringStack.Push(fmt.Sprintf("(for %s %s)", variables, body))
 }
 
 func (v *StringVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {

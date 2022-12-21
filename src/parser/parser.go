@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"nice-expr/src/ast"
+	BK "nice-expr/src/ast/blockkind"
 	"nice-expr/src/token"
 	TT "nice-expr/src/token/tokentype"
 	"nice-expr/src/util"
@@ -165,9 +166,16 @@ func (p *NiceExprParser) Statement() (ast.Expr, *ParseError) {
 		p.getNextToken()
 		ret, err := p.Return()
 		if err != nil {
-			return ret, err
+			return ret, err.addRule("Statement.Return")
 		}
 		expr = ret
+	} else if tok.Is(TT.Break) {
+		p.getNextToken()
+		bre, err := p.Break()
+		if err != nil {
+			return bre, err.addRule("Statement.Break")
+		}
+		expr = bre
 	} else {
 		expr, err = p.Expr()
 		if err != nil {
@@ -203,6 +211,8 @@ func (p *NiceExprParser) Expr() (ast.Expr, *ParseError) {
 		return p.Block()
 	case tok.Is(TT.If):
 		return p.If()
+	case tok.Is(TT.For):
+		return p.For()
 	case slices.Contains(TT.VarConstSet, tok.Tt): // decl or assignment
 		if expr, err = p.AssOrDecl(); err != nil {
 			return expr, err.addRule("Expr.AssOrDecl")
@@ -242,9 +252,33 @@ func (p *NiceExprParser) Return() (*ast.Return, *ParseError) {
 	ret.UnaryExpr = *unary
 	return ret, nil
 }
+func (p *NiceExprParser) Break() (*ast.Break, *ParseError) {
+	bre := new(ast.Break)
+	unary := new(ast.UnaryExpr)
+	if tok, err := p.peekToken(); err != nil {
+		return bre, err.addRule("Break.End?")
+	} else if tok.Is(TT.Semicolon) {
+		bre.UnaryExpr = *unary
+		bre.UnaryExpr.Right = nil // no expr after break
+		return bre, nil
+	}
+	// optional expr
+	expr, err := p.Expr()
+	if err != nil {
+		return bre, err.addRule("Break.Expr")
+	}
+	unary.Right = expr
+	bre.UnaryExpr = *unary
+	return bre, nil
+}
 
-func (p *NiceExprParser) Block() (*ast.Block, *ParseError) {
+func (p *NiceExprParser) Block(kind ...BK.BlockKind) (*ast.Block, *ParseError) {
 	var block = new(ast.Block)
+	if len(kind) > 0 {
+		block.BlockKind = kind[0]
+	} else {
+		block.BlockKind = BK.FreeFloating
+	}
 	p.getNextToken()
 	for {
 		if tok, err := p.peekToken(); err != nil {
@@ -289,7 +323,7 @@ func (p *NiceExprParser) If() (*ast.If, *ParseError) {
 	if _, err := p.expectToken(TT.Then); err != nil {
 		return ifExpr, err.addRule("If.Then")
 	}
-	then, err := p.Block()
+	then, err := p.Block(BK.If)
 	if err != nil {
 		return ifExpr, err.addRule("If.ThenBlock")
 	}
@@ -313,7 +347,7 @@ func (p *NiceExprParser) If() (*ast.If, *ParseError) {
 		ifExpr.ElseIf = nestedIf
 	} else {
 		// get else block
-		elseBlock, err := p.Block()
+		elseBlock, err := p.Block(BK.Else)
 		if err != nil {
 			return ifExpr, err.addRule("If.Else")
 		}
@@ -321,18 +355,17 @@ func (p *NiceExprParser) If() (*ast.If, *ParseError) {
 	}
 	return ifExpr, nil
 }
-
 func (p *NiceExprParser) For() (*ast.For, *ParseError) {
 	forExpr := new(ast.For)
 	if _, err := p.expectToken(TT.For); err != nil {
 		return forExpr, err.addRule("For.For")
 	}
-	locals, err := p.ExprList(TT.Comma, TT.LeftBrace)
+	locals, err := p.DeclList(TT.Comma, TT.LeftBrace)
 	if err != nil {
 		return forExpr, err.addRule("For.Locals")
 	}
 	forExpr.LocalVariables = locals
-	body, err := p.Block()
+	body, err := p.Block(BK.For)
 	if err != nil {
 		return forExpr, err.addRule("For.Body")
 	}
@@ -600,6 +633,16 @@ func (p *NiceExprParser) AssOrDecl() (ast.Expr, *ParseError) {
 		return nil, NewParseError("unknown leading token", tok, "AssOrDecl.Start")
 	}
 }
+func (p *NiceExprParser) Declaration() (ast.Declaration, *ParseError) {
+	switch tok, err := p.peekToken(); {
+	case tok.Is(TT.Var):
+		return p.VariableDeclaration()
+	case tok.Is(TT.Const):
+		return p.ConstantDeclaration()
+	default:
+		return nil, err.addRule("Declaration")
+	}
+}
 
 func (p *NiceExprParser) IdentifierOrFuncCall() (ast.Expr, *ParseError) {
 	if _, err := p.expectToken(TT.Identifier); err != nil {
@@ -712,8 +755,15 @@ func (p *NiceExprParser) DesugarAssignment(a *ast.Assignment) *ast.Assignment {
 	)
 
 	ass.Name = a.Name
-	ass.Op = a.Op
-	ass.Op.Tt, ass.Op.Lexeme = TT.Is, "is"
+	ass.Op = &token.Token{
+		Tt:      TT.Is,
+		Lexeme:  "is",
+		Value:   "is",
+		CodePos: a.Op.CodePos,
+		Line:    a.Op.Line,
+		Start:   a.Op.Start,
+		End:     a.Op.End,
+	}
 
 	switch a.Op.Tt {
 	case TT.PlusEqual:
@@ -781,7 +831,6 @@ func (p *NiceExprParser) ExprList(separator, endingToken TT.TokenType) ([]ast.Ex
 		if err != nil {
 			return l, err.addRule("ExprList.Expr")
 		}
-
 		// optional trailing comma
 		if ok, err := p.optionalToken(endingToken); err != nil {
 			return l, err.addRule("ExprList.Ending")
@@ -791,7 +840,33 @@ func (p *NiceExprParser) ExprList(separator, endingToken TT.TokenType) ([]ast.Ex
 		}
 
 		if _, err = p.expectToken(separator); err != nil {
-			return l, err.addRule("ExprList.Comma")
+			return l, err.addRule("ExprList.Separator")
+		}
+		l = append(l, expr)
+	}
+	return l, nil
+}
+func (p *NiceExprParser) DeclList(separator, endingToken TT.TokenType) (ast.DeclList, *ParseError) {
+	l := ast.DeclList{}
+	for {
+		if ok, err := p.optionalToken(endingToken); err != nil {
+			return l, err.addRule("DeclList.Ending")
+		} else if ok {
+			break
+		}
+		expr, err := p.Declaration()
+		if err != nil {
+			return l, err.addRule("DeclList.Expr")
+		}
+		// optional trailing comma
+		if ok, err := p.optionalToken(endingToken); err != nil {
+			return l, err.addRule("DeclList.Ending")
+		} else if ok {
+			l = append(l, expr)
+			break
+		}
+		if _, err = p.expectToken(separator); err != nil {
+			return l, err.addRule("DeclList.Separator")
 		}
 		l = append(l, expr)
 	}

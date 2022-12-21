@@ -30,9 +30,20 @@ func NewZeroValue(vt ValueType) *Value {
 		return NewValue(vt, []*Value{})
 	case vt.Is(MapType):
 		return NewValue(vt, make(map[*Value]*Value))
+	case vt.Is(NoneType):
+		return NewValue(vt, "None")
 	default:
 		return nil
 	}
+}
+
+// if the value is a return/break value,
+// unwrap the type so that it can be used elsewhere
+func (v *Value) UnwrapReturn() *Value {
+	if v.IsType(ReturnedType) || v.IsType(BrokeType) {
+		v.T = v.T.TypeArgs[0]
+	}
+	return v
 }
 
 func (v Value) String() string {

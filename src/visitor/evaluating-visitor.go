@@ -86,6 +86,8 @@ func (v *EvaluatingVisitor) Expr(_ ast.Visitor, p ast.Expr) {
 	switch p := p.(type) {
 	case *ast.Indexing:
 		p.Accept(v)
+	case *ast.Block:
+		p.Accept(v)
 	case *ast.Assignment:
 		p.Accept(v)
 	case *ast.VariableDeclaration, *ast.ConstantDeclaration:
@@ -168,7 +170,7 @@ func (v *EvaluatingVisitor) VariableDeclaration(_ ast.Visitor, s *ast.VariableDe
 		name,
 		evaluator.IdentifierEntry[*value.Value]{
 			Ident:   s.Name,
-			Value:   varVal,
+			Value:   varVal.UnwrapReturn(),
 			VarType: evaluator.Var,
 		},
 	)
@@ -190,7 +192,7 @@ func (v *EvaluatingVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDe
 		name,
 		evaluator.IdentifierEntry[*value.Value]{
 			Ident:   s.Name,
-			Value:   varVal,
+			Value:   varVal.UnwrapReturn(),
 			VarType: evaluator.Const,
 		},
 	)
@@ -218,11 +220,33 @@ func (v *EvaluatingVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
 		v.errors.Push(fmt.Errorf("cannot assign `%v` to variable `%s` of type %s at %s", assVal, name, entry.Value.T.String(), s))
 		return
 	}
+	// unwrap return/break
+	assVal = assVal.UnwrapReturn()
+
 	entry.Value = assVal
 	v.currentContext.Identifiers[name] = entry
+	v.valueStack.Push(entry.Value)
 }
 func (v *EvaluatingVisitor) Return(_ ast.Visitor, r *ast.Return) {
+	if r.UnaryExpr.Right == nil {
+		return // don't push a value when no right expr
+	}
 	right := v.PrepareUnary(r.UnaryExpr)
+	// wrap in a Return[] signalling type
+	returnedType := right.T
+	right.T = value.NewValueType("Return")
+	right.T.AddTypeArg(returnedType)
+	v.valueStack.Push(right)
+}
+func (v *EvaluatingVisitor) Break(_ ast.Visitor, r *ast.Break) {
+	if r.UnaryExpr.Right == nil {
+		return // don't push a value when no right expr
+	}
+	right := v.PrepareUnary(r.UnaryExpr)
+	// wrap in a Break[] signalling type
+	returnedType := right.T
+	right.T = value.NewValueType("Break")
+	right.T.AddTypeArg(returnedType)
 	v.valueStack.Push(right)
 }
 func (v *EvaluatingVisitor) Block(_ ast.Visitor, b *ast.Block) {
@@ -232,18 +256,19 @@ func (v *EvaluatingVisitor) Block(_ ast.Visitor, b *ast.Block) {
 	v.currentContext = blockContext
 	for _, e := range b.Statements {
 		e.Accept(v)
-		val, err := v.valueStack.Pop()
-		if err != nil {
-			v.errors.Push(fmt.Errorf("%s at %s in %s", err, e, b))
+		returnVal, err := v.valueStack.Pop()
+		var isReturnOrBroke bool
+		if returnVal != nil {
+			isReturnOrBroke = returnVal.IsType(value.ReturnedType) || returnVal.IsType(value.BrokeType)
 		}
-		// if finds a return, will return early
-		_, isReturn := e.(*ast.Return)
-		if isReturn {
-			v.valueStack.Push(val)
+		if err != nil {
+			v.errors.Push(fmt.Errorf("%s at %s", err, e))
+		} else if isReturnOrBroke {
+			v.valueStack.Push(returnVal)
 			break
 		}
+		v.valueStack.Push(returnVal)
 	}
-	// at the end of the block return to the parent context
 	v.currentContext = v.currentContext.Parent
 }
 func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
@@ -251,6 +276,7 @@ func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
 	condition, err := v.valueStack.Pop()
 	if err != nil {
 		v.errors.Push(fmt.Errorf("%s at %s", err, i))
+		return
 	}
 	conditionResult, err := condition.Bool()
 	if err != nil {
@@ -258,15 +284,31 @@ func (v *EvaluatingVisitor) If(_ ast.Visitor, i *ast.If) {
 		return
 	}
 	if conditionResult {
-		// run then block
 		i.Then.Accept(v)
-		return
 	} else if i.ElseIf != nil {
 		i.ElseIf.Accept(v)
-		return
 	} else if i.Else != nil {
 		i.Else.Accept(v)
-		return
+	}
+}
+func (v *EvaluatingVisitor) For(_ ast.Visitor, f *ast.For) {
+	// let the variables declare themselves
+	for _, local := range f.LocalVariables {
+		local.Accept(v)
+	}
+	// for {
+	f.Body.Accept(v)
+	// }
+	// remove the for local variables from the parent context
+	for _, local := range f.LocalVariables {
+		var name string
+		switch local := local.(type) {
+		case *ast.VariableDeclaration:
+			name = local.Name.Name()
+		case *ast.ConstantDeclaration:
+			name = local.Name.Name()
+		}
+		v.currentContext.DeleteIdentifier(name)
 	}
 }
 
@@ -302,15 +344,15 @@ func (v *EvaluatingVisitor) Greater(_ ast.Visitor, c *ast.Greater) {
 	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
 		l, _ := left.BigInt()
 		r, _ := right.BigInt()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) > 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) > 0))
 	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
 		l, _ := left.BigDec()
 		r, _ := right.BigDec()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) > 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) > 0))
 	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
 		l, _ := left.Str()
 		r, _ := right.Str()
-		v.valueStack.Push(value.NewValue(left.T, l > r))
+		v.valueStack.Push(value.NewValue(value.BoolType, l > r))
 	default:
 		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `>`: %s and %s at %s", left.T, right.T, c))
 	}
@@ -321,15 +363,15 @@ func (v *EvaluatingVisitor) Less(_ ast.Visitor, c *ast.Less) {
 	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
 		l, _ := left.BigInt()
 		r, _ := right.BigInt()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) < 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) < 0))
 	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
 		l, _ := left.BigDec()
 		r, _ := right.BigDec()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) < 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) < 0))
 	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
 		l, _ := left.Str()
 		r, _ := right.Str()
-		v.valueStack.Push(value.NewValue(left.T, l < r))
+		v.valueStack.Push(value.NewValue(value.BoolType, l < r))
 	default:
 		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `<`: %s and %s at %s", left.T, right.T, c))
 	}
@@ -340,15 +382,15 @@ func (v *EvaluatingVisitor) GreaterEqual(_ ast.Visitor, c *ast.GreaterEqual) {
 	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
 		l, _ := left.BigInt()
 		r, _ := right.BigInt()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) >= 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) >= 0))
 	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
 		l, _ := left.BigDec()
 		r, _ := right.BigDec()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) >= 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) >= 0))
 	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
 		l, _ := left.Str()
 		r, _ := right.Str()
-		v.valueStack.Push(value.NewValue(left.T, l >= r))
+		v.valueStack.Push(value.NewValue(value.BoolType, l >= r))
 	default:
 		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `>=`: %s and %s at %s", left.T, right.T, c))
 	}
@@ -359,15 +401,15 @@ func (v *EvaluatingVisitor) LessEqual(_ ast.Visitor, c *ast.LessEqual) {
 	case left.EqualsType(value.IntType) && right.EqualsType(value.IntType):
 		l, _ := left.BigInt()
 		r, _ := right.BigInt()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) <= 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) <= 0))
 	case left.EqualsType(value.DecType) && right.EqualsType(value.DecType):
 		l, _ := left.BigDec()
 		r, _ := right.BigDec()
-		v.valueStack.Push(value.NewValue(left.T, l.Cmp(r) <= 0))
+		v.valueStack.Push(value.NewValue(value.BoolType, l.Cmp(r) <= 0))
 	case left.EqualsType(value.StrType) && right.EqualsType(value.StrType):
 		l, _ := left.Str()
 		r, _ := right.Str()
-		v.valueStack.Push(value.NewValue(left.T, l <= r))
+		v.valueStack.Push(value.NewValue(value.BoolType, l <= r))
 	default:
 		v.errors.Push(fmt.Errorf("mismatched or unsupported types for `<=`: %s and %s at %s", left.T, right.T, c))
 	}
@@ -698,6 +740,8 @@ func (v *EvaluatingVisitor) BuiltinFunction(f *ast.FunctionCall) {
 				fmt.Print(val.Sprint())
 			}
 		}
+		// return none type
+		// v.valueStack.Push(value.NewZeroValue(value.NoneType))
 	case "println":
 		if len(arguments) < 1 {
 			fmt.Println()
@@ -712,6 +756,8 @@ func (v *EvaluatingVisitor) BuiltinFunction(f *ast.FunctionCall) {
 				fmt.Println(val.Sprint())
 			}
 		}
+		// return none type
+		// v.valueStack.Push(value.NewZeroValue(value.NoneType))
 	case "len":
 		if len(arguments) != 1 {
 			v.errors.Push(fmt.Errorf("incorrect number of arguments for `len`: got %d, want %d", len(arguments), 1))

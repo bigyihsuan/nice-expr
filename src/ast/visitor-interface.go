@@ -13,8 +13,10 @@ type Visitor interface {
 	Assignment(v Visitor, s *Assignment)
 	// block-related
 	Return(v Visitor, r *Return)
+	Break(v Visitor, r *Break)
 	Block(v Visitor, b *Block)
 	If(v Visitor, i *If)
+	For(v Visitor, f *For)
 	// tests
 	Test(v Visitor, t Test)
 	AndTest(v Visitor, t *AndTest)

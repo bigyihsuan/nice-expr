@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"nice-expr/src/ast"
 	"nice-expr/src/evaluator"
-	"nice-expr/src/token/tokentype"
+	TT "nice-expr/src/token/tokentype"
 	"nice-expr/src/util"
 	"nice-expr/src/value"
 
@@ -212,6 +212,13 @@ func (v *TypeChecker) Assignment(_ ast.Visitor, s *ast.Assignment) {
 func (v *TypeChecker) Return(_ ast.Visitor, r *ast.Return) {
 	r.Right.Accept(v)
 	right, _ := v.typeStack.Pop()
+	v.currentContext.ReturnValue = right
+	v.typeStack.Push(right)
+}
+func (v *TypeChecker) Break(_ ast.Visitor, r *ast.Break) {
+	r.Right.Accept(v)
+	right, _ := v.typeStack.Pop()
+	v.currentContext.ReturnValue = right
 	v.typeStack.Push(right)
 }
 func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
@@ -219,27 +226,19 @@ func (v *TypeChecker) Block(_ ast.Visitor, b *ast.Block) {
 	blockContext := evaluator.CopyContext(v.currentContext, v.currentContext)
 	// move contexts into this block
 	v.currentContext = blockContext
-	broke := false
-	// blocks have the type of the first return statement
+	// blocks have the type of the first return/break statement
 	for _, e := range b.Statements {
 		e.Accept(v)
-		t, err := v.typeStack.Pop()
-		if err != nil {
-			v.AddError("%s at %s in %s", err, e, b)
-		}
+		_, isBreak := e.(*ast.Break)
 		_, isReturn := e.(*ast.Return)
-		if isReturn {
-			v.typeStack.Push(t)
-			broke = true
+		// don't care about other statements, except for the first break/return
+		if isBreak || isReturn {
 			break
 		}
 	}
 	// exit this context
+	v.currentContext.BubbleUpReturnValue()
 	v.currentContext = v.currentContext.Parent
-	if !broke {
-		// push a none-value
-		v.typeStack.Push(value.NoneType)
-	}
 }
 func (v *TypeChecker) If(_ ast.Visitor, i *ast.If) {
 	clauses := []value.ValueType{}
@@ -268,7 +267,25 @@ func (v *TypeChecker) If(_ ast.Visitor, i *ast.If) {
 	}
 	v.typeStack.Push(then)
 }
-
+func (v *TypeChecker) For(_ ast.Visitor, f *ast.For) {
+	// don't care about variables, other than any type errors their declaration make
+	for _, local := range f.LocalVariables {
+		local.Accept(v)
+		v.typeStack.Pop()
+	}
+	f.Body.Accept(v)
+	// remove the for local variables from the parent context
+	for _, local := range f.LocalVariables {
+		var name string
+		switch local := local.(type) {
+		case *ast.VariableDeclaration:
+			name = local.Name.Name()
+		case *ast.ConstantDeclaration:
+			name = local.Name.Name()
+		}
+		v.currentContext.DeleteIdentifier(name)
+	}
+}
 func (v *TypeChecker) AndTest(_ ast.Visitor, t *ast.AndTest) {
 	t.Left.Accept(v)
 	left, _ := v.typeStack.Pop()
@@ -475,13 +492,13 @@ func (v *TypeChecker) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
 
 func (v *TypeChecker) PrimitiveLiteral(_ ast.Visitor, l *ast.PrimitiveLiteral) {
 	switch l.Token.Tt {
-	case tokentype.Integer:
+	case TT.Integer:
 		v.typeStack.Push(value.IntType)
-	case tokentype.Floating:
+	case TT.Floating:
 		v.typeStack.Push(value.DecType)
-	case tokentype.String:
+	case TT.String:
 		v.typeStack.Push(value.StrType)
-	case tokentype.True, tokentype.False:
+	case TT.True, TT.False:
 		v.typeStack.Push(value.BoolType)
 	default:
 		v.AddError("unknown primitive literal: %s", l.Token)

@@ -25,6 +25,9 @@ var (
 	BoolType = NewValueType("Bool")
 	ListType = NewValueType("List")
 	MapType  = NewValueType("Map")
+	// for blocks
+	BrokeType    = NewValueType("Break")
+	ReturnedType = NewValueType("Return")
 
 	IndexableTypes  = []ValueType{StrType, ListType, MapType}
 	ComparableTypes = []ValueType{IntType, DecType, StrType}

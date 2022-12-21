@@ -93,8 +93,10 @@ func (v *DefaultVisitor) VariableDeclaration(_ Visitor, s *VariableDeclaration) 
 func (v *DefaultVisitor) ConstantDeclaration(_ Visitor, s *ConstantDeclaration) {}
 func (v *DefaultVisitor) Assignment(_ Visitor, s *Assignment)                   {}
 func (v *DefaultVisitor) Return(_ Visitor, r *Return)                           {}
+func (v *DefaultVisitor) Break(_ Visitor, r *Break)                             {}
 func (v *DefaultVisitor) Block(_ Visitor, b *Block)                             {}
 func (v *DefaultVisitor) If(_ Visitor, i *If)                                   {}
+func (v *DefaultVisitor) For(_ Visitor, f *For)                                 {}
 func (v *DefaultVisitor) AndTest(_ Visitor, t *AndTest)                         {}
 func (v *DefaultVisitor) OrTest(_ Visitor, t *OrTest)                           {}
 func (v *DefaultVisitor) NotTest(_ Visitor, t *NotTest)                         {}

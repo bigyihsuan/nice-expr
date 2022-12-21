@@ -15,6 +15,7 @@ return ::= "return" expr? ;
 break  ::= "break" expr? ;
 if     ::= "if" expr "then" block ("else" (if | block))? ;
 for    ::= "for" exprList block ;
+declList ::= ((varDecl | constDecl) ",")*
 # functions
 function ::= func "(" argList ")" type block ;
 argList  ::= (ident type ",")* (ident type ","?)? ;

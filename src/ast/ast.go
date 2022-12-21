@@ -2,6 +2,7 @@ package ast
 
 import (
 	"fmt"
+	BK "nice-expr/src/ast/blockkind"
 	"nice-expr/src/token"
 	"nice-expr/src/value"
 	"strings"
@@ -111,8 +112,20 @@ func (r Return) String() string {
 	return fmt.Sprintf("(return %s)", r.Right)
 }
 
+type Break struct {
+	UnaryExpr
+}
+
+func (r *Break) Accept(v Visitor) {
+	v.Break(v, r)
+}
+func (r Break) String() string {
+	return fmt.Sprintf("(break %s)", r.Right)
+}
+
 type Block struct {
 	Statements []Expr
+	BlockKind  BK.BlockKind
 }
 
 func (b *Block) Accept(v Visitor) {
@@ -152,16 +165,18 @@ func (i If) String() string {
 
 type For struct {
 	Expr
-	LocalVariables []Expr
+	LocalVariables DeclList
 	Body           *Block
 }
 
 func (f *For) Accept(v Visitor) {
-	// v.For(v,i)
+	v.For(v, f)
 }
 func (f For) String() string {
 	return fmt.Sprintf("(for %s %s)", f.LocalVariables, f.Body)
 }
+
+type DeclList []Declaration
 
 // tests
 
