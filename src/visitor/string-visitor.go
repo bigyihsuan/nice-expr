@@ -119,22 +119,30 @@ func (v *StringVisitor) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclar
 	s.Name.Accept(v)
 	name, _ := v.stringStack.Pop()
 	s.Type.Accept(v)
-	typ, _ := v.stringStack.Pop()
-	s.Value.Accept(v)
-	expr, _ := v.stringStack.Pop()
-	str := fmt.Sprintf("(var %s is %s %s)", name, typ, expr)
-	// fmt.Println(str)
+	type_, _ := v.stringStack.Pop()
+	var str string
+	if s.Value != nil {
+		s.Value.Accept(v)
+		expr, _ := v.stringStack.Pop()
+		str = fmt.Sprintf("(var %s is %s %s)", name, type_, expr)
+	} else {
+		str = fmt.Sprintf("(var %s is %s)", name, type_)
+	}
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
 	s.Name.Accept(v)
 	name, _ := v.stringStack.Pop()
 	s.Type.Accept(v)
-	typ, _ := v.stringStack.Pop()
-	s.Value.Accept(v)
-	expr, _ := v.stringStack.Pop()
-	str := fmt.Sprintf("(const %s is %s %s)", name, typ, expr)
-	// fmt.Println(str)
+	type_, _ := v.stringStack.Pop()
+	var str string
+	if s.Value != nil {
+		s.Value.Accept(v)
+		expr, _ := v.stringStack.Pop()
+		str = fmt.Sprintf("(var %s is %s %s)", name, type_, expr)
+	} else {
+		str = fmt.Sprintf("(var %s is %s)", name, type_)
+	}
 	v.stringStack.Push(str)
 }
 func (v *StringVisitor) Assignment(_ ast.Visitor, s *ast.Assignment) {
@@ -203,6 +211,19 @@ func (v *StringVisitor) For(_ ast.Visitor, f *ast.For) {
 	f.Body.Accept(v)
 	body, _ := v.stringStack.Pop()
 	v.stringStack.Push(fmt.Sprintf("(for %s %s)", variables, body))
+}
+func (v *StringVisitor) Function(_ ast.Visitor, f *ast.Function) {
+	arguments := []string{}
+	for _, a := range f.Arguments {
+		a.Accept(v)
+		arg, _ := v.stringStack.Pop()
+		arguments = append(arguments, arg)
+	}
+	f.ReturnType.Accept(v)
+	retType, _ := v.stringStack.Pop()
+	f.Body.Accept(v)
+	body, _ := v.stringStack.Pop()
+	v.stringStack.Push(fmt.Sprintf("(func %s %s %s)", arguments, retType, body))
 }
 
 func (v *StringVisitor) AndTest(_ ast.Visitor, t *ast.AndTest) {
@@ -388,5 +409,8 @@ func (v *StringVisitor) ListType(_ ast.Visitor, t *ast.ListType) {
 	v.stringStack.Push(t.String())
 }
 func (v *StringVisitor) MapType(_ ast.Visitor, t *ast.MapType) {
+	v.stringStack.Push(t.String())
+}
+func (v *StringVisitor) FuncType(_ ast.Visitor, t *ast.FuncType) {
 	v.stringStack.Push(t.String())
 }

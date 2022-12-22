@@ -142,11 +142,17 @@ func (v *TypeChecker) Type(_ ast.Visitor, t ast.Type) {
 func (v *TypeChecker) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclaration) {
 	s.Type.Accept(v)
 	varType, _ := v.typeStack.Pop()
-	s.Value.Accept(v)
-	valType, _ := v.typeStack.Pop()
-	if varType.NotEqual(valType) {
-		v.AddError("mismatched types for Variable Declaration: got %v and %v at %s", varType, valType, s)
-		return
+	if s.Value != nil {
+		s.Value.Accept(v)
+		valType, _ := v.typeStack.Pop()
+		if varType.NotEqual(valType) {
+			v.AddError("mismatched types for Variable Declaration: got %v and %v at %s", varType, valType, s)
+			return
+		}
+	}
+	varKind := evaluator.Var
+	if _, isFunction := s.Value.(*ast.Function); isFunction {
+		varKind = evaluator.Func
 	}
 
 	name := s.Name.Name()
@@ -157,18 +163,24 @@ func (v *TypeChecker) VariableDeclaration(_ ast.Visitor, s *ast.VariableDeclarat
 		evaluator.IdentifierEntry[value.ValueType]{
 			Ident:   s.Name,
 			Value:   varType,
-			VarType: evaluator.Var,
+			VarType: varKind,
 		},
 	)
 }
 func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclaration) {
 	s.Type.Accept(v)
 	varType, _ := v.typeStack.Pop()
-	s.Value.Accept(v)
-	valType, _ := v.typeStack.Pop()
-	if varType.NotEqual(valType) {
-		v.AddError("mismatched types for Constant Declaration: got %v and %v at %s", varType, valType, s)
-		return
+	if s.Value != nil {
+		s.Value.Accept(v)
+		valType, _ := v.typeStack.Pop()
+		if varType.NotEqual(valType) {
+			v.AddError("mismatched types for Constant Declaration: got %v and %v at %s", varType, valType, s)
+			return
+		}
+	}
+	varKind := evaluator.Const
+	if _, isFunction := s.Value.(*ast.Function); isFunction {
+		varKind = evaluator.Func
 	}
 
 	name := s.Name.Name()
@@ -179,7 +191,7 @@ func (v *TypeChecker) ConstantDeclaration(_ ast.Visitor, s *ast.ConstantDeclarat
 		evaluator.IdentifierEntry[value.ValueType]{
 			Ident:   s.Name,
 			Value:   varType,
-			VarType: evaluator.Const,
+			VarType: varKind,
 		},
 	)
 }
@@ -283,6 +295,18 @@ func (v *TypeChecker) For(_ ast.Visitor, f *ast.For) {
 		v.currentContext.DeleteIdentifier(name)
 	}
 }
+func (v *TypeChecker) Function(_ ast.Visitor, f *ast.Function) {
+	// function has type func(args)returntype
+	funcType := value.NewValueType("Func")
+	for _, arg := range f.Arguments {
+		arg.Accept(v)
+		argType, _ := v.typeStack.Pop()
+		funcType.AddTypeArg(argType)
+	}
+	funcType.AddTypeArg(f.ReturnType.ToValueType())
+	v.typeStack.Push(funcType)
+}
+
 func (v *TypeChecker) AndTest(_ ast.Visitor, t *ast.AndTest) {
 	t.Left.Accept(v)
 	left, _ := v.typeStack.Pop()
@@ -482,8 +506,14 @@ func (v *TypeChecker) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
 		v.BuiltinFunction(f)
 		return
 	} else {
-		// TODO: call user-defined functions
-		fmt.Println(f)
+		for name, entry := range v.currentContext.Identifiers {
+			if name == f.Ident.Name() && entry.VarType == evaluator.Func {
+				// found the function, get the return type (last type arg)
+				function := entry.Value
+				v.typeStack.Push(function.TypeArgs[len(function.TypeArgs)-1])
+				break
+			}
+		}
 	}
 }
 
@@ -602,6 +632,9 @@ func (v *TypeChecker) ListType(_ ast.Visitor, t *ast.ListType) {
 	v.typeStack.Push(t.ToValueType())
 }
 func (v *TypeChecker) MapType(_ ast.Visitor, t *ast.MapType) {
+	v.typeStack.Push(t.ToValueType())
+}
+func (v *TypeChecker) FuncType(_ ast.Visitor, t *ast.FuncType) {
 	v.typeStack.Push(t.ToValueType())
 }
 

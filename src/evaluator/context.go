@@ -7,8 +7,7 @@ import (
 
 type Context[T any] struct {
 	Identifiers map[string]IdentifierEntry[T] // the variables that exist in this current context only
-	// Functions map[string]IdentifierEntry[any]
-	Parent *Context[T] // the context that contains this context, to allow for accessing outside names
+	Parent      *Context[T]                   // the context that contains this context, to allow for accessing outside names
 }
 
 // make a new context, with an optional parent. if no parent is given, the returned context's parent will be itself.

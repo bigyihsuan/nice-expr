@@ -17,8 +17,7 @@ if     ::= "if" expr "then" block ("else" (if | block))? ;
 for    ::= "for" exprList block ;
 declList ::= ((varDecl | constDecl) ",")*
 # functions
-function ::= func "(" argList ")" type block ;
-argList  ::= (ident type ",")* (ident type ","?)? ;
+function ::= "func" "(" declList ")" type? block ;
 
 # values
 test       ::= notTest | test ("and"|"or") test ;
@@ -40,7 +39,7 @@ primitive   ::= "INT" | "FLOAT" | "STRING" ;
 
 type          ::= primitiveType | compoundType | funcType ;
 funcType      ::= "func" "(" typeList* ")" type? ;
-typeList      ::= type "," ;
+typeList      ::= (type ",") (type ","?)? ;
 compoundType  ::= listType | mapType ;
 listType      ::= "list" "[" type "]" ;
 mapType       ::= "map" "[" type "]" type ;

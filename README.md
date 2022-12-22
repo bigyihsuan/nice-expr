@@ -109,24 +109,30 @@ var x is int for { break 30; }; // x == 30
 var l is list[int] [1,2,3,4,5,6,];
 var sum is int for var s is int 0, var idx is int 0 {
     if idx = len(l) then { // built-in function len() returns the length
-        break s // return the sum when no more items
-    }
-    set s += l_idx // index lists using ints >=0 only
-    set idx += 1
+        break s; // return the sum when no more items
+    };
+    set s += l_idx; // index lists using ints >=0 only
+    set idx += 1;
 };
 
 // all functions are anonymous until assigned to a variable
-var greet is func(str)str func(start str, name str)str{ return start + name };
+// can have const and var arguments
+// they behave like regular variables: const can't be assigned to, var can
+var greet is func(str)str func(const start is str, var name is str)str{
+  set name = " Mr. " + name;
+  return start + name;
+};
 // type of `greet` is func(str)str
-var string str is greet("bob");
+var greeting is str greet("Hello", "Bob");
+println(greeting); // Hello Mr. Bob
 
 // recursion
 var factorial func(int)int is func(n int)int {
-    if n < 1 { return 1 } // early return
-    if n = 2 { return 2 } // early return
+    if n < 1 { return 1; }; // early return
+    if n = 2 { return 2; }; // early return
     return n * factorial(n-1); // recursive call
 };
-var num int is factorial(4);
+var num is int factorial(4);
 
 // indexing
 // use underscore to index str, list, map

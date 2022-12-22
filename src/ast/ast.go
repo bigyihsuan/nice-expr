@@ -2,7 +2,6 @@ package ast
 
 import (
 	"fmt"
-	BK "nice-expr/src/ast/blockkind"
 	"nice-expr/src/token"
 	"nice-expr/src/value"
 	"strings"
@@ -125,7 +124,6 @@ func (r Break) String() string {
 
 type Block struct {
 	Statements []Expr
-	BlockKind  BK.BlockKind
 }
 
 func (b *Block) Accept(v Visitor) {
@@ -177,6 +175,20 @@ func (f For) String() string {
 }
 
 type DeclList []Declaration
+
+type Function struct {
+	Expr
+	Arguments  DeclList
+	ReturnType Type
+	Body       *Block
+}
+
+func (f *Function) Accept(v Visitor) {
+	v.Function(v, f)
+}
+func (f Function) String() string {
+	return fmt.Sprintf("(func %s (%s) %s)", f.Arguments, f.ReturnType, f.Body)
+}
 
 // tests
 
@@ -511,6 +523,7 @@ func (i *Indexing) Accept(v Visitor) {
 // types
 type Type interface {
 	Expr
+	String() string
 	ToValueType() value.ValueType
 }
 
@@ -570,17 +583,31 @@ func (t MapType) ToValueType() value.ValueType {
 
 type FuncType struct {
 	Type
-	InputTypes []Type
-	OutputType Type
+	ArgumentTypes []Type
+	ReturnType    Type
 }
 
+func (t *FuncType) Accept(v Visitor) {
+	v.FuncType(v, t)
+}
 func (t FuncType) String() string {
 	var b strings.Builder
 	b.WriteRune('[')
-	for _, e := range t.InputTypes {
+	for _, e := range t.ArgumentTypes {
 		b.WriteString(fmt.Sprint(e))
 		b.WriteRune(',')
 	}
 	b.WriteRune(']')
-	return fmt.Sprintf("func(%s)%s", b.String(), t.OutputType)
+	return fmt.Sprintf("func(%s)%s", b.String(), t.ReturnType)
+}
+
+// convert to a value type.
+// the last typearg is the output type.
+func (t FuncType) ToValueType() value.ValueType {
+	valType := value.NewValueType("Func")
+	for _, arg := range t.ArgumentTypes {
+		valType.TypeArgs = append(valType.TypeArgs, arg.ToValueType())
+	}
+	valType.TypeArgs = append(valType.TypeArgs, t.ReturnType.ToValueType())
+	return valType
 }

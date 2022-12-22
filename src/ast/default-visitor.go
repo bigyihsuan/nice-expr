@@ -97,6 +97,7 @@ func (v *DefaultVisitor) Break(_ Visitor, r *Break)                             
 func (v *DefaultVisitor) Block(_ Visitor, b *Block)                             {}
 func (v *DefaultVisitor) If(_ Visitor, i *If)                                   {}
 func (v *DefaultVisitor) For(_ Visitor, f *For)                                 {}
+func (v *DefaultVisitor) Function(_ Visitor, f *Function)                       {}
 func (v *DefaultVisitor) AndTest(_ Visitor, t *AndTest)                         {}
 func (v *DefaultVisitor) OrTest(_ Visitor, t *OrTest)                           {}
 func (v *DefaultVisitor) NotTest(_ Visitor, t *NotTest)                         {}
@@ -120,3 +121,4 @@ func (v *DefaultVisitor) Indexing(_ Visitor, i *Indexing)                       
 func (v *DefaultVisitor) PrimitiveType(_ Visitor, t *PrimitiveType)             {}
 func (v *DefaultVisitor) ListType(_ Visitor, t *ListType)                       {}
 func (v *DefaultVisitor) MapType(_ Visitor, t *MapType)                         {}
+func (v *DefaultVisitor) FuncType(_ Visitor, t *FuncType)                       {}

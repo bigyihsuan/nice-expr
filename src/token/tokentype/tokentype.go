@@ -108,7 +108,7 @@ var (
 	Primaries              = append(Literals, Identifier)
 
 	PrimitiveTypes       = []TokenType{None, Int, Dec, Str, Bool}
-	CompoundTypes        = []TokenType{List, Map}
+	CompoundTypes        = []TokenType{List, Map, Func}
 	Types                = append(PrimitiveTypes, CompoundTypes...)
 	AssignmentOperations = []TokenType{Is, PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
 
@@ -124,6 +124,8 @@ var (
 	AssignmentMathOps = []TokenType{PlusEqual, MinusEqual, StarEqual, SlashEqual, PercentEqual}
 	BinOps            = append(append(append(BinMathOps, BinCompOps...), BinLogOps...), Underscore)
 	UnaryOps          = []TokenType{Not, Minus}
+
+	ExprEnds = []TokenType{RightParen, RightBrace, Semicolon}
 )
 
 func ToTt(lexTok lex.Token) TokenType {

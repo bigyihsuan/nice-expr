@@ -17,6 +17,7 @@ type Visitor interface {
 	Block(v Visitor, b *Block)
 	If(v Visitor, i *If)
 	For(v Visitor, f *For)
+	Function(v Visitor, f *Function)
 	// tests
 	Test(v Visitor, t Test)
 	AndTest(v Visitor, t *AndTest)
@@ -54,4 +55,5 @@ type Visitor interface {
 	PrimitiveType(v Visitor, t *PrimitiveType)
 	ListType(v Visitor, t *ListType)
 	MapType(v Visitor, t *MapType)
+	FuncType(v Visitor, t *FuncType)
 }
