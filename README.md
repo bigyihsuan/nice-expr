@@ -31,22 +31,24 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
     * [x] Indexing operator `_`
 * [x] Assignments (set): check if var or const
 * [x] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
-* [x] Built-in functions
+* [ ] Built-in functions
   * [x] print()/println()
   * [x] len(): lists, maps
+  * [x] range(): python-like 3-part range
+  * [ ] input()/inputln(): get 1 char/1 line of input
 * [x] Blocks
   * [x] return value with `return` keyword
 * [ ] Functions
   * [ ] return value with `return` keyword
   * [ ] recursion
-* [ ] Conditionals:
-  * [ ] if-else
-  * [ ] if-else if-else
-* [ ] Loops
-  * [ ] break
-  * [ ] for
-  * [ ] for-with-local-variable
-* [ ] More builtin functions (input)
+* [x] Conditionals:
+  * [x] if-else
+  * [x] if-else if-else
+  * [x] return value with `return` keyword
+* [x] Loops
+  * [x] `break`
+  * [x] for
+  * [x] for-with-local-variables
 * [ ] Type conversions `type(val)`
 
 ## Examples?
