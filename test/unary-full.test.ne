@@ -9,3 +9,5 @@ println(--89,);
 println(---89,);
 println(2.34,);
 println(-2.34,);
+println(--2.34,);
+println(---2.34,);

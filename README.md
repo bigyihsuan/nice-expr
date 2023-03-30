@@ -4,7 +4,7 @@ what if everything is an expression that return a value
 
 even the loops
 
-much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](https://github.com/bigyihsuan/nicer-syntax/)
+~~much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](https://github.com/bigyihsuan/nicer-syntax/)~~
 
 ## Goals
 
@@ -14,41 +14,41 @@ much of the lexing code is stolen from myself from [`bigyihsuan/nicer-syntax`](h
 
 ## Features
 
-* [x] Primitive literals (int, dec, str, bool)
-* [x] Compound literals (list, map)
-* [x] Type inference of compound literals
-* [x] Arbitrarily-nested types
-* [x] Declarations (var, const): nested, mixed, type checking
-* [x] Function types: func(T,T,...)V, funcs as return type
-* [x] Using variables
-* [x] Operators
-  * [x] Unary Operators
-    * [x] `not`, `-`
-  * [x] Binary Operators
-    * [x] Arithmetic operators (+, -, *, /, %)
-    * [x] Comparison operators (=, <, <=, >, >=)
-    * [x] Logical operators (`and`, `or`)
-    * [x] Indexing operator `_`
-* [x] Assignments (set): check if var or const
-* [x] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
+* [ ] Primitive literals (int, dec, str, bool)
+* [ ] Compound literals (list, map)
+* [ ] Type inference of compound literals
+* [ ] Arbitrarily-nested types
+* [ ] Declarations (var, const): nested, mixed, type checking
+* [ ] Function types: func(T,T,...)V, funcs as return type
+* [ ] Using variables
+* [ ] Operators
+  * [ ] Unary Operators
+    * [ ] `not`, `-`
+  * [ ] Binary Operators
+    * [ ] Arithmetic operators (+, -, *, /, %)
+    * [ ] Comparison operators (=, <, <=, >, >=)
+    * [ ] Logical operators (`and`, `or`)
+    * [ ] Indexing operator `_`
+* [ ] Assignments (set): check if var or const
+* [ ] Arithmetic-Assignment operators (+=, -=, *=, /=, %=)
 * [ ] Built-in functions
-  * [x] print()/println()
-  * [x] len(): lists, maps
-  * [x] range(): python-like 3-part range
+  * [ ] print()/println()
+  * [ ] len(): lists, maps
+  * [ ] range(): python-like 3-part range
   * [ ] input()/inputln(): get 1 char/1 line of input
-* [x] Blocks
-  * [x] return value with `return` keyword
+* [ ] Blocks
+  * [ ] return value with `return` keyword
 * [ ] Functions
   * [ ] return value with `return` keyword
   * [ ] recursion
-* [x] Conditionals:
-  * [x] if-else
-  * [x] if-else if-else
-  * [x] return value with `return` keyword
-* [x] Loops
-  * [x] `break`
-  * [x] for
-  * [x] for-with-local-variables
+* [ ] Conditionals:
+  * [ ] if-else
+  * [ ] if-else if-else
+  * [ ] return value with `return` keyword
+* [ ] Loops
+  * [ ] `break`
+  * [ ] for
+  * [ ] for-with-local-variables
 * [ ] Type conversions `type(val)`
 
 ## Examples?

@@ -607,7 +607,8 @@ func (v *EvaluatingVisitor) FunctionCall(_ ast.Visitor, f *ast.FunctionCall) {
 		return
 	} else {
 		// TODO: call user-defined functions
-		fmt.Println(f)
+
+		//
 	}
 }
 
