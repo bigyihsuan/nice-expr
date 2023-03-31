@@ -18,13 +18,16 @@ fn main() {
                 let token = &token.0;
                 println!("{token}");
             }
+            println!();
 
             let ast = grammar::module_parser::program(&token_stream);
             match ast {
-                Ok(ast) => println!("{:?}", ast),
-                Err(err) => panic!("{err}"),
+                Ok(ast) => println!("{:#?}", ast),
+                Err(err) => eprintln!("error during parsing: {err}"),
             }
         }
-        Err(err) => panic!("{err}"),
+        Err(err) => err
+            .iter()
+            .for_each(|err| eprintln!("error during lexing:\n    {err}")),
     }
 }

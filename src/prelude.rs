@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub type Result<T> = std::result::Result<T, SyntaxError>;
+pub type Result<T> = std::result::Result<T, Vec<SyntaxError>>;
 
 #[derive(Debug)]
 pub enum SyntaxError {

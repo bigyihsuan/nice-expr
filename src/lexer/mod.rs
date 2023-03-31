@@ -23,17 +23,24 @@ impl<'source> TokenStream<'source> {
             linecol_lookup: LineColLookup::new(input),
         };
 
+        let mut errs = Vec::new();
+
         for (token, span) in token_stream.tokens.iter() {
             if let Token::Error = token {
                 let (line, col) = token_stream.linecol_lookup.get(span.start);
+                let chars = input.get(span.start..span.end).unwrap();
 
-                return Err(SyntaxError::InvalidToken {
-                    token: format!("{token}"),
-                    filename: token_stream.filename,
+                errs.push(SyntaxError::InvalidToken {
+                    token: format!("{chars}"),
+                    filename: token_stream.filename.clone(),
                     line,
                     col,
                 });
             }
+        }
+
+        if errs.len() > 0 {
+            return Err(errs);
         }
 
         Ok(token_stream)

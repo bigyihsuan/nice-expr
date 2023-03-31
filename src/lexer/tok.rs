@@ -3,7 +3,7 @@ use std::fmt::Display;
 use logos::Logos;
 use snailquote::unescape;
 
-#[derive(Logos, Debug, Clone, PartialEq)]
+#[derive(Logos, Debug, Clone)]
 pub enum Token {
     // ignore whitespace
     #[error]
@@ -15,9 +15,9 @@ pub enum Token {
     Comment,
 
     // simple literals
-    #[regex("[0-9]+", |lex| parse_int::parse::<i64>(lex.slice()))]
+    #[regex("-?[0-9]+", |lex| parse_int::parse::<i64>(lex.slice()))]
     IntLit(i64),
-    #[regex("[0-9]+.[0-9]+", |lex| parse_int::parse::<f64>(lex.slice()))]
+    #[regex("-?[0-9]+\\.[0-9]+", |lex| parse_int::parse::<f64>(lex.slice()))]
     DecLit(f64),
     // strings are anything that's not escaped quote
     #[regex("\"(?:[^\"]|\\\\\")*\"", |lex| unescape(lex.slice()))]
@@ -135,3 +135,19 @@ impl Display for Token {
         f.write_fmt(format_args!("{:?}", self))
     }
 }
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::IntLit(l0), Self::IntLit(r0)) => l0 == r0,
+            (Self::DecLit(l0), Self::DecLit(r0)) => l0 == r0,
+            (Self::StrLit(l0), Self::StrLit(r0)) => l0 == r0,
+            (Self::TrueBoolLit(l0), Self::TrueBoolLit(r0)) => l0 == r0,
+            (Self::FalseBoolLit(l0), Self::FalseBoolLit(r0)) => l0 == r0,
+            (Self::Ident(l0), Self::Ident(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+impl Eq for Token {}

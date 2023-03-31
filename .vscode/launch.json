@@ -14,6 +14,21 @@
                 "-d",
                 "test/for.test.ne",
             ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Rust",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--"
+                ]
+            },
+            "args": [
+                "-f",
+                "test/compound-literal.test.ne",
+            ],
         }
     ]
 }

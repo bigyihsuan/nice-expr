@@ -9,3 +9,11 @@ not not true
 -2.34
 --2.34
 ---2.34
+
+name
+-name
+--name
+---name
+not name
+not not name
+not not not name
