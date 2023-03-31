@@ -1,12 +1,12 @@
 use crate::{
     lexer::{tok::Token, TokenStream},
-    parse::parse_tree::{Expr, Literal, Program},
+    parse::ast::{Expr, Literal, Program},
 };
 
 peg::parser! {
     pub grammar module_parser<'source>() for TokenStream<'source>  {
         pub rule program() -> Program
-        = expr()*
+        = expr()+
 
         pub rule expr() -> Expr
         = literal() / identifier() / unary_expr()
@@ -17,7 +17,7 @@ peg::parser! {
 
 
         pub rule identifier() -> Expr
-        = name:[Token::Ident(_)]
+        = [Token::Ident(name)]
         {Expr::Identifier{name: name.clone()}}
 
         pub rule literal() -> Expr

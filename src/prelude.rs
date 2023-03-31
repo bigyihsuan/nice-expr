@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-pub type Result<T> = std::result::Result<T, Vec<SyntaxError>>;
+use crate::lexer::TokenLocation;
+
+pub type Result<T> = std::result::Result<T, SyntaxError>;
 
 #[derive(Debug)]
 pub enum SyntaxError {
@@ -59,5 +61,26 @@ impl Display for SyntaxError {
 impl std::error::Error for SyntaxError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
+    }
+}
+
+type ParseError = peg::error::ParseError<TokenLocation>;
+
+impl From<ParseError> for SyntaxError {
+    fn from(err: ParseError) -> Self {
+        let TokenLocation {
+            filename,
+            linecol: (line, col),
+            token,
+        } = err.location;
+        let expected = err.expected.tokens().collect();
+
+        Self::UnexpectedToken {
+            token: token.map(|tok| tok.to_string()).unwrap_or("<>".to_string()),
+            filename,
+            line,
+            col,
+            expected,
+        }
     }
 }

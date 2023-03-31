@@ -1,6 +1,7 @@
-use crate::{args::parse_args, lexer::TokenStream};
+use crate::{args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream};
 
 mod args;
+mod eval;
 mod grammar;
 mod lexer;
 mod parse;
@@ -22,12 +23,24 @@ fn main() {
 
             let ast = grammar::module_parser::program(&token_stream);
             match ast {
-                Ok(ast) => println!("{:#?}", ast),
+                Ok(ast) => {
+                    println!("{ast:?}");
+                    println!();
+                    let interpeter = Interpreter {};
+                    let env = Interpreter::default_env();
+                    let values = interpeter.parse_program(&ast, &env);
+                    match values {
+                        Ok(values) => {
+                            for value in values {
+                                println!("{}", interpeter.format_value(&value));
+                            }
+                        }
+                        Err(err) => eprintln!("error during evaluation: {err:?}"),
+                    }
+                }
                 Err(err) => eprintln!("error during parsing: {err}"),
             }
         }
-        Err(err) => err
-            .iter()
-            .for_each(|err| eprintln!("error during lexing:\n    {err}")),
+        Err(err) => eprintln!("error during lexing:\n    {err}"),
     }
 }
