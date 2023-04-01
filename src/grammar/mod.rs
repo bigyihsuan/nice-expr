@@ -1,6 +1,6 @@
 use crate::{
     lexer::{tok::Token, TokenStream},
-    parse::ast::{Declaration, Expr, Literal, Program, Type},
+    parse::ast::{Assignment, AssignmentOperator, Declaration, Expr, Literal, Program, Type},
 };
 
 peg::parser! {
@@ -17,6 +17,7 @@ peg::parser! {
         / expr_identifier()
         / unary_expr()
         / declaration()
+        / assignment()
 
         pub rule unary_expr() -> Expr
         = op:[Token::Not | Token::Minus] expr:expr()
@@ -26,10 +27,20 @@ peg::parser! {
         = declaration_var() / declaration_const()
         pub rule declaration_var() -> Expr
         = [Token::Var] name:identifier() [Token::Is] type_name:type_name() value:expr()
-        { Expr::Declaration(Declaration::Var { name, type_name, value: Box::new(value) })}
+        { Expr::Declaration(Declaration::Var { name, type_name, expr: Box::new(value) })}
         pub rule declaration_const() -> Expr
         = [Token::Const] name:identifier() [Token::Is] type_name:type_name() value:expr()
-        { Expr::Declaration(Declaration::Const { name, type_name, value: Box::new(value) })}
+        { Expr::Declaration(Declaration::Const { name, type_name, expr: Box::new(value) })}
+
+        pub rule assignment() -> Expr
+        = [Token::Set] name:identifier() op:assignment_operator() value:expr()
+        {Expr::Assignment(Assignment { name, op, expr: Box::new(value) })}
+        pub rule assignment_operator() -> AssignmentOperator
+        = op:[Token::Is]
+        { match op {
+            Token::Is => AssignmentOperator::Is,
+            _ => AssignmentOperator::Invalid
+        }}
 
         pub rule expr_identifier() -> Expr
         = name:identifier()
@@ -72,9 +83,6 @@ peg::parser! {
 
         pub rule type_name() -> Type
         = simple_type() / compound_type()
-        pub rule expr_type_name() -> Expr
-        = t:type_name()
-        {Expr::TypeName(t)}
 
         pub rule simple_type() -> Type
         = i:[Token::IntTypename] {Type::Int}

@@ -7,4 +7,3 @@ set y is x;
 set y *= y;  // y = 100
 set y += 35; // y = 135
 set y %= 5;  // y = 0
-println(y,);

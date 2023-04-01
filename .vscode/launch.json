@@ -27,7 +27,7 @@
             },
             "args": [
                 "-f",
-                "test/compound-literal.test.ne",
+                "test/errors/assignments.set.mismatched-types.test.ne",
             ],
         }
     ]

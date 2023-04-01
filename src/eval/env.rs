@@ -39,15 +39,23 @@ impl Env {
         }
     }
 
-    pub fn set(&mut self, name: String, value: Value) -> Result<(), RuntimeError> {
+    pub fn set(&mut self, name: String, value: Value) -> Result<Value, RuntimeError> {
         if self.values.contains_key(&name.clone()) {
             // disallow setting on const
             let ve = self.values.get(&name).unwrap();
             if let Constness::Const = ve.c {
                 return Err(RuntimeError::SettingConst(name));
             }
-            self.values.insert(name, ve.clone());
-            Ok(())
+            let t = value.to_type()?;
+            if ve.t == t.clone() {
+                self.values.insert(name, ve.clone());
+                Ok(value)
+            } else {
+                Err(RuntimeError::MismatchedTypes {
+                    got: t,
+                    expected: ve.t.clone(),
+                })
+            }
         } else if let Some(parent) = &self.parent {
             parent.borrow_mut().set(name, value)
         } else {

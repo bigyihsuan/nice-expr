@@ -8,7 +8,7 @@ pub enum Expr {
     Identifier(String),
     Unary { op: Token, expr: Box<Expr> },
     Declaration(Declaration),
-    TypeName(Type),
+    Assignment(Assignment),
 }
 
 #[derive(Debug)]
@@ -16,13 +16,20 @@ pub enum Declaration {
     Const {
         name: String,
         type_name: Type,
-        value: Box<Expr>,
+        expr: Box<Expr>,
     },
     Var {
         name: String,
         type_name: Type,
-        value: Box<Expr>,
+        expr: Box<Expr>,
     },
+}
+
+#[derive(Debug)]
+pub struct Assignment {
+    pub name: String,
+    pub op: AssignmentOperator,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Debug)]
@@ -44,4 +51,11 @@ pub enum Type {
     Bool,
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
+}
+
+#[derive(Debug, Clone)]
+pub enum AssignmentOperator {
+    Invalid,
+    Is,
+    // TODO: the other assignment operators
 }

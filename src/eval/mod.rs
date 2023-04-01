@@ -1,4 +1,4 @@
-use crate::parse::ast::Type;
+use crate::parse::ast::{AssignmentOperator, Type};
 
 pub mod env;
 pub mod intepreter;
@@ -12,6 +12,7 @@ pub enum Constness {
 
 #[derive(Debug)]
 pub enum RuntimeError {
+    NotImplemented,
     MismatchedTypes { got: Type, expected: Type },
     // assignments
     IdentifierNotFound(String),
@@ -19,5 +20,6 @@ pub enum RuntimeError {
     // operators
     DivideByZero,
     IndexingNonIndexable,
+    InvalidAssignmentOperator(AssignmentOperator),
     // TODO: more runtime errors
 }

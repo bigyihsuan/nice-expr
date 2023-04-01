@@ -16,14 +16,14 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn to_type(&self, env: &Rc<RefCell<Env>>) -> Result<Type, RuntimeError> {
+    pub fn to_type(&self) -> Result<Type, RuntimeError> {
         match self {
             Value::Int(_) => Ok(Type::Int),
             Value::Dec(_) => Ok(Type::Dec),
             Value::Str(_) => Ok(Type::Str),
             Value::Bool(_) => Ok(Type::Bool),
             Value::List(l) => {
-                let t = l.get(0).map_or(Ok(Type::None), |e| e.to_type(env))?;
+                let t = l.get(0).map_or(Ok(Type::None), |e| e.to_type())?;
                 Ok(Type::List(Box::new(t)))
             }
             Value::Map(m) => {
@@ -33,11 +33,11 @@ impl Value {
                     .unzip::<&Value, &Value, Vec<&Value>, Vec<&Value>>();
                 let k =
                     e.0.get(0)
-                        .map(|k| k.to_type(env))
+                        .map(|k| k.to_type())
                         .unwrap_or_else(|| Ok(Type::None))?;
                 let v =
                     e.1.get(0)
-                        .map(|v| v.to_type(env))
+                        .map(|v| v.to_type())
                         .unwrap_or_else(|| Ok(Type::None))?;
                 Ok(Type::Map(Box::new(k), Box::new(v)))
             }

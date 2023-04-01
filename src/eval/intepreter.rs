@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::parse::ast::{Declaration, Expr, Literal, Program};
+use crate::parse::ast::{Assignment, AssignmentOperator, Declaration, Expr, Literal, Program};
 
 use super::{
     env::{Env, ValueEntry},
@@ -60,7 +60,7 @@ impl Interpreter {
         env: &Rc<RefCell<Env>>,
     ) -> Result<Value, RuntimeError> {
         match expr {
-            Expr::Literal(l) => Ok(self.interpret_literal(l, env)?),
+            Expr::Literal(l) => self.interpret_literal(l, env),
             Expr::Identifier(name) => env
                 .borrow()
                 .get(name.clone())
@@ -68,7 +68,7 @@ impl Interpreter {
                 .and_then(|ValueEntry { v, c: _, t: _ }| Ok(v)),
             Expr::Unary { op, expr } => todo!("implement unary operators"),
             Expr::Declaration(d) => self.interpret_declaration(d, env),
-            Expr::TypeName(_) => todo!(),
+            Expr::Assignment(a) => self.interpret_assignment(a, env),
         }
     }
 
@@ -81,10 +81,10 @@ impl Interpreter {
             Declaration::Const {
                 name,
                 type_name,
-                value,
+                expr: value,
             } => {
                 let value = self.interpret_expr(value, env)?;
-                let t = value.to_type(env)?;
+                let t = value.to_type()?;
                 if t != type_name.clone() {
                     return Err(RuntimeError::MismatchedTypes {
                         got: t,
@@ -103,10 +103,10 @@ impl Interpreter {
             Declaration::Var {
                 name,
                 type_name,
-                value,
+                expr: value,
             } => {
                 let value = self.interpret_expr(value, env)?;
-                let t = value.to_type(env)?;
+                let t = value.to_type()?;
                 if t != type_name.clone() {
                     return Err(RuntimeError::MismatchedTypes {
                         got: t,
@@ -123,6 +123,23 @@ impl Interpreter {
                 }
             }
         }
+    }
+
+    pub fn interpret_assignment(
+        &self,
+        assignment: &Assignment,
+        env: &Rc<RefCell<Env>>,
+    ) -> Result<Value, RuntimeError> {
+        let mut value = self.interpret_expr(assignment.expr.as_ref(), env)?;
+        match assignment.op {
+            AssignmentOperator::Invalid => {
+                return Err(RuntimeError::InvalidAssignmentOperator(
+                    assignment.op.clone(),
+                ))
+            }
+            AssignmentOperator::Is => value = value,
+        }
+        env.borrow_mut().set(assignment.name.clone(), value.clone())
     }
 
     pub fn interpret_literal(
