@@ -14,10 +14,11 @@ peg::parser! {
 
         pub rule expr() -> Expr
         = literal()
-        / expr_identifier()
+        / function_call()
         / unary_expr()
         / declaration()
         / assignment()
+        / expr_identifier()
 
         pub rule unary_expr() -> Expr
         = op:[Token::Not | Token::Minus] expr:expr()
@@ -41,6 +42,10 @@ peg::parser! {
             Token::Is => AssignmentOperator::Is,
             _ => AssignmentOperator::Invalid
         }}
+
+        pub rule function_call() -> Expr
+        = name:identifier() [Token::LeftParen] args:(expr() ** [Token::Comma]) [Token::Comma]? [Token::RightParen]
+        {Expr::FunctionCall { name, args }}
 
         pub rule expr_identifier() -> Expr
         = name:identifier()
@@ -92,6 +97,6 @@ peg::parser! {
 
         pub rule compound_type() -> Type
         = [Token::ListTypename] [Token::LeftBracket] t:type_name() [Token::RightBracket] {Type::List(Box::new(t))}
-        / [Token::MapTypename] [Token::LeftBracket] k:type_name() [Token::Comma] v:type_name() [Token::RightBracket] {Type::Map(Box::new(k), Box::new(v))}
+        / [Token::MapTypename] [Token::LeftBracket] k:type_name() [Token::RightBracket] v:type_name() {Type::Map(Box::new(k), Box::new(v))}
     }
 }

@@ -4,6 +4,6 @@ const k is str "hello world";
 
 var y is int 0;
 set y is x;
-set y *= y;  // y = 100
-set y += 35; // y = 135
-set y %= 5;  // y = 0
+set y * y;  // y = 100
+set y + 35; // y = 135
+set y % 5;  // y = 0

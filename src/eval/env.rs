@@ -4,8 +4,10 @@ use crate::parse::ast::Type;
 
 use super::{value::Value, Constness, RuntimeError};
 
+pub type SEnv = Rc<RefCell<Env>>;
+
 pub struct Env {
-    parent: Option<Rc<RefCell<Env>>>,
+    parent: Option<SEnv>,
     values: HashMap<String, ValueEntry>,
 }
 
@@ -17,7 +19,7 @@ impl Env {
         }
     }
 
-    pub fn make_child(parent: Rc<RefCell<Env>>) -> Self {
+    pub fn make_child(parent: SEnv) -> Self {
         Self {
             parent: Some(parent),
             values: HashMap::new(),
@@ -84,20 +86,10 @@ impl Env {
             Err(name)
         }
     }
-    pub fn def_var(
-        &mut self,
-        name: String,
-        value: Value,
-        type_name: Type,
-    ) -> Result<Value, String> {
+    pub fn def_var(&mut self, name: String, value: Value, type_name: Type) -> Result<Value, String> {
         self.define(name, value, Constness::Var, type_name)
     }
-    pub fn def_const(
-        &mut self,
-        name: String,
-        value: Value,
-        type_name: Type,
-    ) -> Result<Value, String> {
+    pub fn def_const(&mut self, name: String, value: Value, type_name: Type) -> Result<Value, String> {
         self.define(name, value, Constness::Const, type_name)
     }
 }

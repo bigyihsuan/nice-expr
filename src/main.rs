@@ -1,8 +1,4 @@
-use crate::{
-    args::parse_args,
-    eval::{env::ValueEntry, intepreter::Interpreter},
-    lexer::TokenStream,
-};
+use crate::{args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream};
 
 mod args;
 mod eval;
@@ -10,6 +6,7 @@ mod grammar;
 mod lexer;
 mod parse;
 mod prelude;
+mod util;
 
 fn main() {
     let (file, source) = parse_args();

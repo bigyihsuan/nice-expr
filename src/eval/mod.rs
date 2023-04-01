@@ -10,16 +10,16 @@ pub enum Constness {
     Var,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RuntimeError {
     NotImplemented,
     MismatchedTypes { got: Type, expected: Type },
-    // assignments
     IdentifierNotFound(String),
     SettingConst(String),
-    // operators
     DivideByZero,
-    IndexingNonIndexable,
     InvalidAssignmentOperator(AssignmentOperator),
+    NotEnoughArguments { want: usize, got: usize },
+    IndexingNonIndexable { got: Type },
+    TakingLenOfLengthless { got: crate::parse::ast::Type },
     // TODO: more runtime errors
 }

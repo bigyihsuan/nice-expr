@@ -54,16 +54,6 @@ pub enum Token {
     Slash,
     #[token("&")]
     Percent,
-    #[token("+=")]
-    PlusEqual,
-    #[token("-=")]
-    MinusEqual,
-    #[token("*=")]
-    StarEqual,
-    #[token("/=")]
-    SlashEqual,
-    #[token("%=")]
-    PercentEqual,
     #[token("=")]
     Equal,
     #[token(">")]
