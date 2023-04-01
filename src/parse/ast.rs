@@ -1,15 +1,33 @@
-use crate::lexer::tok::Token;
-
 pub type Program = Vec<Expr>;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
     Literal(Literal),
     Identifier(String),
-    Unary { op: Token, expr: Box<Expr> },
     Declaration(Declaration),
     Assignment(Assignment),
     FunctionCall { name: String, args: Vec<Expr> },
+
+    Minus(UnaryExpr),
+    Not(UnaryExpr),
+    Indexing(BinaryExpr),
+    Multiplication(BinaryExpr),
+    Addition(BinaryExpr),
+    Comparison(BinaryExpr),
+    Logical(BinaryExpr),
+}
+
+#[derive(Debug, Clone)]
+pub struct UnaryExpr {
+    pub op: UnaryOperator,
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BinaryExpr {
+    pub left: Box<Expr>,
+    pub op: BinaryOperator,
+    pub right: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +110,29 @@ impl Type {
             _ => None,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum UnaryOperator {
+    Minus,
+    Not,
+}
+
+#[derive(Debug, Clone)]
+pub enum BinaryOperator {
+    Indexing,
+    Times,
+    Divide,
+    Modulo,
+    Add,
+    Subtract,
+    Greater,
+    Less,
+    GreaterEqual,
+    LessEqual,
+    Equal,
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone)]

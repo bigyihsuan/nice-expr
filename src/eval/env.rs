@@ -55,8 +55,8 @@ impl Env {
                 Ok(value)
             } else {
                 Err(RuntimeError::MismatchedTypes {
-                    got: t,
-                    expected: ve.t.clone(),
+                    got: vec![t],
+                    expected: vec![ve.t.clone()],
                 })
             }
         } else if let Some(parent) = &self.parent {

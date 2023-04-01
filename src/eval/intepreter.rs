@@ -9,7 +9,10 @@ use unicode_reader::{CodePoints, Graphemes};
 
 use crate::{
     eval::IOError,
-    parse::ast::{Assignment, AssignmentOperator, Declaration, Expr, Literal, Program, Type},
+    parse::ast::{
+        Assignment, AssignmentOperator, BinaryExpr, BinaryOperator, Declaration, Expr, Literal,
+        Program, Type, UnaryExpr,
+    },
     util::assert_at_least_args,
 };
 
@@ -18,6 +21,8 @@ use super::{
     value::Value,
     RuntimeError,
 };
+
+mod operators;
 
 pub struct Interpreter {}
 
@@ -82,7 +87,13 @@ impl Interpreter {
             Expr::Assignment(a) => self.interpret_assignment(a, env),
             Expr::FunctionCall { name, args } => self.interpret_function_call(name, args, env),
 
-            Expr::Unary { op, expr } => todo!("implement unary operators"),
+            Expr::Minus(e) => self.interpret_minus(e, env),
+            Expr::Not(e) => self.interpret_not(e, env),
+            Expr::Indexing(e) => self.interpret_indexing(e, env),
+            Expr::Multiplication(e) => self.interpret_multiplication(e, env),
+            Expr::Addition(e) => self.interpret_addition(e, env),
+            Expr::Comparison(e) => self.interpret_comparison(e, env),
+            Expr::Logical(e) => self.interpret_logical(e, env),
         }
     }
 
@@ -99,16 +110,16 @@ impl Interpreter {
                 let inferred_type = val_type.infer_contained_type(decl_type);
                 if inferred_type.is_none() {
                     return Err(RuntimeError::MismatchedTypes {
-                        got: val_type,
-                        expected: decl_type.clone(),
+                        got: vec![val_type],
+                        expected: vec![decl_type.clone()],
                     });
                 }
                 let inferred_type = inferred_type.unwrap();
 
                 if inferred_type != decl_type.clone() {
                     return Err(RuntimeError::MismatchedTypes {
-                        got: val_type,
-                        expected: decl_type.clone(),
+                        got: vec![val_type],
+                        expected: vec![decl_type.clone()],
                     });
                 }
                 let result =
@@ -129,8 +140,8 @@ impl Interpreter {
                 let t = value.to_type()?;
                 if t != type_name.clone() {
                     return Err(RuntimeError::MismatchedTypes {
-                        got: t,
-                        expected: type_name.clone(),
+                        got: vec![t],
+                        expected: vec![type_name.clone()],
                     });
                 }
                 let result =
@@ -190,8 +201,8 @@ impl Interpreter {
                         let e_type = e.to_type()?;
                         if e_type != first_type {
                             return Err(RuntimeError::MismatchedTypes {
-                                got: Type::List(Box::new(e_type)),
-                                expected: Type::List(Box::new(first_type)),
+                                got: vec![Type::List(Box::new(e_type))],
+                                expected: vec![Type::List(Box::new(first_type))],
                             });
                         }
                     }
@@ -216,8 +227,8 @@ impl Interpreter {
                         let ev_type = e.1.to_type()?;
                         if (&ktype, &vtype) != (&ek_type, &ev_type) {
                             return Err(RuntimeError::MismatchedTypes {
-                                got: Type::Map(Box::new(ek_type), Box::new(ev_type)),
-                                expected: Type::Map(Box::new(ktype), Box::new(vtype)),
+                                got: vec![Type::Map(Box::new(ek_type), Box::new(ev_type))],
+                                expected: vec![Type::Map(Box::new(ktype), Box::new(vtype))],
                             });
                         }
                     }
@@ -331,5 +342,79 @@ impl Interpreter {
             .map(|r| r.unwrap())
             .collect();
         Ok(Value::Str(str))
+    }
+
+    fn interpret_minus(&self, e: &UnaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        let val = self.interpret_expr(&e.expr, env)?;
+        let val_type = val.to_type()?;
+        match val_type {
+            Type::Int => operators::ineg(val, env),
+            Type::Dec => operators::fneg(val, env),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: vec![val_type],
+                expected: vec![Type::Int, Type::Dec],
+            }),
+        }
+    }
+
+    fn interpret_not(&self, e: &UnaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        let val = self.interpret_expr(&e.expr, env)?;
+        let val_type = val.to_type()?;
+        match val_type {
+            Type::Bool => operators::bnot(val, env),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: vec![val_type],
+                expected: vec![Type::Bool],
+            }),
+        }
+    }
+
+    fn interpret_indexing(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        todo!()
+    }
+
+    fn interpret_multiplication(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        let left = self.interpret_expr(&e.left, env)?;
+        let right = self.interpret_expr(&e.right, env)?;
+        let l_type = left.to_type()?;
+        let r_type = right.to_type()?;
+        match (&e.op, &l_type, &r_type) {
+            (BinaryOperator::Times, Type::Int, Type::Int) => operators::imul(left, right, env),
+            (BinaryOperator::Times, Type::Dec, Type::Dec) => operators::fmul(left, right, env),
+            (BinaryOperator::Divide, Type::Int, Type::Int) => operators::idiv(left, right, env),
+            (BinaryOperator::Divide, Type::Dec, Type::Dec) => operators::fdiv(left, right, env),
+            (BinaryOperator::Modulo, Type::Int, Type::Int) => operators::imod(left, right, env),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: vec![l_type, r_type],
+                expected: vec![Type::Int, Type::Dec],
+            }),
+        }
+    }
+
+    fn interpret_addition(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        let left = self.interpret_expr(&e.left, env)?;
+        let right = self.interpret_expr(&e.right, env)?;
+        let l_type = left.to_type()?;
+        let r_type = right.to_type()?;
+        match (&e.op, &l_type, &r_type) {
+            (BinaryOperator::Add, Type::Int, Type::Int) => operators::iadd(left, right, env),
+            (BinaryOperator::Add, Type::Dec, Type::Dec) => operators::fadd(left, right, env),
+            (BinaryOperator::Add, Type::Str, Type::Str) => operators::sadd(left, right, env),
+            (BinaryOperator::Subtract, Type::Int, Type::Int) => operators::isub(left, right, env),
+            (BinaryOperator::Subtract, Type::Dec, Type::Dec) => operators::fsub(left, right, env),
+            (BinaryOperator::Subtract, Type::Str, Type::Str) => operators::ssub(left, right, env),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: vec![l_type, r_type],
+                expected: vec![Type::Int, Type::Dec],
+            }),
+        }
+    }
+
+    fn interpret_comparison(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        todo!()
+    }
+
+    fn interpret_logical(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
+        todo!()
     }
 }

@@ -78,11 +78,12 @@ impl TryFrom<Value> for i64 {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Int(i) => Ok(i),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -91,11 +92,12 @@ impl TryFrom<&Value> for i64 {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Int(i) => Ok(*i),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -104,11 +106,12 @@ impl TryFrom<Value> for usize {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Int(i) => Ok(i as usize),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Int,
+                got: vec![t],
+                expected: vec![Type::Int],
             }),
         }
     }
@@ -117,11 +120,12 @@ impl TryFrom<&Value> for usize {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Int(i) => Ok(*i as usize),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Int,
+                got: vec![t],
+                expected: vec![Type::Int],
             }),
         }
     }
@@ -131,11 +135,12 @@ impl TryFrom<Value> for f64 {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Dec(f) => Ok(f),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -144,11 +149,12 @@ impl TryFrom<&Value> for f64 {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Dec(f) => Ok(*f),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -158,11 +164,12 @@ impl TryFrom<Value> for bool {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Bool(b) => Ok(b),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -171,11 +178,12 @@ impl TryFrom<&Value> for bool {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Bool(b) => Ok(*b),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -185,11 +193,12 @@ impl TryFrom<Value> for String {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Str(s) => Ok(s),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -198,11 +207,12 @@ impl TryFrom<&Value> for String {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Str(s) => Ok(s.clone()),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -212,11 +222,12 @@ impl TryFrom<Value> for Vec<Value> {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::List(v) => Ok(v),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -225,11 +236,12 @@ impl TryFrom<&Value> for Vec<Value> {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::List(v) => Ok(v.clone()),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -239,11 +251,12 @@ impl TryFrom<Value> for HashMap<Value, Value> {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Map(m) => Ok(m),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -252,11 +265,12 @@ impl TryFrom<&Value> for HashMap<Value, Value> {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Map(m) => Ok(m.clone()),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -266,11 +280,12 @@ impl TryFrom<Value> for Function {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Func(f) => Ok(f),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }
@@ -279,11 +294,12 @@ impl TryFrom<&Value> for Function {
     type Error = RuntimeError;
 
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
         match value {
             Value::Func(f) => Ok(f.clone()),
             _ => Err(RuntimeError::MismatchedTypes {
-                got: value.to_type()?,
-                expected: Type::Bool,
+                got: vec![t],
+                expected: vec![Type::Bool],
             }),
         }
     }

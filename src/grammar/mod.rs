@@ -1,6 +1,9 @@
 use crate::{
     lexer::{tok::Token, TokenStream},
-    parse::ast::{Assignment, AssignmentOperator, Declaration, Expr, Literal, Program, Type},
+    parse::ast::{
+        Assignment, AssignmentOperator, BinaryExpr, BinaryOperator, Declaration, Expr, Literal,
+        Program, Type, UnaryExpr, UnaryOperator,
+    },
 };
 
 peg::parser! {
@@ -12,17 +15,69 @@ peg::parser! {
         = e:expr() [Token::Semicolon]
         {e}
 
-        pub rule expr() -> Expr
-        = literal()
-        / function_call()
-        / unary_expr()
-        / declaration()
-        / assignment()
-        / expr_identifier()
-
-        pub rule unary_expr() -> Expr
-        = op:[Token::Not | Token::Minus] expr:expr()
-        { Expr::Unary{op: op.clone(), expr: Box::new(expr)}}
+        pub rule expr() -> Expr = precedence!{
+            expr:function_call() { expr }
+            --
+            expr:assignment() { expr }
+            --
+            expr:declaration() { expr }
+            --
+            expr:literal() { expr }
+            --
+            expr:expr_identifier() { expr }
+            --
+            [Token::Not] expr:(@) {
+                Expr::Not(UnaryExpr{op: UnaryOperator::Not, expr: Box::new(expr)})
+            }
+            --
+            left:(@) op:[Token::And | Token::Or] right:@ {
+                Expr::Logical(BinaryExpr { left: Box::new(left), op: match op {
+                Token::And => BinaryOperator::And,
+                Token::Or => BinaryOperator::Or,
+                _ => todo!(),
+            }, right: Box::new(right) })}
+            --
+            left:(@) op:[Token::Greater | Token::Less | Token::GreaterEqual | Token::LessEqual | Token::Equal] right:@ {
+                Expr::Comparison(BinaryExpr{ left: Box::new(left), op: match op {
+                    Token::Greater => BinaryOperator::Greater,
+                    Token::Less => BinaryOperator::Less,
+                    Token::GreaterEqual => BinaryOperator::GreaterEqual,
+                    Token::LessEqual => BinaryOperator::LessEqual,
+                    Token::Equal => BinaryOperator::Equal,
+                    _ => todo!(),
+                }, right: Box::new(right) })
+            }
+            --
+            left:(@) op:[Token::Plus | Token::Minus ] right:@ {
+                Expr::Addition(BinaryExpr{ left: Box::new(left), op: match op {
+                    Token::Plus => BinaryOperator::Add,
+                    Token::Minus => BinaryOperator::Subtract,
+                    _ => todo!(),
+                }, right: Box::new(right) })
+            }
+            --
+            left:(@) op:[Token::Star | Token::Slash | Token::Percent] right:@ {
+                Expr::Multiplication(BinaryExpr{ left: Box::new(left), op: match op {
+                    Token::Star => BinaryOperator::Times,
+                    Token::Slash => BinaryOperator::Divide,
+                    Token::Percent => BinaryOperator::Modulo,
+                    _ => todo!(),
+                }, right: Box::new(right) })
+            }
+            --
+            [Token::Minus] expr:(@) {
+                Expr::Minus(UnaryExpr{op: UnaryOperator::Minus, expr: Box::new(expr)})
+            }
+            --
+            left:(@) op:[Token::Underscore] right:@ {
+                Expr::Indexing(BinaryExpr{left: Box::new(left), op: match op {
+                    Token::Underscore => BinaryOperator::Indexing,
+                    _ => todo!()
+                }, right: Box::new(right)})
+            }
+            --
+            [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
+        }
 
         pub rule declaration() -> Expr
         = declaration_var() / declaration_const()
@@ -41,18 +96,18 @@ peg::parser! {
         { match op {
             Token::Is => AssignmentOperator::Is,
             _ => AssignmentOperator::Invalid
-        }}
+        } }
 
         pub rule function_call() -> Expr
         = name:identifier() [Token::LeftParen] args:(expr() ** [Token::Comma]) [Token::Comma]? [Token::RightParen]
-        {Expr::FunctionCall { name, args }}
+        { Expr::FunctionCall { name, args } }
 
         pub rule expr_identifier() -> Expr
         = name:identifier()
-        {Expr::Identifier(name)}
+        { Expr::Identifier(name) }
         pub rule identifier() -> String
         = [Token::Ident(name)]
-        {name.clone()}
+        { name.clone() }
 
         pub rule literal() -> Expr
         = l:(literal_int()

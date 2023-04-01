@@ -25,7 +25,7 @@ fn main() {
             let ast = grammar::module_parser::program(&token_stream);
             match ast {
                 Ok(ast) => {
-                    println!("{ast:?}");
+                    println!("{ast:#?}");
                     println!();
                     let interpeter = Interpreter {};
                     let env = Interpreter::default_env();

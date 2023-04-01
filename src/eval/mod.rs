@@ -15,7 +15,7 @@ pub enum Constness {
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
     NotImplemented,
-    MismatchedTypes { got: Type, expected: Type },
+    MismatchedTypes { got: Vec<Type>, expected: Vec<Type> },
     IdentifierNotFound(String),
     SettingConst(String),
     DivideByZero,
