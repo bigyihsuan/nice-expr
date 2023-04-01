@@ -1,4 +1,8 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+
+use crate::parse::ast::Type;
+
+use super::{env::Env, RuntimeError};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -8,8 +12,37 @@ pub enum Value {
     Bool(bool),
     List(Vec<Value>),
     Map(HashMap<Value, Value>),
-    // TODO: Ident(Identifier),
     // TODO: Func(Function),
+}
+
+impl Value {
+    pub fn to_type(&self, env: &Rc<RefCell<Env>>) -> Result<Type, RuntimeError> {
+        match self {
+            Value::Int(_) => Ok(Type::Int),
+            Value::Dec(_) => Ok(Type::Dec),
+            Value::Str(_) => Ok(Type::Str),
+            Value::Bool(_) => Ok(Type::Bool),
+            Value::List(l) => {
+                let t = l.get(0).map_or(Ok(Type::None), |e| e.to_type(env))?;
+                Ok(Type::List(Box::new(t)))
+            }
+            Value::Map(m) => {
+                let e = m
+                    .iter()
+                    .take(1)
+                    .unzip::<&Value, &Value, Vec<&Value>, Vec<&Value>>();
+                let k =
+                    e.0.get(0)
+                        .map(|k| k.to_type(env))
+                        .unwrap_or_else(|| Ok(Type::None))?;
+                let v =
+                    e.1.get(0)
+                        .map(|v| v.to_type(env))
+                        .unwrap_or_else(|| Ok(Type::None))?;
+                Ok(Type::Map(Box::new(k), Box::new(v)))
+            }
+        }
+    }
 }
 
 impl PartialEq for Value {

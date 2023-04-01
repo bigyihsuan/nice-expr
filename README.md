@@ -14,11 +14,11 @@ even the loops
 
 ## Features
 
-* [/] Primitive literals (int, dec, str, bool)
-* [/] Compound literals (list, map)
+* [x] Primitive literals (int, dec, str, bool)
+* [x] Compound literals (list, map)
 * [ ] Type inference of compound literals
 * [ ] Arbitrarily-nested types
-* [ ] Declarations (var, const): nested, mixed, type checking
+* [/] Declarations (var, const): nested, mixed, type checking
 * [ ] Function types: func(T,T,...)V, funcs as return type
 * [ ] Using variables
 * [ ] Operators

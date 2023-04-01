@@ -1,4 +1,8 @@
-use crate::{args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream};
+use crate::{
+    args::parse_args,
+    eval::{env::ValueEntry, intepreter::Interpreter},
+    lexer::TokenStream,
+};
 
 mod args;
 mod eval;
@@ -28,11 +32,22 @@ fn main() {
                     println!();
                     let interpeter = Interpreter {};
                     let env = Interpreter::default_env();
-                    let values = interpeter.parse_program(&ast, &env);
+                    let values = interpeter.interpret_program(&ast, &env);
                     match values {
                         Ok(values) => {
                             for value in values {
                                 println!("{}", interpeter.format_value(&value));
+                            }
+                            println!();
+
+                            for (name, value_entry) in env.borrow().identifiers() {
+                                let value = value_entry.v;
+                                let con = value_entry.c;
+                                let t = value_entry.t;
+                                println!(
+                                    "{name}:{}, {con:?} {t:?}",
+                                    interpeter.format_value(&value)
+                                )
                             }
                         }
                         Err(err) => eprintln!("error during evaluation: {err:?}"),

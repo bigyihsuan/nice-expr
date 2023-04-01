@@ -1,0 +1,1 @@
+var x is int 1.1;

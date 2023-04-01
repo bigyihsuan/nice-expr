@@ -1,3 +1,5 @@
+use crate::parse::ast::Type;
+
 pub mod env;
 pub mod intepreter;
 pub mod value;
@@ -10,10 +12,12 @@ pub enum Constness {
 
 #[derive(Debug)]
 pub enum RuntimeError {
-    SettingConst,
-    IdentifierNotFound,
+    MismatchedTypes { got: Type, expected: Type },
+    // assignments
+    IdentifierNotFound(String),
+    SettingConst(String),
+    // operators
     DivideByZero,
     IndexingNonIndexable,
-    MismatchedTypes,
     // TODO: more runtime errors
 }

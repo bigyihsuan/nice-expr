@@ -1,8 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::parse::ast::{Expr, Literal, Program};
+use crate::parse::ast::{Declaration, Expr, Literal, Program};
 
-use super::{env::Env, value::Value, RuntimeError};
+use super::{
+    env::{Env, ValueEntry},
+    value::Value,
+    RuntimeError,
+};
 
 pub struct Interpreter {}
 
@@ -37,32 +41,91 @@ impl Interpreter {
         }
     }
 
-    pub fn parse_program(
+    pub fn interpret_program(
         &self,
         program: &Program,
         env: &Rc<RefCell<Env>>,
     ) -> Result<Vec<Value>, RuntimeError> {
         let mut values = Vec::new();
         for expr in program {
-            let value = self.parse_expr(expr, env)?;
+            let value = self.interpret_expr(expr, env)?;
             values.push(value);
         }
         Ok(values)
     }
 
-    pub fn parse_expr(&self, expr: &Expr, env: &Rc<RefCell<Env>>) -> Result<Value, RuntimeError> {
+    pub fn interpret_expr(
+        &self,
+        expr: &Expr,
+        env: &Rc<RefCell<Env>>,
+    ) -> Result<Value, RuntimeError> {
         match expr {
-            Expr::Literal(l) => Ok(self.parse_literal(l, env)?),
-            Expr::Identifier { name } => env
+            Expr::Literal(l) => Ok(self.interpret_literal(l, env)?),
+            Expr::Identifier(name) => env
                 .borrow()
                 .get(name.clone())
-                .ok_or_else(|| RuntimeError::IdentifierNotFound)
-                .and_then(|(v, c)| Ok(v)),
-            Expr::Unary { op, expr } => todo!(),
+                .ok_or_else(|| RuntimeError::IdentifierNotFound(name.clone()))
+                .and_then(|ValueEntry { v, c: _, t: _ }| Ok(v)),
+            Expr::Unary { op, expr } => todo!("implement unary operators"),
+            Expr::Declaration(d) => self.interpret_declaration(d, env),
+            Expr::TypeName(_) => todo!(),
         }
     }
 
-    pub fn parse_literal(
+    fn interpret_declaration(
+        &self,
+        decl: &Declaration,
+        env: &Rc<RefCell<Env>>,
+    ) -> Result<Value, RuntimeError> {
+        match decl {
+            Declaration::Const {
+                name,
+                type_name,
+                value,
+            } => {
+                let value = self.interpret_expr(value, env)?;
+                let t = value.to_type(env)?;
+                if t != type_name.clone() {
+                    return Err(RuntimeError::MismatchedTypes {
+                        got: t,
+                        expected: type_name.clone(),
+                    });
+                }
+                let result =
+                    env.borrow_mut()
+                        .def_const(name.clone(), value.clone(), type_name.clone());
+                if let Err(name) = result {
+                    Err(RuntimeError::IdentifierNotFound(name.clone()))
+                } else {
+                    Ok(value)
+                }
+            }
+            Declaration::Var {
+                name,
+                type_name,
+                value,
+            } => {
+                let value = self.interpret_expr(value, env)?;
+                let t = value.to_type(env)?;
+                if t != type_name.clone() {
+                    return Err(RuntimeError::MismatchedTypes {
+                        got: t,
+                        expected: type_name.clone(),
+                    });
+                }
+                let result =
+                    env.borrow_mut()
+                        .def_var(name.clone(), value.clone(), type_name.clone());
+                if let Err(name) = result {
+                    Err(RuntimeError::IdentifierNotFound(name.clone()))
+                } else {
+                    Ok(value)
+                }
+            }
+        }
+    }
+
+    pub fn interpret_literal(
         &self,
         literal: &Literal,
         env: &Rc<RefCell<Env>>,
@@ -75,14 +138,14 @@ impl Interpreter {
             Literal::List(l) => {
                 let mut list = Vec::new();
                 for e in l {
-                    list.push(self.parse_expr(e, &env)?);
+                    list.push(self.interpret_expr(e, &env)?);
                 }
                 Ok(Value::List(list))
             }
             Literal::Map(m) => {
                 let mut map = HashMap::new();
                 for (k, v) in m {
-                    map.insert(self.parse_expr(k, &env)?, self.parse_expr(v, &env)?);
+                    map.insert(self.interpret_expr(k, &env)?, self.interpret_expr(v, &env)?);
                 }
                 Ok(Value::Map(map))
             }

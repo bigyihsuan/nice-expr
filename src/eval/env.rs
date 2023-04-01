@@ -1,10 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+use crate::parse::ast::Type;
 
 use super::{value::Value, Constness, RuntimeError};
 
 pub struct Env {
     parent: Option<Rc<RefCell<Env>>>,
-    values: HashMap<String, (Value, Constness)>,
+    values: HashMap<String, ValueEntry>,
 }
 
 impl Env {
@@ -22,7 +24,11 @@ impl Env {
         }
     }
 
-    pub fn get(&self, name: String) -> Option<(Value, Constness)> {
+    pub fn identifiers(&self) -> HashMap<String, ValueEntry> {
+        self.values.clone()
+    }
+
+    pub fn get(&self, name: String) -> Option<ValueEntry> {
         // try this Env first
         if let Some(value) = self.values.get(&name) {
             Some(value.clone())
@@ -33,19 +39,19 @@ impl Env {
         }
     }
 
-    pub fn set(&mut self, name: String, value: Value) -> Result<(), (String, RuntimeError)> {
-        if self.values.contains_key(&name) {
+    pub fn set(&mut self, name: String, value: Value) -> Result<(), RuntimeError> {
+        if self.values.contains_key(&name.clone()) {
             // disallow setting on const
-            let (_, constness) = self.values.get(&name).unwrap();
-            if let Constness::Const = constness {
-                return Err((name, RuntimeError::SettingConst));
+            let ve = self.values.get(&name).unwrap();
+            if let Constness::Const = ve.c {
+                return Err(RuntimeError::SettingConst(name));
             }
-            self.values.insert(name, (value, constness.clone()));
+            self.values.insert(name, ve.clone());
             Ok(())
         } else if let Some(parent) = &self.parent {
             parent.borrow_mut().set(name, value)
         } else {
-            Err((name, RuntimeError::IdentifierNotFound))
+            Err(RuntimeError::IdentifierNotFound(name))
         }
     }
 
@@ -54,19 +60,37 @@ impl Env {
         name: String,
         value: Value,
         constness: Constness,
-    ) -> Result<(), String> {
+        ident_type: Type,
+    ) -> Result<Value, String> {
         if !self.values.contains_key(&name) {
-            self.values.insert(name, (value, constness));
-            Ok(())
+            self.values.insert(
+                name,
+                ValueEntry {
+                    v: value.clone(),
+                    c: constness,
+                    t: ident_type,
+                },
+            );
+            Ok(value)
         } else {
             Err(name)
         }
     }
-    pub fn def_var(&mut self, name: String, value: Value) -> Result<(), String> {
-        self.define(name, value, Constness::Var)
+    pub fn def_var(
+        &mut self,
+        name: String,
+        value: Value,
+        type_name: Type,
+    ) -> Result<Value, String> {
+        self.define(name, value, Constness::Var, type_name)
     }
-    pub fn def_const(&mut self, name: String, value: Value) -> Result<(), String> {
-        self.define(name, value, Constness::Const)
+    pub fn def_const(
+        &mut self,
+        name: String,
+        value: Value,
+        type_name: Type,
+    ) -> Result<Value, String> {
+        self.define(name, value, Constness::Const, type_name)
     }
 }
 
@@ -78,4 +102,11 @@ impl Default for Env {
         // TODO: env.define("println", value, Constness::Const)
         env
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ValueEntry {
+    pub v: Value,
+    pub c: Constness,
+    pub t: Type,
 }
