@@ -10,7 +10,7 @@ mod util;
 
 fn main() {
     let (file, source) = parse_args();
-    eprintln!("file: {file:?}\n```\n{source}```\n");
+    println!("file: {file:?}\n```\n{source}```\n");
 
     let token_stream = TokenStream::new(file, &source);
     match token_stream {

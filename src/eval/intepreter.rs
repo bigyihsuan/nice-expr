@@ -1,7 +1,15 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    io::{self, Cursor, Read},
+    rc::Rc,
+};
+
+use unicode_reader::{CodePoints, Graphemes};
 
 use crate::{
-    parse::ast::{Assignment, AssignmentOperator, Declaration, Expr, Literal, Program},
+    eval::IOError,
+    parse::ast::{Assignment, AssignmentOperator, Declaration, Expr, Literal, Program, Type},
     util::assert_at_least_args,
 };
 
@@ -173,12 +181,46 @@ impl Interpreter {
                 for e in l {
                     list.push(self.interpret_expr(e, &env)?);
                 }
+
+                // check that all elements match the same type
+                // assume that the type is the first element
+                if list.len() > 0 {
+                    let first_type = list.get(0).unwrap().to_type()?;
+                    for e in list.iter() {
+                        let e_type = e.to_type()?;
+                        if e_type != first_type {
+                            return Err(RuntimeError::MismatchedTypes {
+                                got: Type::List(Box::new(e_type)),
+                                expected: Type::List(Box::new(first_type)),
+                            });
+                        }
+                    }
+                }
                 Ok(Value::List(list))
             }
             Literal::Map(m) => {
                 let mut map = HashMap::new();
                 for (k, v) in m {
                     map.insert(self.interpret_expr(k, &env)?, self.interpret_expr(v, &env)?);
+                }
+
+                // check that all elements match the same type
+                // assume that the type is the first element
+                let entries = map.clone().into_iter().collect::<Vec<(Value, Value)>>();
+                if map.len() > 0 {
+                    let first = entries.first().unwrap();
+                    let ktype = first.0.to_type()?;
+                    let vtype = first.1.to_type()?;
+                    for e in map.iter() {
+                        let ek_type = e.0.to_type()?;
+                        let ev_type = e.1.to_type()?;
+                        if (&ktype, &vtype) != (&ek_type, &ev_type) {
+                            return Err(RuntimeError::MismatchedTypes {
+                                got: Type::Map(Box::new(ek_type), Box::new(ev_type)),
+                                expected: Type::Map(Box::new(ktype), Box::new(vtype)),
+                            });
+                        }
+                    }
                 }
                 Ok(Value::Map(map))
             }
@@ -211,6 +253,9 @@ impl Interpreter {
             "println" => self.builtin_println(&args),
             "len" => self.builtin_len(&args),
             "range" => self.builtin_range(&args),
+            "inputchar" => self.builtin_inputchar(),
+            "inputline" => self.builtin_inline(),
+            "inputall" => self.builtin_inall(),
             _ => {
                 todo!("user-defined functions: got {}", name);
             }
@@ -259,5 +304,32 @@ impl Interpreter {
                 .map(|i| Value::Int(i as i64))
                 .collect(),
         ))
+    }
+
+    fn builtin_inputchar(&self) -> Result<Value, RuntimeError> {
+        let c = CodePoints::from(io::stdin().bytes())
+            .map(|r| r.unwrap())
+            .next();
+        if let Some(c) = c {
+            Ok(Value::Str(String::from(c)))
+        } else {
+            Err(RuntimeError::IOError(IOError::CouldNotGetChar))
+        }
+    }
+
+    fn builtin_inline(&self) -> Result<Value, RuntimeError> {
+        let mut str = String::new();
+        if let Err(err) = io::stdin().read_line(&mut str) {
+            Err(RuntimeError::IOError(IOError::ErrorKind(err.kind())))
+        } else {
+            Ok(Value::Str(str))
+        }
+    }
+
+    fn builtin_inall(&self) -> Result<Value, RuntimeError> {
+        let str = CodePoints::from(io::stdin().bytes())
+            .map(|r| r.unwrap())
+            .collect();
+        Ok(Value::Str(str))
     }
 }

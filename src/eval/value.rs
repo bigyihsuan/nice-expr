@@ -108,7 +108,7 @@ impl TryFrom<Value> for usize {
             Value::Int(i) => Ok(i as usize),
             _ => Err(RuntimeError::MismatchedTypes {
                 got: value.to_type()?,
-                expected: Type::Bool,
+                expected: Type::Int,
             }),
         }
     }
@@ -121,7 +121,7 @@ impl TryFrom<&Value> for usize {
             Value::Int(i) => Ok(*i as usize),
             _ => Err(RuntimeError::MismatchedTypes {
                 got: value.to_type()?,
-                expected: Type::Bool,
+                expected: Type::Int,
             }),
         }
     }

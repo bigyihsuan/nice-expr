@@ -1,3 +1,5 @@
+use std::{io, string};
+
 use crate::parse::ast::{AssignmentOperator, Type};
 
 pub mod env;
@@ -21,5 +23,13 @@ pub enum RuntimeError {
     NotEnoughArguments { want: usize, got: usize },
     IndexingNonIndexable { got: Type },
     TakingLenOfLengthless { got: crate::parse::ast::Type },
+    IOError(IOError),
     // TODO: more runtime errors
+}
+
+#[derive(Debug, Clone)]
+pub enum IOError {
+    ErrorKind(io::ErrorKind),
+    UtfError(string::FromUtf8Error),
+    CouldNotGetChar,
 }
