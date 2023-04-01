@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
 
-use crate::parse::ast::Type;
+use crate::parse::ast::{Expr, Type};
 
 use super::{
     env::{Env, SEnv},
@@ -87,6 +87,46 @@ impl TryFrom<Value> for i64 {
         }
     }
 }
+impl TryFrom<&Value> for i64 {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Int(i) => Ok(*i),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+impl TryFrom<Value> for usize {
+    type Error = RuntimeError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Int(i) => Ok(i as usize),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+impl TryFrom<&Value> for usize {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Int(i) => Ok(*i as usize),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Value> for f64 {
     type Error = RuntimeError;
 
@@ -100,6 +140,20 @@ impl TryFrom<Value> for f64 {
         }
     }
 }
+impl TryFrom<&Value> for f64 {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Dec(f) => Ok(*f),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Value> for bool {
     type Error = RuntimeError;
 
@@ -113,6 +167,20 @@ impl TryFrom<Value> for bool {
         }
     }
 }
+impl TryFrom<&Value> for bool {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Bool(b) => Ok(*b),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Value> for String {
     type Error = RuntimeError;
 
@@ -126,6 +194,20 @@ impl TryFrom<Value> for String {
         }
     }
 }
+impl TryFrom<&Value> for String {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Str(s) => Ok(s.clone()),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Value> for Vec<Value> {
     type Error = RuntimeError;
 
@@ -139,6 +221,20 @@ impl TryFrom<Value> for Vec<Value> {
         }
     }
 }
+impl TryFrom<&Value> for Vec<Value> {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::List(v) => Ok(v.clone()),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Value> for HashMap<Value, Value> {
     type Error = RuntimeError;
 
@@ -152,6 +248,20 @@ impl TryFrom<Value> for HashMap<Value, Value> {
         }
     }
 }
+impl TryFrom<&Value> for HashMap<Value, Value> {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Map(m) => Ok(m.clone()),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
+
 impl TryFrom<Value> for Function {
     type Error = RuntimeError;
 
@@ -165,9 +275,23 @@ impl TryFrom<Value> for Function {
         }
     }
 }
+impl TryFrom<&Value> for Function {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Func(f) => Ok(f.clone()),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: value.to_type()?,
+                expected: Type::Bool,
+            }),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
-pub enum Function {}
-
-type UnaryFunc = fn(SEnv, Value) -> Result<Value, RuntimeError>;
-type BinaryFunc = fn(SEnv, Value, Value) -> Result<Value, RuntimeError>;
+pub struct Function {
+    env: SEnv,
+    args: Vec<Value>,
+    block: Expr,
+}

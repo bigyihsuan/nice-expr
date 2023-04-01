@@ -2,7 +2,7 @@ use crate::lexer::tok::Token;
 
 pub type Program = Vec<Expr>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Literal(Literal),
     Identifier(String),
@@ -12,7 +12,7 @@ pub enum Expr {
     FunctionCall { name: String, args: Vec<Expr> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Declaration {
     Const {
         name: String,
@@ -26,14 +26,14 @@ pub enum Declaration {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment {
     pub name: String,
     pub op: AssignmentOperator,
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     Int(i64),
     Dec(f64),
@@ -55,14 +55,6 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn are_containers(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Type::List(_), Type::List(_)) => true,
-            (Type::Map(_, _), Type::Map(_, _)) => true,
-            _ => false,
-        }
-    }
-
     pub fn infer_contained_type(&self, other: &Self) -> Option<Self> {
         match (self, other) {
             (Type::List(l), Type::List(r))

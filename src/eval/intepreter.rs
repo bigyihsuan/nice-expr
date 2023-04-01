@@ -207,29 +207,30 @@ impl Interpreter {
             .filter_map(|r| r.ok())
             .collect::<Vec<Value>>();
         match name {
-            "print" => self.builtin_print(&args, env),
-            "println" => self.builtin_println(&args, env),
-            "len" => self.builtin_len(&args, env),
+            "print" => self.builtin_print(&args),
+            "println" => self.builtin_println(&args),
+            "len" => self.builtin_len(&args),
+            "range" => self.builtin_range(&args),
             _ => {
                 todo!("user-defined functions: got {}", name);
             }
         }
     }
 
-    fn builtin_print(&self, args: &[Value], env: &SEnv) -> Result<Value, RuntimeError> {
+    fn builtin_print(&self, args: &[Value]) -> Result<Value, RuntimeError> {
         for arg in args {
             print!("{}", self.format_value(&arg));
         }
         Ok(Value::None)
     }
-    fn builtin_println(&self, args: &[Value], env: &SEnv) -> Result<Value, RuntimeError> {
+    fn builtin_println(&self, args: &[Value]) -> Result<Value, RuntimeError> {
         for arg in args {
             println!("{}", self.format_value(&arg));
         }
         Ok(Value::None)
     }
 
-    fn builtin_len(&self, args: &[Value], env: &SEnv) -> Result<Value, RuntimeError> {
+    fn builtin_len(&self, args: &[Value]) -> Result<Value, RuntimeError> {
         assert_at_least_args(1, args.len())?;
         let val = &args[0];
         match val {
@@ -240,5 +241,23 @@ impl Interpreter {
                 got: val.to_type()?,
             }),
         }
+    }
+
+    fn builtin_range(&self, args: &[Value]) -> Result<Value, RuntimeError> {
+        assert_at_least_args(3, args.len())?;
+        let start = &args[0];
+        let end = &args[1];
+        let step = &args[2];
+
+        let start: usize = start.try_into()?;
+        let end: usize = end.try_into()?;
+        let step: usize = step.try_into()?;
+
+        Ok(Value::List(
+            (start..end)
+                .step_by(step)
+                .map(|i| Value::Int(i as i64))
+                .collect(),
+        ))
     }
 }

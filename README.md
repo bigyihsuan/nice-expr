@@ -34,7 +34,7 @@ even the loops
 * [ ] Built-in functions
   * [x] print()/println()
   * [x] len(): lists, maps, strings
-  * [ ] range(): python-like 3-part range
+  * [x] range(): python-like 3-part range
   * [ ] input()/inputln(): get 1 char/1 line of input
 * [ ] Blocks
   * [ ] return value with `return` keyword

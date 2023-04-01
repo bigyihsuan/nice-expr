@@ -6,6 +6,7 @@ use super::{value::Value, Constness, RuntimeError};
 
 pub type SEnv = Rc<RefCell<Env>>;
 
+#[derive(Debug, Clone)]
 pub struct Env {
     parent: Option<SEnv>,
     values: HashMap<String, ValueEntry>,
@@ -86,10 +87,20 @@ impl Env {
             Err(name)
         }
     }
-    pub fn def_var(&mut self, name: String, value: Value, type_name: Type) -> Result<Value, String> {
+    pub fn def_var(
+        &mut self,
+        name: String,
+        value: Value,
+        type_name: Type,
+    ) -> Result<Value, String> {
         self.define(name, value, Constness::Var, type_name)
     }
-    pub fn def_const(&mut self, name: String, value: Value, type_name: Type) -> Result<Value, String> {
+    pub fn def_const(
+        &mut self,
+        name: String,
+        value: Value,
+        type_name: Type,
+    ) -> Result<Value, String> {
         self.define(name, value, Constness::Const, type_name)
     }
 }
