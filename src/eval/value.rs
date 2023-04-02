@@ -1,11 +1,8 @@
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, collections::HashMap, hash::Hash, rc::Rc};
 
-use crate::parse::ast::{Expr, Type};
+use crate::{parse::ast::Expr, prelude::RuntimeError};
 
-use super::{
-    env::{Env, SEnv},
-    RuntimeError,
-};
+use super::{env::SEnv, r#type::Type};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -49,6 +46,39 @@ impl Value {
             Value::Func(_) => todo!(),
         }
     }
+
+    pub fn is_homogeneous(&self) -> bool {
+        match self {
+            Value::None => true,
+            Value::Int(_) => true,
+            Value::Dec(_) => true,
+            Value::Str(_) => true,
+            Value::Bool(_) => true,
+            Value::List(l) => l
+                .into_iter()
+                .map(|e| e.is_homogeneous())
+                .reduce(|acc, e| acc && e)
+                .unwrap_or(false),
+            Value::Map(m) => m
+                .into_iter()
+                .map(|e| e.0.is_homogeneous() && e.1.is_homogeneous())
+                .reduce(|acc, e| acc && e)
+                .unwrap_or(false),
+            Value::Func(_) => todo!(),
+        }
+    }
+
+    pub fn default(t: Type) -> Value {
+        match t {
+            Type::None => Value::None,
+            Type::Int => Value::Int(0),
+            Type::Dec => Value::Dec(0.0),
+            Type::Str => Value::Str(String::new()),
+            Type::Bool => Value::Bool(false),
+            Type::List(_) => Value::List(Vec::new()),
+            Type::Map(_, _) => Value::Map(HashMap::new()),
+        }
+    }
 }
 
 impl PartialEq for Value {
@@ -67,6 +97,19 @@ impl PartialEq for Value {
     }
 }
 impl Eq for Value {}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Self::None, Self::None) => Some(Ordering::Equal),
+            (Self::Int(l0), Self::Int(r0)) => l0.partial_cmp(r0),
+            (Self::Dec(l0), Self::Dec(r0)) => l0.partial_cmp(r0),
+            (Self::Str(l0), Self::Str(r0)) => l0.partial_cmp(r0),
+            (Self::Bool(l0), Self::Bool(r0)) => l0.partial_cmp(r0),
+            _ => None,
+        }
+    }
+}
 
 impl Hash for Value {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -102,13 +145,14 @@ impl TryFrom<&Value> for i64 {
         }
     }
 }
+
 impl TryFrom<Value> for usize {
     type Error = RuntimeError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let t = value.to_type()?;
         match value {
-            Value::Int(i) => Ok(i as usize),
+            Value::Int(i) => Ok(i as Self),
             _ => Err(RuntimeError::MismatchedTypes {
                 got: vec![t],
                 expected: vec![Type::Int],
@@ -122,7 +166,36 @@ impl TryFrom<&Value> for usize {
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
         let t = value.to_type()?;
         match value {
-            Value::Int(i) => Ok(*i as usize),
+            Value::Int(i) => Ok(*i as Self),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: vec![t],
+                expected: vec![Type::Int],
+            }),
+        }
+    }
+}
+
+impl TryFrom<Value> for isize {
+    type Error = RuntimeError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
+        match value {
+            Value::Int(i) => Ok(i as Self),
+            _ => Err(RuntimeError::MismatchedTypes {
+                got: vec![t],
+                expected: vec![Type::Int],
+            }),
+        }
+    }
+}
+impl TryFrom<&Value> for isize {
+    type Error = RuntimeError;
+
+    fn try_from(value: &Value) -> Result<Self, Self::Error> {
+        let t = value.to_type()?;
+        match value {
+            Value::Int(i) => Ok(*i as Self),
             _ => Err(RuntimeError::MismatchedTypes {
                 got: vec![t],
                 expected: vec![Type::Int],

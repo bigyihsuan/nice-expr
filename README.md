@@ -25,7 +25,7 @@ even the loops
   * [/] Unary Operators
     * [/] `not`, `-`
   * [ ] Binary Operators
-    * [ ] Arithmetic operators (+, -, *, /, %)
+    * [x] Arithmetic operators (+, -, *, /, %)
     * [ ] Comparison operators (=, <, <=, >, >=)
     * [ ] Logical operators (`and`, `or`)
     * [ ] Indexing operator `_`

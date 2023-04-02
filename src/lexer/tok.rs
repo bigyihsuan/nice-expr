@@ -52,10 +52,12 @@ pub enum Token {
     Star,
     #[token("/")]
     Slash,
-    #[token("&")]
+    #[token("%")]
     Percent,
     #[token("=")]
     Equal,
+    #[token("!=")]
+    NotEqual,
     #[token(">")]
     Greater,
     #[token(">=")]

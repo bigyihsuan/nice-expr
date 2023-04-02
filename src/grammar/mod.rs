@@ -1,8 +1,9 @@
 use crate::{
+    eval::r#type::Type,
     lexer::{tok::Token, TokenStream},
     parse::ast::{
         Assignment, AssignmentOperator, BinaryExpr, BinaryOperator, Declaration, Expr, Literal,
-        Program, Type, UnaryExpr, UnaryOperator,
+        Program, UnaryExpr, UnaryOperator,
     },
 };
 
@@ -34,17 +35,18 @@ peg::parser! {
                 Expr::Logical(BinaryExpr { left: Box::new(left), op: match op {
                 Token::And => BinaryOperator::And,
                 Token::Or => BinaryOperator::Or,
-                _ => todo!(),
+                _ => unreachable!(),
             }, right: Box::new(right) })}
             --
-            left:(@) op:[Token::Greater | Token::Less | Token::GreaterEqual | Token::LessEqual | Token::Equal] right:@ {
+            left:(@) op:[Token::Greater | Token::Less | Token::GreaterEqual | Token::LessEqual | Token::Equal | Token::NotEqual] right:@ {
                 Expr::Comparison(BinaryExpr{ left: Box::new(left), op: match op {
                     Token::Greater => BinaryOperator::Greater,
                     Token::Less => BinaryOperator::Less,
                     Token::GreaterEqual => BinaryOperator::GreaterEqual,
                     Token::LessEqual => BinaryOperator::LessEqual,
                     Token::Equal => BinaryOperator::Equal,
-                    _ => todo!(),
+                    Token::NotEqual => BinaryOperator::NotEqual,
+                    _ => unreachable!(),
                 }, right: Box::new(right) })
             }
             --
@@ -52,7 +54,7 @@ peg::parser! {
                 Expr::Addition(BinaryExpr{ left: Box::new(left), op: match op {
                     Token::Plus => BinaryOperator::Add,
                     Token::Minus => BinaryOperator::Subtract,
-                    _ => todo!(),
+                    _ => unreachable!(),
                 }, right: Box::new(right) })
             }
             --
@@ -61,7 +63,7 @@ peg::parser! {
                     Token::Star => BinaryOperator::Times,
                     Token::Slash => BinaryOperator::Divide,
                     Token::Percent => BinaryOperator::Modulo,
-                    _ => todo!(),
+                    _ => unreachable!(),
                 }, right: Box::new(right) })
             }
             --
@@ -72,7 +74,7 @@ peg::parser! {
             left:(@) op:[Token::Underscore] right:@ {
                 Expr::Indexing(BinaryExpr{left: Box::new(left), op: match op {
                     Token::Underscore => BinaryOperator::Indexing,
-                    _ => todo!()
+                    _ => unreachable!()
                 }, right: Box::new(right)})
             }
             --

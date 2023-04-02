@@ -1,6 +1,10 @@
-use std::fmt::Display;
+use std::{fmt::Display, io, string};
 
-use crate::lexer::TokenLocation;
+use crate::{
+    eval::{r#type::Type, value::Value},
+    lexer::TokenLocation,
+    parse::ast::{AssignmentOperator, Operator, UnaryOperator},
+};
 
 pub type Result<T> = std::result::Result<T, SyntaxError>;
 
@@ -83,4 +87,31 @@ impl From<ParseError> for SyntaxError {
             expected,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum RuntimeError {
+    NotImplemented,
+    MismatchedTypes { got: Vec<Type>, expected: Vec<Type> },
+    InvalidOperatorOnTypes { op: Operator, types: Vec<Type> },
+    IdentifierNotFound(String),
+    SettingConst(String),
+    DivideByZero,
+    InvalidAssignmentOperator(AssignmentOperator),
+    NotEnoughArguments { want: usize, got: usize },
+    IndexingNonIndexable { got: Type },
+    TakingLenOfLengthless { got: Type },
+    IOError(IOError),
+    InvalidRangeStep(isize),
+    IndexingCollectionWithZeroElements(Value),
+    IndexOutOfBounds(Value, Value),
+    KeyNotFound(Value, Value),
+    // TODO: more runtime errors
+}
+
+#[derive(Debug, Clone)]
+pub enum IOError {
+    ErrorKind(io::ErrorKind),
+    UtfError(string::FromUtf8Error),
+    CouldNotGetChar,
 }

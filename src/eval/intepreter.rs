@@ -1,25 +1,25 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    io::{self, Cursor, Read},
+    io::{self, Read},
     rc::Rc,
 };
 
-use unicode_reader::{CodePoints, Graphemes};
+use unicode_reader::CodePoints;
 
 use crate::{
-    eval::IOError,
     parse::ast::{
         Assignment, AssignmentOperator, BinaryExpr, BinaryOperator, Declaration, Expr, Literal,
-        Program, Type, UnaryExpr,
+        Operator, Program, UnaryExpr,
     },
+    prelude::{IOError, RuntimeError},
     util::assert_at_least_args,
 };
 
 use super::{
     env::{Env, SEnv, ValueEntry},
+    r#type::Type,
     value::Value,
-    RuntimeError,
 };
 
 mod operators;
@@ -305,16 +305,28 @@ impl Interpreter {
         let end = &args[1];
         let step = &args[2];
 
-        let start: usize = start.try_into()?;
-        let end: usize = end.try_into()?;
-        let step: usize = step.try_into()?;
+        let start: isize = start.try_into()?;
+        let end: isize = end.try_into()?;
+        let step: isize = step.try_into()?;
 
-        Ok(Value::List(
-            (start..end)
-                .step_by(step)
-                .map(|i| Value::Int(i as i64))
-                .collect(),
-        ))
+        if step > 0 {
+            Ok(Value::List(
+                (start..end)
+                    .step_by(step as usize)
+                    .map(|i| Value::Int(i as i64))
+                    .collect(),
+            ))
+        } else if step < 0 {
+            Ok(Value::List(
+                (end..start)
+                    .step_by(step as usize)
+                    .rev()
+                    .map(|i| Value::Int(i as i64))
+                    .collect(),
+            ))
+        } else {
+            Err(RuntimeError::InvalidRangeStep(step))
+        }
     }
 
     fn builtin_inputchar(&self) -> Result<Value, RuntimeError> {
@@ -350,9 +362,9 @@ impl Interpreter {
         match val_type {
             Type::Int => operators::ineg(val, env),
             Type::Dec => operators::fneg(val, env),
-            _ => Err(RuntimeError::MismatchedTypes {
-                got: vec![val_type],
-                expected: vec![Type::Int, Type::Dec],
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::UnaryOperator(e.op.clone()),
+                types: vec![val_type],
             }),
         }
     }
@@ -362,15 +374,27 @@ impl Interpreter {
         let val_type = val.to_type()?;
         match val_type {
             Type::Bool => operators::bnot(val, env),
-            _ => Err(RuntimeError::MismatchedTypes {
-                got: vec![val_type],
-                expected: vec![Type::Bool],
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::UnaryOperator(e.op.clone()),
+                types: vec![val_type],
             }),
         }
     }
 
     fn interpret_indexing(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        todo!()
+        let left = self.interpret_expr(&e.left, env)?;
+        let right = self.interpret_expr(&e.right, env)?;
+        let l_type = left.to_type()?;
+        let r_type = right.to_type()?;
+        match (&l_type, &r_type) {
+            (Type::Str, Type::Int) => operators::sidx(left, right, env),
+            (Type::List(_), Type::Int) => operators::lidx(left, right, env),
+            (Type::Map(box k, _), t) if t == k => operators::midx(left, right, env),
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(e.op.clone()),
+                types: vec![l_type, r_type],
+            }),
+        }
     }
 
     fn interpret_multiplication(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
@@ -384,9 +408,9 @@ impl Interpreter {
             (BinaryOperator::Divide, Type::Int, Type::Int) => operators::idiv(left, right, env),
             (BinaryOperator::Divide, Type::Dec, Type::Dec) => operators::fdiv(left, right, env),
             (BinaryOperator::Modulo, Type::Int, Type::Int) => operators::imod(left, right, env),
-            _ => Err(RuntimeError::MismatchedTypes {
-                got: vec![l_type, r_type],
-                expected: vec![Type::Int, Type::Dec],
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(e.op.clone()),
+                types: vec![l_type, r_type],
             }),
         }
     }
@@ -400,21 +424,51 @@ impl Interpreter {
             (BinaryOperator::Add, Type::Int, Type::Int) => operators::iadd(left, right, env),
             (BinaryOperator::Add, Type::Dec, Type::Dec) => operators::fadd(left, right, env),
             (BinaryOperator::Add, Type::Str, Type::Str) => operators::sadd(left, right, env),
+            (BinaryOperator::Add, Type::List(_), Type::List(_)) => {
+                operators::ladd(left, right, env)
+            }
             (BinaryOperator::Subtract, Type::Int, Type::Int) => operators::isub(left, right, env),
             (BinaryOperator::Subtract, Type::Dec, Type::Dec) => operators::fsub(left, right, env),
             (BinaryOperator::Subtract, Type::Str, Type::Str) => operators::ssub(left, right, env),
-            _ => Err(RuntimeError::MismatchedTypes {
-                got: vec![l_type, r_type],
-                expected: vec![Type::Int, Type::Dec],
+            (BinaryOperator::Subtract, Type::List(_), Type::List(_)) => {
+                operators::lsub(left, right, env)
+            }
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(e.op.clone()),
+                types: vec![l_type, r_type],
             }),
         }
     }
 
     fn interpret_comparison(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        todo!()
+        let left = self.interpret_expr(&e.left, env)?;
+        let right = self.interpret_expr(&e.right, env)?;
+
+        match &e.op {
+            BinaryOperator::Equal => operators::eq(left, right, env),
+            BinaryOperator::NotEqual => operators::ne(left, right, env),
+            BinaryOperator::Greater => operators::gt(left, right, env),
+            BinaryOperator::GreaterEqual => operators::ge(left, right, env),
+            BinaryOperator::Less => operators::lt(left, right, env),
+            BinaryOperator::LessEqual => operators::le(left, right, env),
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(e.op.clone()),
+                types: vec![left.to_type()?, right.to_type()?],
+            }),
+        }
     }
 
     fn interpret_logical(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        todo!()
+        let left = self.interpret_expr(&e.left, env)?;
+        let right = self.interpret_expr(&e.right, env)?;
+
+        match e.op {
+            BinaryOperator::And => operators::band(left, right, env),
+            BinaryOperator::Or => operators::bor(left, right, env),
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(e.op.clone()),
+                types: vec![Type::Bool, Type::Bool],
+            }),
+        }
     }
 }

@@ -104,10 +104,8 @@ Only operates on `str`, `list`, and `map` on the left.
 Type of the indexer differs based on the type.
 The return type differs based on the type.
 
-Returns the zero value if the indexer is not in the collection.
-
-| Type      | Indexing Type | Return Type | Returns                                   |
-| --------- | ------------- | ----------- | ----------------------------------------- |
-| `str`     | `int`         | `str`       | the len-1 string at that index, 0-indexed |
-| `list[T]` | `int`         | `T`         | the element at that index, 0-indexed      |
-| `map[K]V` | `K`           | `V`         | the value associated with the key         |
+| Type      | Indexing Type | Return Type | Returns                                                                                                              |
+| --------- | ------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `str`     | `int`         | `str`       | the len-1 string at that index, 0-indexed. Negative indexes supported. Error if the index is larger than the length. |
+| `list[T]` | `int`         | `T`         | the element at that index, 0-indexed. Negative indexes supported. Error if the index is larger than the length.      |
+| `map[K]V` | `K`           | `V`         | the value associated with the key. Error if the key doesn't exist in the map.                                        |

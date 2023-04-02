@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 use crate::{args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream};
 
 mod args;

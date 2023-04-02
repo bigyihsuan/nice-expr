@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::parse::ast::Type;
+use crate::prelude::RuntimeError;
 
-use super::{value::Value, Constness, RuntimeError};
+use super::{r#type::Type, value::Value, Constness};
 
 pub type SEnv = Rc<RefCell<Env>>;
 
