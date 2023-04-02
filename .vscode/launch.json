@@ -27,7 +27,7 @@
             },
             "args": [
                 "-f",
-                "test/errors/assignments.set.mismatched-types.test.ne",
+                "test/assignments/zero-values.ne",
             ],
         }
     ]

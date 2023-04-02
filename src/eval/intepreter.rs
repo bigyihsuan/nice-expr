@@ -104,8 +104,14 @@ impl Interpreter {
                 type_name: decl_type,
                 expr: value,
             } => {
-                let value = self.interpret_expr(value, env)?;
-                let val_type = value.to_type()?;
+                let v = {
+                    if let Some(v) = value {
+                        self.interpret_expr(v, env)?
+                    } else {
+                        Value::default(decl_type.clone())
+                    }
+                };
+                let val_type = v.to_type()?;
 
                 let inferred_type = val_type.infer_contained_type(decl_type);
                 if inferred_type.is_none() {
@@ -116,41 +122,57 @@ impl Interpreter {
                 }
                 let inferred_type = inferred_type.unwrap();
 
-                if inferred_type != decl_type.clone() {
+                if let Some(_) = value && inferred_type != decl_type.clone() {
                     return Err(RuntimeError::MismatchedTypes {
                         got: vec![val_type],
                         expected: vec![decl_type.clone()],
                     });
                 }
-                let result =
-                    env.borrow_mut()
-                        .def_const(name.clone(), value.clone(), decl_type.clone());
+                let result = env
+                    .borrow_mut()
+                    .def_const(name.clone(), v.clone(), decl_type.clone());
                 if let Err(name) = result {
                     Err(RuntimeError::IdentifierNotFound(name.clone()))
                 } else {
-                    Ok(value)
+                    Ok(v)
                 }
             }
             Declaration::Var {
                 name,
-                type_name,
+                type_name: decl_type,
                 expr: value,
             } => {
-                let value = self.interpret_expr(value, env)?;
-                let t = value.to_type()?;
-                if t != type_name.clone() {
+                let v = {
+                    if let Some(v) = value {
+                        self.interpret_expr(v, env)?
+                    } else {
+                        Value::default(decl_type.clone())
+                    }
+                };
+                let val_type = v.to_type()?;
+
+                let inferred_type = val_type.infer_contained_type(decl_type);
+                if inferred_type.is_none() {
                     return Err(RuntimeError::MismatchedTypes {
-                        got: vec![t],
-                        expected: vec![type_name.clone()],
+                        got: vec![val_type],
+                        expected: vec![decl_type.clone()],
                     });
                 }
-                let result =
-                    env.borrow_mut()
-                        .def_var(name.clone(), value.clone(), type_name.clone());
+                let inferred_type = inferred_type.unwrap();
+
+                if let Some(_) = value && inferred_type != decl_type.clone() {
+                    return Err(RuntimeError::MismatchedTypes {
+                        got: vec![val_type],
+                        expected: vec![decl_type.clone()],
+                    });
+                }
+                let result = env
+                    .borrow_mut()
+                    .def_var(name.clone(), v.clone(), decl_type.clone());
                 if let Err(name) = result {
                     Err(RuntimeError::IdentifierNotFound(name.clone()))
                 } else {
-                    Ok(value)
+                    Ok(v)
                 }
             }
         }

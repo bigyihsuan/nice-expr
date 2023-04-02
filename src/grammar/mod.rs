@@ -84,11 +84,11 @@ peg::parser! {
         pub rule declaration() -> Expr
         = declaration_var() / declaration_const()
         pub rule declaration_var() -> Expr
-        = [Token::Var] name:identifier() [Token::Is] type_name:type_name() value:expr()
-        { Expr::Declaration(Declaration::Var { name, type_name, expr: Box::new(value) })}
+        = [Token::Var] name:identifier() [Token::Is] type_name:type_name() value:expr()?
+        { Expr::Declaration(Declaration::Var { name, type_name, expr: value.map(|e| Box::new(e)) })}
         pub rule declaration_const() -> Expr
-        = [Token::Const] name:identifier() [Token::Is] type_name:type_name() value:expr()
-        { Expr::Declaration(Declaration::Const { name, type_name, expr: Box::new(value) })}
+        = [Token::Const] name:identifier() [Token::Is] type_name:type_name() value:expr()?
+        { Expr::Declaration(Declaration::Const { name, type_name, expr: value.map(|e| Box::new(e)) })}
 
         pub rule assignment() -> Expr
         = [Token::Set] name:identifier() op:assignment_operator() value:expr()

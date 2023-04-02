@@ -1,4 +1,5 @@
 #![feature(box_patterns)]
+#![feature(let_chains)]
 
 use crate::{args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream};
 

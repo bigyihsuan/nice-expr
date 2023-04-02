@@ -18,20 +18,21 @@ even the loops
 * [x] Compound literals (list, map)
 * [x] Type inference of compound literals
 * [x] Arbitrarily-nested types
-* [/] Declarations (var, const): nested, mixed, type checking
+* [x] Declarations (var, const): nested, mixed, type checking
+  * [x] Zero Values when no value given
 * [ ] Function types: func(T,T,...)V, funcs as return type
 * [x] Using variables
-* [ ] Operators
-  * [/] Unary Operators
-    * [/] `not`, `-`
-  * [ ] Binary Operators
+* [x] Operators
+  * [x] Unary Operators
+    * [x] `not`, `-`
+  * [x] Binary Operators
     * [x] Arithmetic operators (+, -, *, /, %)
-    * [ ] Comparison operators (=, <, <=, >, >=)
-    * [ ] Logical operators (`and`, `or`)
-    * [ ] Indexing operator `_`
+    * [x] Comparison operators (=, <, <=, >, >=)
+    * [x] Logical operators (`and`, `or`)
+    * [x] Indexing operator `_`
 * [x] Assignments (set): check if var or const
 * [ ] Arithmetic/Comparison operators in assignments (`set i + 5; set b or true;`)
-* [ ] Built-in functions
+* [x] Built-in functions
   * [x] print()/println()
   * [x] len(): lists, maps, strings
   * [x] range(): python-like 3-part range

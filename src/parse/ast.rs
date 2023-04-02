@@ -37,12 +37,12 @@ pub enum Declaration {
     Const {
         name: String,
         type_name: Type,
-        expr: Box<Expr>,
+        expr: Option<Box<Expr>>,
     },
     Var {
         name: String,
         type_name: Type,
-        expr: Box<Expr>,
+        expr: Option<Box<Expr>>,
     },
 }
 
