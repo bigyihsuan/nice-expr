@@ -28,6 +28,11 @@ pub enum Expr {
         when_true: Box<Expr>,
         when_false: Option<Box<Expr>>,
     },
+    For {
+        vars: Vec<Expr>,
+        body: Program,
+    },
+    Break(Option<Box<Expr>>),
 }
 
 #[derive(Debug, Clone)]

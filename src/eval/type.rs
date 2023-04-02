@@ -7,6 +7,7 @@ pub enum Type {
     Bool,
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
+    Break(Box<Type>),
 }
 
 impl Type {
@@ -19,6 +20,7 @@ impl Type {
             Type::Bool => None,
             Type::List(box e) => Some(e.clone()),
             Type::Map(_, box v) => Some(v.clone()),
+            Type::Break(box t) => t.element_type(),
         }
     }
 
@@ -31,6 +33,7 @@ impl Type {
             Type::Bool => None,
             Type::List(_) => Some(Type::Int),
             Type::Map(box k, _) => Some(k.clone()),
+            Type::Break(box t) => t.key_type(),
         }
     }
 

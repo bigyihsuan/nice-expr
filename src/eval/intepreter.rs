@@ -56,6 +56,7 @@ impl Interpreter {
                 format!("<|{m}|>")
             }
             Value::Func(_) => todo!(),
+            Value::Break(box v) => format!("{}", self.format_value(v)),
         }
     }
 
@@ -89,19 +90,19 @@ impl Interpreter {
             Expr::Comparison(e) => self.interpret_comparison(e, env),
             Expr::Logical(e) => self.interpret_logical(e, env),
 
-            Expr::Block(es) => {
-                let mut last_val = Value::None;
+            Expr::Block(exprs) => {
                 let block_env = Env::extend(env.clone());
-                for expr in es {
+                let mut last_val = Value::None;
+                for expr in exprs {
                     last_val = self.interpret_expr(&expr, &block_env)?;
-                    if let Expr::Return(_) = expr {
+                    if let Value::Break(_) = last_val {
                         return Ok(last_val);
                     }
                 }
                 return Ok(last_val);
             }
-            Expr::Return(Some(e)) => self.interpret_expr(e, env),
-            Expr::Return(None) => Ok(Value::None),
+            Expr::Return(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
+            Expr::Return(None) => Ok(Value::Break(Box::new(Value::None))),
             Expr::If {
                 condition,
                 when_true,
@@ -116,6 +117,24 @@ impl Interpreter {
                     Ok(Value::None)
                 }
             }
+            Expr::For { vars, body } => {
+                // init the vars
+                let loop_env = Env::extend(env.clone());
+                for v in vars {
+                    self.interpret_expr(v, &loop_env)?;
+                }
+                // run the loop
+                loop {
+                    for expr in body {
+                        let last_val = self.interpret_expr(&expr, &loop_env)?;
+                        if let Value::Break(_) = last_val {
+                            return Ok(last_val.unbreak());
+                        }
+                    }
+                }
+            }
+            Expr::Break(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
+            Expr::Break(None) => Ok(Value::Break(Box::new(Value::None))),
         }
     }
 
