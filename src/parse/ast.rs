@@ -17,6 +17,9 @@ pub enum Expr {
     Addition(BinaryExpr),
     Comparison(BinaryExpr),
     Logical(BinaryExpr),
+
+    Block(Program),
+    Return(Box<Expr>),
 }
 
 #[derive(Debug, Clone)]

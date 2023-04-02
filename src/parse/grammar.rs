@@ -14,7 +14,7 @@ peg::parser! {
 
         pub rule stmt() -> Expr
         = e:expr() [Token::Semicolon]
-        {e}
+        { e }
 
         pub rule expr() -> Expr = precedence!{
             expr:function_call() { expr }
@@ -26,6 +26,8 @@ peg::parser! {
             expr:literal() { expr }
             --
             expr:expr_identifier() { expr }
+            --
+            [Token::Return] expr:(@) { Expr::Return(Box::new(expr)) }
             --
             [Token::Not] expr:(@) {
                 Expr::Not(UnaryExpr{op: UnaryOperator::Not, expr: Box::new(expr)})
@@ -79,6 +81,8 @@ peg::parser! {
             }
             --
             [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
+            --
+            [Token::LeftBrace] program:program() [Token::RightBrace] { Expr::Block(program) }
         }
 
         pub rule declaration() -> Expr

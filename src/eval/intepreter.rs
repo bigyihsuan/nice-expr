@@ -88,6 +88,19 @@ impl Interpreter {
             Expr::Addition(e) => self.interpret_addition(e, env),
             Expr::Comparison(e) => self.interpret_comparison(e, env),
             Expr::Logical(e) => self.interpret_logical(e, env),
+
+            Expr::Block(es) => {
+                let mut last_val = Value::None;
+                let block_env = Env::extend(env.clone());
+                for expr in es {
+                    last_val = self.interpret_expr(&expr, &block_env)?;
+                    if let Expr::Return(_) = expr {
+                        return Ok(last_val);
+                    }
+                }
+                return Ok(last_val);
+            }
+            Expr::Return(e) => self.interpret_expr(e, env),
         }
     }
 

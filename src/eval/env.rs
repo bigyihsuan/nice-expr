@@ -20,11 +20,11 @@ impl Env {
         }
     }
 
-    pub fn make_child(parent: SEnv) -> Self {
-        Self {
-            parent: Some(parent),
+    pub fn extend(parent: SEnv) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
+            parent: Some(parent.clone()),
             values: HashMap::new(),
-        }
+        }))
     }
 
     pub fn identifiers(&self) -> HashMap<String, ValueEntry> {
