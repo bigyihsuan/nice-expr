@@ -3,7 +3,7 @@ use std::{fmt::Display, io, string};
 use crate::{
     eval::{r#type::Type, value::Value},
     lexer::TokenLocation,
-    parse::ast::{AssignmentOperator, Operator, UnaryOperator},
+    parse::ast::{BinaryOperator, Operator, UnaryOperator},
 };
 
 pub type Result<T> = std::result::Result<T, SyntaxError>;
@@ -97,7 +97,7 @@ pub enum RuntimeError {
     IdentifierNotFound(String),
     SettingConst(String),
     DivideByZero,
-    InvalidAssignmentOperator(AssignmentOperator),
+    InvalidAssignmentOperator(BinaryOperator),
     NotEnoughArguments { want: usize, got: usize },
     IndexingNonIndexable { got: Type },
     TakingLenOfLengthless { got: Type },

@@ -1,6 +1,7 @@
 pub mod ast;
+pub mod grammar;
 
-use crate::{grammar, lexer, prelude::Result};
+use crate::{lexer, prelude::Result};
 
 use ast::Program;
 
@@ -9,6 +10,6 @@ pub fn parse(filename: Option<std::path::PathBuf>, input: &str) -> Result<Progra
 
     println!("{:?}", &stream.tokens());
 
-    let ast = grammar::module_parser::program(&stream)?;
+    let ast = grammar::parser::program(&stream)?;
     Ok(ast)
 }

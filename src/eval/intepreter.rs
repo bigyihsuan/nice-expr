@@ -9,8 +9,8 @@ use unicode_reader::CodePoints;
 
 use crate::{
     parse::ast::{
-        Assignment, AssignmentOperator, BinaryExpr, BinaryOperator, Declaration, Expr, Literal,
-        Operator, Program, UnaryExpr,
+        Assignment, BinaryExpr, BinaryOperator, Declaration, Expr, Literal, Operator, Program,
+        UnaryExpr,
     },
     prelude::{IOError, RuntimeError},
     util::assert_at_least_args,
@@ -59,20 +59,14 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret_program(
-        &self,
-        program: &Program,
-        env: &SEnv,
-    ) -> Result<Vec<Value>, RuntimeError> {
-        let mut values = Vec::new();
+    pub fn interpret_program(&self, program: &Program, env: &SEnv) -> Result<(), RuntimeError> {
         for expr in program {
             let value = self.interpret_expr(expr, env)?;
             if let Value::None = value {
                 continue;
             }
-            values.push(value);
         }
-        Ok(values)
+        Ok(())
     }
 
     pub fn interpret_expr(&self, expr: &Expr, env: &SEnv) -> Result<Value, RuntimeError> {
@@ -190,15 +184,28 @@ impl Interpreter {
         let mut result = entry.v;
         let value = self.interpret_expr(assignment.expr.as_ref(), env)?;
 
-        match assignment.op {
-            AssignmentOperator::Is => result = value,
-            // TODO: other assignment operators
+        result = match assignment.op {
+            BinaryOperator::Is => value,
+            BinaryOperator::And => operators::band(result, value, env)?,
+            BinaryOperator::Or => operators::bor(result, value, env)?,
+            BinaryOperator::Greater => operators::gt(result, value, env)?,
+            BinaryOperator::Less => operators::lt(result, value, env)?,
+            BinaryOperator::GreaterEqual => operators::ge(result, value, env)?,
+            BinaryOperator::LessEqual => operators::le(result, value, env)?,
+            BinaryOperator::Equal => operators::eq(result, value, env)?,
+            BinaryOperator::NotEqual => operators::ne(result, value, env)?,
+            BinaryOperator::Add | BinaryOperator::Subtract => {
+                self.addition(assignment.op.clone(), result, value, env)?
+            }
+            BinaryOperator::Times | BinaryOperator::Divide | BinaryOperator::Modulo => {
+                self.multiplication(assignment.op.clone(), result, value, env)?
+            }
             _ => {
                 return Err(RuntimeError::InvalidAssignmentOperator(
                     assignment.op.clone(),
                 ))
             }
-        }
+        };
         env.borrow_mut()
             .set(assignment.name.clone(), result.clone())
     }
@@ -422,44 +429,13 @@ impl Interpreter {
     fn interpret_multiplication(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
         let left = self.interpret_expr(&e.left, env)?;
         let right = self.interpret_expr(&e.right, env)?;
-        let l_type = left.to_type()?;
-        let r_type = right.to_type()?;
-        match (&e.op, &l_type, &r_type) {
-            (BinaryOperator::Times, Type::Int, Type::Int) => operators::imul(left, right, env),
-            (BinaryOperator::Times, Type::Dec, Type::Dec) => operators::fmul(left, right, env),
-            (BinaryOperator::Divide, Type::Int, Type::Int) => operators::idiv(left, right, env),
-            (BinaryOperator::Divide, Type::Dec, Type::Dec) => operators::fdiv(left, right, env),
-            (BinaryOperator::Modulo, Type::Int, Type::Int) => operators::imod(left, right, env),
-            _ => Err(RuntimeError::InvalidOperatorOnTypes {
-                op: Operator::BinaryOperator(e.op.clone()),
-                types: vec![l_type, r_type],
-            }),
-        }
+        self.multiplication(e.op.clone(), left, right, env)
     }
 
     fn interpret_addition(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
         let left = self.interpret_expr(&e.left, env)?;
         let right = self.interpret_expr(&e.right, env)?;
-        let l_type = left.to_type()?;
-        let r_type = right.to_type()?;
-        match (&e.op, &l_type, &r_type) {
-            (BinaryOperator::Add, Type::Int, Type::Int) => operators::iadd(left, right, env),
-            (BinaryOperator::Add, Type::Dec, Type::Dec) => operators::fadd(left, right, env),
-            (BinaryOperator::Add, Type::Str, Type::Str) => operators::sadd(left, right, env),
-            (BinaryOperator::Add, Type::List(_), Type::List(_)) => {
-                operators::ladd(left, right, env)
-            }
-            (BinaryOperator::Subtract, Type::Int, Type::Int) => operators::isub(left, right, env),
-            (BinaryOperator::Subtract, Type::Dec, Type::Dec) => operators::fsub(left, right, env),
-            (BinaryOperator::Subtract, Type::Str, Type::Str) => operators::ssub(left, right, env),
-            (BinaryOperator::Subtract, Type::List(_), Type::List(_)) => {
-                operators::lsub(left, right, env)
-            }
-            _ => Err(RuntimeError::InvalidOperatorOnTypes {
-                op: Operator::BinaryOperator(e.op.clone()),
-                types: vec![l_type, r_type],
-            }),
-        }
+        self.addition(e.op.clone(), left, right, env)
     }
 
     fn interpret_comparison(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
@@ -490,6 +466,57 @@ impl Interpreter {
             _ => Err(RuntimeError::InvalidOperatorOnTypes {
                 op: Operator::BinaryOperator(e.op.clone()),
                 types: vec![Type::Bool, Type::Bool],
+            }),
+        }
+    }
+
+    fn addition(
+        &self,
+        op: BinaryOperator,
+        left: Value,
+        right: Value,
+        env: &SEnv,
+    ) -> Result<Value, RuntimeError> {
+        let l_type = left.to_type()?;
+        let r_type = right.to_type()?;
+        match (&op, &l_type, &r_type) {
+            (BinaryOperator::Add, Type::Int, Type::Int) => operators::iadd(left, right, env),
+            (BinaryOperator::Add, Type::Dec, Type::Dec) => operators::fadd(left, right, env),
+            (BinaryOperator::Add, Type::Str, Type::Str) => operators::sadd(left, right, env),
+            (BinaryOperator::Add, Type::List(_), Type::List(_)) => {
+                operators::ladd(left, right, env)
+            }
+            (BinaryOperator::Subtract, Type::Int, Type::Int) => operators::isub(left, right, env),
+            (BinaryOperator::Subtract, Type::Dec, Type::Dec) => operators::fsub(left, right, env),
+            (BinaryOperator::Subtract, Type::Str, Type::Str) => operators::ssub(left, right, env),
+            (BinaryOperator::Subtract, Type::List(_), Type::List(_)) => {
+                operators::lsub(left, right, env)
+            }
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(op.clone()),
+                types: vec![l_type, r_type],
+            }),
+        }
+    }
+
+    fn multiplication(
+        &self,
+        op: BinaryOperator,
+        left: Value,
+        right: Value,
+        env: &SEnv,
+    ) -> Result<Value, RuntimeError> {
+        let l_type = left.to_type()?;
+        let r_type = right.to_type()?;
+        match (&op, &l_type, &r_type) {
+            (BinaryOperator::Times, Type::Int, Type::Int) => operators::imul(left, right, env),
+            (BinaryOperator::Times, Type::Dec, Type::Dec) => operators::fmul(left, right, env),
+            (BinaryOperator::Divide, Type::Int, Type::Int) => operators::idiv(left, right, env),
+            (BinaryOperator::Divide, Type::Dec, Type::Dec) => operators::fdiv(left, right, env),
+            (BinaryOperator::Modulo, Type::Int, Type::Int) => operators::imod(left, right, env),
+            _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                op: Operator::BinaryOperator(op.clone()),
+                types: vec![l_type, r_type],
             }),
         }
     }

@@ -2,13 +2,13 @@ use crate::{
     eval::r#type::Type,
     lexer::{tok::Token, TokenStream},
     parse::ast::{
-        Assignment, AssignmentOperator, BinaryExpr, BinaryOperator, Declaration, Expr, Literal,
-        Program, UnaryExpr, UnaryOperator,
+        Assignment, BinaryExpr, BinaryOperator, Declaration, Expr, Literal, Program, UnaryExpr,
+        UnaryOperator,
     },
 };
 
 peg::parser! {
-    pub grammar module_parser<'source>() for TokenStream<'source>  {
+    pub grammar parser<'source>() for TokenStream<'source>  {
         pub rule program() -> Program
         = stmt()+
 
@@ -50,7 +50,7 @@ peg::parser! {
                 }, right: Box::new(right) })
             }
             --
-            left:(@) op:[Token::Plus | Token::Minus ] right:@ {
+            left:(@) op:[Token::Plus | Token::Minus] right:@ {
                 Expr::Addition(BinaryExpr{ left: Box::new(left), op: match op {
                     Token::Plus => BinaryOperator::Add,
                     Token::Minus => BinaryOperator::Subtract,
@@ -93,11 +93,25 @@ peg::parser! {
         pub rule assignment() -> Expr
         = [Token::Set] name:identifier() op:assignment_operator() value:expr()
         {Expr::Assignment(Assignment { name, op, expr: Box::new(value) })}
-        pub rule assignment_operator() -> AssignmentOperator
-        = op:[Token::Is]
+        pub rule assignment_operator() -> BinaryOperator
+        = op:[Token::Is | Token::And | Token::Or | Token::Greater | Token::Less | Token::GreaterEqual | Token::LessEqual
+        | Token::Equal | Token::NotEqual | Token::Plus | Token::Minus | Token::Star | Token::Slash | Token::Percent]
         { match op {
-            Token::Is => AssignmentOperator::Is,
-            _ => AssignmentOperator::Invalid
+            Token::Is => BinaryOperator::Is,
+            Token::And => BinaryOperator::And,
+            Token::Or => BinaryOperator::Or,
+            Token::Greater => BinaryOperator::Greater,
+            Token::Less => BinaryOperator::Less,
+            Token::GreaterEqual => BinaryOperator::GreaterEqual,
+            Token::LessEqual => BinaryOperator::LessEqual,
+            Token::Equal => BinaryOperator::Equal,
+            Token::NotEqual => BinaryOperator::NotEqual,
+            Token::Plus => BinaryOperator::Add,
+            Token::Minus => BinaryOperator::Subtract,
+            Token::Star => BinaryOperator::Times,
+            Token::Slash => BinaryOperator::Divide,
+            Token::Percent => BinaryOperator::Modulo,
+            _ => unreachable!()
         } }
 
         pub rule function_call() -> Expr

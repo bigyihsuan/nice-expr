@@ -51,7 +51,12 @@ impl Env {
             }
             let t = value.to_type()?;
             if ve.t == t.clone() {
-                self.values.insert(name, ve.clone());
+                let new_entry = ValueEntry {
+                    v: value.clone(),
+                    c: ve.c.clone(),
+                    t,
+                };
+                self.values.insert(name, new_entry);
                 Ok(value)
             } else {
                 Err(RuntimeError::MismatchedTypes {

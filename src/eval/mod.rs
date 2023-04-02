@@ -1,7 +1,5 @@
 use std::{io, string};
 
-use crate::parse::ast::AssignmentOperator;
-
 use self::r#type::Type;
 
 pub mod env;

@@ -1,11 +1,12 @@
 #![feature(box_patterns)]
 #![feature(let_chains)]
 
-use crate::{args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream};
+use crate::{
+    args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream, parse::grammar::parser,
+};
 
 mod args;
 mod eval;
-mod grammar;
 mod lexer;
 mod parse;
 mod prelude;
@@ -25,7 +26,7 @@ fn main() {
             }
             println!();
 
-            let ast = grammar::module_parser::program(&token_stream);
+            let ast = parser::program(&token_stream);
             match ast {
                 Ok(ast) => {
                     println!("{ast:#?}");
@@ -34,12 +35,8 @@ fn main() {
                     let env = Interpreter::default_env();
                     let values = interpeter.interpret_program(&ast, &env);
                     match values {
-                        Ok(values) => {
-                            for value in values {
-                                println!("{}", interpeter.format_value(&value));
-                            }
+                        Ok(()) => {
                             println!();
-
                             for (name, value_entry) in env.borrow().identifiers() {
                                 let value = value_entry.v;
                                 let con = value_entry.c;

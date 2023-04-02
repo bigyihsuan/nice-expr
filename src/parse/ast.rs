@@ -49,7 +49,7 @@ pub enum Declaration {
 #[derive(Debug, Clone)]
 pub struct Assignment {
     pub name: String,
-    pub op: AssignmentOperator,
+    pub op: BinaryOperator,
     pub expr: Box<Expr>,
 }
 
@@ -91,11 +91,5 @@ pub enum BinaryOperator {
     NotEqual,
     And,
     Or,
-}
-
-#[derive(Debug, Clone)]
-pub enum AssignmentOperator {
-    Invalid,
     Is,
-    // TODO: the other assignment operators
 }
