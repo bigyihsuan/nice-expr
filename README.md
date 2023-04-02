@@ -31,7 +31,7 @@ even the loops
     * [x] Logical operators (`and`, `or`)
     * [x] Indexing operator `_`
 * [x] Assignments (set): check if var or const
-* [ ] Arithmetic/Comparison operators in assignments (`set i + 5; set b or true;`)
+* [x] Arithmetic/Comparison operators in assignments (`set i + 5; set b or true;`)
 * [x] Built-in functions
   * [x] print()/println()
   * [x] len(): lists, maps, strings
