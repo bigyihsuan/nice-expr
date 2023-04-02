@@ -1,6 +1,6 @@
 var x is int 9;
-var z is int if x < 10 then {return x / 3 + 2;} else {return x * 2;};
-println(x, z);
+var z is int if x < 10 then {return x / 3 + 2;} else {return x * 2;}; // 5
+println(x, z); // 9 5
 
 // standalone nested if-else
 if x < 10 then {
@@ -21,5 +21,5 @@ if x < 3 then {
   println("more than 3");
 };
 
-// if with no return type
+// if with no return type returns None
 println(if z < 10 then {return;});

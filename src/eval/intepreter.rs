@@ -100,7 +100,22 @@ impl Interpreter {
                 }
                 return Ok(last_val);
             }
-            Expr::Return(e) => self.interpret_expr(e, env),
+            Expr::Return(Some(e)) => self.interpret_expr(e, env),
+            Expr::Return(None) => Ok(Value::None),
+            Expr::If {
+                condition,
+                when_true,
+                when_false,
+            } => {
+                let condition: bool = self.interpret_expr(&condition, env)?.try_into()?;
+                if condition {
+                    self.interpret_expr(&when_true, env)
+                } else if let Some(when_false) = when_false {
+                    self.interpret_expr(&when_false, env)
+                } else {
+                    Ok(Value::None)
+                }
+            }
         }
     }
 

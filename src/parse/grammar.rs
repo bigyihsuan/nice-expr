@@ -27,7 +27,9 @@ peg::parser! {
             --
             expr:expr_identifier() { expr }
             --
-            [Token::Return] expr:(@) { Expr::Return(Box::new(expr)) }
+            [Token::Return] expr:(@) { Expr::Return(Some(Box::new(expr))) }
+            --
+            [Token::Return] { Expr::Return(None) }
             --
             [Token::Not] expr:(@) {
                 Expr::Not(UnaryExpr{op: UnaryOperator::Not, expr: Box::new(expr)})
@@ -82,8 +84,17 @@ peg::parser! {
             --
             [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
             --
-            [Token::LeftBrace] program:program() [Token::RightBrace] { Expr::Block(program) }
+            expr:if_expr() { expr }
+            --
+            expr:block() { expr }
         }
+
+        pub rule if_expr() -> Expr
+        = [Token::If] condition:expr() [Token::Then] when_true:block() when_false:([Token::Else] when_false:(block() / if_expr()) {Box::new(when_false)})?
+        { Expr::If { condition: Box::new(condition), when_true: Box::new(when_true), when_false: when_false }}
+
+        pub rule block() -> Expr
+        = [Token::LeftBrace] program:program() [Token::RightBrace] { Expr::Block(program) }
 
         pub rule declaration() -> Expr
         = declaration_var() / declaration_const()

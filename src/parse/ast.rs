@@ -8,7 +8,10 @@ pub enum Expr {
     Identifier(String),
     Declaration(Declaration),
     Assignment(Assignment),
-    FunctionCall { name: String, args: Vec<Expr> },
+    FunctionCall {
+        name: String,
+        args: Vec<Expr>,
+    },
 
     Minus(UnaryExpr),
     Not(UnaryExpr),
@@ -19,7 +22,12 @@ pub enum Expr {
     Logical(BinaryExpr),
 
     Block(Program),
-    Return(Box<Expr>),
+    Return(Option<Box<Expr>>),
+    If {
+        condition: Box<Expr>,
+        when_true: Box<Expr>,
+        when_false: Option<Box<Expr>>,
+    },
 }
 
 #[derive(Debug, Clone)]
