@@ -1,3 +1,3 @@
-println(inputchar(), "---");
-println(inputline(), "---");
-println(inputall(), "---");
+printline(inputchar(), "---");
+printline(inputline(), "---");
+printline(inputall(), "---");

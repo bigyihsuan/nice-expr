@@ -20,7 +20,7 @@ even the loops
 * [x] Arbitrarily-nested types
 * [x] Declarations (var, const): nested, mixed, type checking
   * [x] Zero Values when no value given
-* [ ] Function types: func(T,T,...)V, funcs as return type
+* [x] Function types: func(T,T,...)V, funcs as return type
 * [x] Using variables
 * [x] Operators
   * [x] Unary Operators
@@ -33,23 +33,24 @@ even the loops
 * [x] Assignments (set): check if var or const
 * [x] Arithmetic/Comparison operators in assignments (`set i + 5; set b or true;`)
 * [x] Built-in functions
-  * [x] print()/println()
+  * [x] print()/printline()
   * [x] len(): lists, maps, strings
   * [x] range(): python-like 3-part range
-  * [x] inputchar()/inputln()/intputall(): get 1 char/1 line/all chars of input as a string
-* [ ] Blocks
-  * [ ] return value with `return` keyword
-* [ ] Functions
-  * [ ] return value with `return` keyword
-  * [ ] recursion
-* [ ] Conditionals:
-  * [ ] if-else
-  * [ ] if-else if-else
-  * [ ] return value with `return` keyword
-* [ ] Loops
-  * [ ] `break`
-  * [ ] for
-  * [ ] for-with-local-variables
+  * [x] inputchar()/inputline()/inputall(): get 1 char/1 line/all chars of input as a string
+* [x] Blocks
+  * [x] return value with `return` keyword
+* [/] Functions
+  * [x] return value with `return` keyword
+  * [x] recursion
+  * [ ] functions returned from functions can access variables of the outer functions
+* [x] Conditionals:
+  * [x] if-else
+  * [x] if-else if-else
+  * [x] return value with `return` keyword
+* [x] Loops
+  * [x] `break`
+  * [x] for
+  * [x] for-with-local-variables
 * [ ] Type conversions `type(val)`
 
 ## Examples?
@@ -91,11 +92,11 @@ var z is int if x = 10 then {return x / 2;} else {return x * 2;};
 
 // standalone nested if-else
 if x < 10 then {
-  println("less than 10");
+  printline("less than 10");
 } else if x = 10 then {
-  println("equal to 10");
+  printline("equal to 10");
 } else {
-  println("more than 10");
+  printline("more than 10");
 };
 
 // loops
@@ -125,7 +126,7 @@ var greet is func(str)str func(const start is str, var name is str)str{
 };
 // type of `greet` is func(str)str
 var greeting is str greet("Hello", "Bob");
-println(greeting); // Hello Mr. Bob
+printline(greeting); // Hello Mr. Bob
 
 // recursion
 var factorial func(int)int is func(n int)int {

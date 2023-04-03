@@ -1,1 +1,1 @@
-println(len(10));
+printline(len(10));

@@ -92,15 +92,21 @@ peg::parser! {
             --
             expr:for_expr() { expr }
             --
+            expr:function_definition() { expr }
+            --
             expr:block_expr() { expr }
         }
+
+        pub rule function_definition() -> Expr
+        = [Token::Func] [Token::LeftParen] args:(declaration() ** [Token::Comma]) [Token::Comma]? [Token::RightParen] ret:type_name() body:block()
+        { Expr::FunctionDefinition {args, ret, body} }
 
         pub rule if_expr() -> Expr
         = [Token::If] condition:expr() [Token::Then] when_true:block_expr() when_false:([Token::Else] when_false:(block_expr() / if_expr()) {Box::new(when_false)})?
         { Expr::If { condition: Box::new(condition), when_true: Box::new(when_true), when_false: when_false }}
 
         pub rule for_expr() -> Expr
-        = [Token::For] vars:(declaration() ** [Token::Comma]) body:block()
+        = [Token::For] vars:(declaration() ** [Token::Comma]) [Token::Comma]? body:block()
         { Expr::For{ vars, body } }
 
         pub rule block_expr() -> Expr
@@ -195,7 +201,11 @@ peg::parser! {
         / i:[Token::BoolTypename] {Type::Bool}
 
         pub rule compound_type() -> Type
-        = [Token::ListTypename] [Token::LeftBracket] t:type_name() [Token::RightBracket] {Type::List(Box::new(t))}
-        / [Token::MapTypename] [Token::LeftBracket] k:type_name() [Token::RightBracket] v:type_name() {Type::Map(Box::new(k), Box::new(v))}
+        = [Token::ListTypename] [Token::LeftBracket] t:type_name() [Token::RightBracket]
+            {Type::List(Box::new(t))}
+        / [Token::MapTypename] [Token::LeftBracket] k:type_name() [Token::RightBracket] v:type_name()
+            {Type::Map(Box::new(k), Box::new(v))}
+        / [Token::Func] [Token::LeftParen] args:(type_name() ** [Token::Comma]) [Token::Comma]? [Token::RightParen] ret:type_name()
+            {Type::Func(args, Box::new(ret))}
     }
 }

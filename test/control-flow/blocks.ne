@@ -12,11 +12,11 @@ print("after baz block: foo=",foo,"\n");
 
 {
     set foo is 1234.5678; // if not redeclared, set can change outside variables
-    println("inside anonymous block");
+    printline("inside anonymous block");
     print("foo=",foo,"\n");
 }; // block not attached to anything
 
-println("at the end");
+printline("at the end");
 print("quux=",quux,"\n");
 print("foo=",foo,"\n");
 print("bar=",bar,"\n");

@@ -2,7 +2,10 @@
 #![feature(let_chains)]
 
 use crate::{
-    args::parse_args, eval::intepreter::Interpreter, lexer::TokenStream, parse::grammar::parser,
+    args::parse_args,
+    eval::intepreter::{builtin, Interpreter},
+    lexer::TokenStream,
+    parse::grammar::parser,
 };
 
 mod args;
@@ -41,10 +44,7 @@ fn main() {
                                 let value = value_entry.v;
                                 let con = value_entry.c;
                                 let t = value_entry.t;
-                                println!(
-                                    "{name}:{}, {con:?} {t:?}",
-                                    interpeter.format_value(&value)
-                                )
+                                println!("{name}:{}, {con:?} {t:?}", builtin::format_value(&value))
                             }
                         }
                         Err(err) => eprintln!("error during evaluation: {err:?}"),

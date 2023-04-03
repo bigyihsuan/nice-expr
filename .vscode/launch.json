@@ -27,7 +27,7 @@
             },
             "args": [
                 "-f",
-                "test/assignments/zero-values.ne",
+                "example/returning-funcs.ne",
             ],
         }
     ]

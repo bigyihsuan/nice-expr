@@ -15,9 +15,9 @@ pub enum Token {
     Comment,
 
     // simple literals
-    #[regex("-?[0-9]+", |lex| parse_int::parse::<i64>(lex.slice()))]
+    #[regex("[0-9]+", |lex| parse_int::parse::<i64>(lex.slice()))]
     IntLit(i64),
-    #[regex("-?[0-9]+\\.[0-9]+", |lex| parse_int::parse::<f64>(lex.slice()))]
+    #[regex("[0-9]+\\.[0-9]+", |lex| parse_int::parse::<f64>(lex.slice()))]
     DecLit(f64),
     // strings are anything that's not escaped quote
     #[regex("\"(?:[^\"]|\\\\\")*\"", |lex| unescape(lex.slice()))]

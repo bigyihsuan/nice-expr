@@ -1,1 +1,1 @@
-println(range("start", "end", "step"));
+printline(range("start", "end", "step"));

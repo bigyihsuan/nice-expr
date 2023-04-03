@@ -6,10 +6,10 @@ const a is list[int] [];
 const b is map[int]int <||>;
 const c is str "";
 
-println(len(l));
-println(len(m));
-println(len(s));
+printline(len(l)); // 3
+printline(len(m)); // 2
+printline(len(s)); // 5
 
-println(len(a));
-println(len(b));
-println(len(c));
+printline(len(a)); // 0
+printline(len(b)); // 0
+printline(len(c)); // 0

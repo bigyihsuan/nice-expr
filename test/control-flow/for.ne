@@ -1,4 +1,4 @@
-println("standalone forloop");
+printline("standalone forloop");
 for var i is int 0 {
     if i >= 10 then {
         break;
@@ -15,4 +15,4 @@ var sum is int for var s is int 0, var idx is int 0 {
     set s + l_idx; // index lists using ints >=0 only
     set idx + 1;
 };
-println(sum); // 28
+printline(sum); // 28

@@ -12,6 +12,11 @@ pub enum Expr {
         name: String,
         args: Vec<Expr>,
     },
+    FunctionDefinition {
+        args: Vec<Expr>, // declarations
+        ret: Type,
+        body: Program,
+    },
 
     Minus(UnaryExpr),
     Not(UnaryExpr),
@@ -29,7 +34,7 @@ pub enum Expr {
         when_false: Option<Box<Expr>>,
     },
     For {
-        vars: Vec<Expr>,
+        vars: Vec<Expr>, // declarations
         body: Program,
     },
     Break(Option<Box<Expr>>),

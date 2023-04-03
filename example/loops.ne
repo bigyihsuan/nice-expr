@@ -1,4 +1,4 @@
-println("start of loop");
+printline("start of loop");
 var sumis int 0;
 for var i is int 0 {
     print("i=",i,"\n");
@@ -9,5 +9,5 @@ for var i is int 0 {
     set i + 1;
     set s + i;
 };
-println("after loop");
+printline("after loop");
 print("sum=",sum,"\n");

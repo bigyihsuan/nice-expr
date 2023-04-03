@@ -6,4 +6,4 @@ var sum is int for var s is int 0, var idx is int 0 {
     set s + l_idx; // index lists using ints >=0 only
     set idx + 1;
 };
-println(sum);
+printline(sum);

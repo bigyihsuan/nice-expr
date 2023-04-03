@@ -1,5 +1,7 @@
 use std::{fmt::Display, io, string};
 
+use itertools::Itertools;
+
 use crate::{
     eval::{r#type::Type, value::Value},
     lexer::TokenLocation,
@@ -77,7 +79,7 @@ impl From<ParseError> for SyntaxError {
             linecol: (line, col),
             token,
         } = err.location;
-        let expected = err.expected.tokens().collect();
+        let expected = err.expected.tokens().collect_vec();
 
         Self::UnexpectedToken {
             token: token.map(|tok| tok.to_string()).unwrap_or("<>".to_string()),
@@ -106,6 +108,7 @@ pub enum RuntimeError {
     IndexingCollectionWithZeroElements(Value),
     IndexOutOfBounds(Value, Value),
     KeyNotFound(Value, Value),
+    CallingNonCallable { name: String },
     // TODO: more runtime errors
 }
 

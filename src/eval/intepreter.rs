@@ -5,23 +5,26 @@ use std::{
     rc::Rc,
 };
 
+use itertools::Itertools;
 use unicode_reader::CodePoints;
 
 use crate::{
+    eval::Constness,
     parse::ast::{
         Assignment, BinaryExpr, BinaryOperator, Declaration, Expr, Literal, Operator, Program,
         UnaryExpr,
     },
     prelude::{IOError, RuntimeError},
-    util::assert_at_least_args,
+    util::{assert_at_least_args, assert_exactly_args},
 };
 
 use super::{
     env::{Env, SEnv, ValueEntry},
     r#type::Type,
-    value::Value,
+    value::{Func, Value},
 };
 
+pub mod builtin;
 mod operators;
 
 pub struct Interpreter {}
@@ -29,35 +32,6 @@ pub struct Interpreter {}
 impl Interpreter {
     pub fn default_env() -> SEnv {
         Rc::new(RefCell::new(Env::default()))
-    }
-
-    pub fn format_value(&self, value: &Value) -> String {
-        match value {
-            Value::None => "None".into(),
-            Value::Int(i) => format!("{i}"),
-            Value::Dec(d) => format!("{d}"),
-            Value::Str(s) => format!("{s}"),
-            Value::Bool(b) => format!("{b}"),
-            Value::List(l) => {
-                let l = l
-                    .into_iter()
-                    .map(|e| self.format_value(&e))
-                    .collect::<Vec<String>>()
-                    .join(",");
-                format!("[{l}]")
-            }
-            Value::Map(m) => {
-                let m = m
-                    .into_iter()
-                    .map(|(k, v)| (self.format_value(&k), self.format_value(&v)))
-                    .map(|(k, v)| format!("{k}:{v}"))
-                    .collect::<Vec<String>>()
-                    .join(",");
-                format!("<|{m}|>")
-            }
-            Value::Func(_) => todo!(),
-            Value::Break(box v) => format!("{}", self.format_value(v)),
-        }
     }
 
     pub fn interpret_program(&self, program: &Program, env: &SEnv) -> Result<(), RuntimeError> {
@@ -135,6 +109,11 @@ impl Interpreter {
             }
             Expr::Break(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
             Expr::Break(None) => Ok(Value::Break(Box::new(Value::None))),
+            Expr::FunctionDefinition { args, ret, body } => Ok(Value::Func(Func::Declared {
+                decls: args.clone(),
+                ret: ret.clone(),
+                body: body.clone(),
+            })),
         }
     }
 
@@ -254,7 +233,7 @@ impl Interpreter {
             }
         };
         env.borrow_mut()
-            .set(assignment.name.clone(), result.clone())
+            .set(assignment.name.clone(), result.clone(), false)
     }
 
     pub fn interpret_literal(&self, literal: &Literal, env: &SEnv) -> Result<Value, RuntimeError> {
@@ -293,7 +272,7 @@ impl Interpreter {
 
                 // check that all elements match the same type
                 // assume that the type is the first element
-                let entries = map.clone().into_iter().collect::<Vec<(Value, Value)>>();
+                let entries = map.clone().into_iter().collect_vec();
                 if map.len() > 0 {
                     let first = entries.first().unwrap();
                     let ktype = first.0.to_type()?;
@@ -323,11 +302,8 @@ impl Interpreter {
         let args = args
             .into_iter()
             .map(|e| self.interpret_expr(e, env))
-            .collect::<Vec<_>>();
-        let errors = args
-            .iter()
-            .filter_map(|r| r.as_ref().err())
-            .collect::<Vec<_>>();
+            .collect_vec();
+        let errors = args.iter().filter_map(|r| r.as_ref().err()).collect_vec();
         if errors.len() > 0 {
             return Err(errors[0].clone());
         }
@@ -335,101 +311,56 @@ impl Interpreter {
             .into_iter()
             .filter_map(|r| r.ok())
             .collect::<Vec<Value>>();
-        match name {
-            "print" => self.builtin_print(&args),
-            "println" => self.builtin_println(&args),
-            "len" => self.builtin_len(&args),
-            "range" => self.builtin_range(&args),
-            "inputchar" => self.builtin_inputchar(),
-            "inputline" => self.builtin_inline(),
-            "inputall" => self.builtin_inall(),
-            _ => {
-                todo!("user-defined functions: got {}", name);
+
+        let entry = env
+            .borrow()
+            .get(name.into())
+            .ok_or(RuntimeError::IdentifierNotFound(name.into()))?;
+        let ValueEntry { v, t: _, c: _ } = entry;
+        let v = v.unbreak();
+        match v {
+            Value::Func(Func::Native(f)) => f(&args),
+            Value::Func(Func::Declared {
+                decls,
+                ret: _,
+                body,
+            }) => {
+                assert_exactly_args(decls.len(), args.len())?;
+                // make new env for the inner function
+                let func_env = Env::extend(env.clone());
+                for (decl, arg) in decls.into_iter().zip(args.into_iter()) {
+                    if let Expr::Declaration(decl) = decl {
+                        self.interpret_declaration(&decl, &func_env)?;
+                        let _ = match decl {
+                            Declaration::Const {
+                                name,
+                                type_name,
+                                expr: _,
+                            } => func_env.borrow_mut().define_unchecked(
+                                name,
+                                arg,
+                                Constness::Const,
+                                type_name,
+                            ),
+                            Declaration::Var {
+                                name,
+                                type_name,
+                                expr: _,
+                            } => func_env.borrow_mut().define_unchecked(
+                                name,
+                                arg,
+                                Constness::Var,
+                                type_name,
+                            ),
+                        };
+                    }
+                }
+                println!("{func_env:#?}");
+                // run the function body
+                self.interpret_expr(&Expr::Block(body), &func_env)
             }
+            _ => Err(RuntimeError::CallingNonCallable { name: name.into() }),
         }
-    }
-
-    fn builtin_print(&self, args: &[Value]) -> Result<Value, RuntimeError> {
-        for arg in args {
-            print!("{}", self.format_value(&arg));
-        }
-        Ok(Value::None)
-    }
-    fn builtin_println(&self, args: &[Value]) -> Result<Value, RuntimeError> {
-        for arg in args {
-            println!("{}", self.format_value(&arg));
-        }
-        Ok(Value::None)
-    }
-
-    fn builtin_len(&self, args: &[Value]) -> Result<Value, RuntimeError> {
-        assert_at_least_args(1, args.len())?;
-        let val = &args[0];
-        match val {
-            Value::Str(v) => Ok(Value::Int(v.chars().collect::<Vec<_>>().len() as i64)),
-            Value::List(v) => Ok(Value::Int(v.len() as i64)),
-            Value::Map(v) => Ok(Value::Int(v.len() as i64)),
-            _ => Err(RuntimeError::TakingLenOfLengthless {
-                got: val.to_type()?,
-            }),
-        }
-    }
-
-    fn builtin_range(&self, args: &[Value]) -> Result<Value, RuntimeError> {
-        assert_at_least_args(3, args.len())?;
-        let start = &args[0];
-        let end = &args[1];
-        let step = &args[2];
-
-        let start: isize = start.try_into()?;
-        let end: isize = end.try_into()?;
-        let step: isize = step.try_into()?;
-
-        if step > 0 {
-            Ok(Value::List(
-                (start..end)
-                    .step_by(step as usize)
-                    .map(|i| Value::Int(i as i64))
-                    .collect(),
-            ))
-        } else if step < 0 {
-            Ok(Value::List(
-                (end..start)
-                    .step_by(step as usize)
-                    .rev()
-                    .map(|i| Value::Int(i as i64))
-                    .collect(),
-            ))
-        } else {
-            Err(RuntimeError::InvalidRangeStep(step))
-        }
-    }
-
-    fn builtin_inputchar(&self) -> Result<Value, RuntimeError> {
-        let c = CodePoints::from(io::stdin().bytes())
-            .map(|r| r.unwrap())
-            .next();
-        if let Some(c) = c {
-            Ok(Value::Str(String::from(c)))
-        } else {
-            Err(RuntimeError::IOError(IOError::CouldNotGetChar))
-        }
-    }
-
-    fn builtin_inline(&self) -> Result<Value, RuntimeError> {
-        let mut str = String::new();
-        if let Err(err) = io::stdin().read_line(&mut str) {
-            Err(RuntimeError::IOError(IOError::ErrorKind(err.kind())))
-        } else {
-            Ok(Value::Str(str))
-        }
-    }
-
-    fn builtin_inall(&self) -> Result<Value, RuntimeError> {
-        let str = CodePoints::from(io::stdin().bytes())
-            .map(|r| r.unwrap())
-            .collect();
-        Ok(Value::Str(str))
     }
 
     fn interpret_minus(&self, e: &UnaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {

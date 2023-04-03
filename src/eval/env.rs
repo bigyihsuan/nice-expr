@@ -1,8 +1,13 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use crate::eval::intepreter::builtin;
 use crate::prelude::RuntimeError;
 
-use super::{r#type::Type, value::Value, Constness};
+use super::{
+    r#type::Type,
+    value::{Func, Value},
+    Constness,
+};
 
 pub type SEnv = Rc<RefCell<Env>>;
 
@@ -42,11 +47,16 @@ impl Env {
         }
     }
 
-    pub fn set(&mut self, name: String, value: Value) -> Result<Value, RuntimeError> {
+    pub fn set(
+        &mut self,
+        name: String,
+        value: Value,
+        ignore_constness: bool,
+    ) -> Result<Value, RuntimeError> {
         if self.values.contains_key(&name.clone()) {
             // disallow setting on const
             let ve = self.values.get(&name).unwrap();
-            if let Constness::Const = ve.c {
+            if let Constness::Const = ve.c && !ignore_constness {
                 return Err(RuntimeError::SettingConst(name));
             }
             let t = value.to_type()?;
@@ -65,7 +75,7 @@ impl Env {
                 })
             }
         } else if let Some(parent) = &self.parent {
-            parent.borrow_mut().set(name, value)
+            parent.borrow_mut().set(name, value, ignore_constness)
         } else {
             Err(RuntimeError::IdentifierNotFound(name))
         }
@@ -92,6 +102,24 @@ impl Env {
             Err(name)
         }
     }
+    pub fn define_unchecked(
+        &mut self,
+        name: String,
+        value: Value,
+        constness: Constness,
+        ident_type: Type,
+    ) -> Result<Value, String> {
+        self.values.insert(
+            name,
+            ValueEntry {
+                v: value.clone(),
+                c: constness,
+                t: ident_type,
+            },
+        );
+        Ok(value)
+    }
+
     pub fn def_var(
         &mut self,
         name: String,
@@ -112,10 +140,52 @@ impl Env {
 
 impl Default for Env {
     fn default() -> Self {
-        let env = Self::new();
-        // TODO: define builtin functions
-        // TODO: env.define("print", value, Constness::Const)
-        // TODO: env.define("println", value, Constness::Const)
+        let mut env = Self::new();
+        let _ = env.define(
+            "print".into(),
+            Value::Func(Func::Native(builtin::print)),
+            Constness::Const,
+            Type::Func(vec![Type::BuiltinVariadic], Box::new(Type::None)),
+        );
+        let _ = env.define(
+            "printline".into(),
+            Value::Func(Func::Native(builtin::println)),
+            Constness::Const,
+            Type::Func(vec![Type::BuiltinVariadic], Box::new(Type::None)),
+        );
+        let _ = env.define(
+            "len".into(),
+            Value::Func(Func::Native(builtin::len)),
+            Constness::Const,
+            Type::Func(vec![Type::BuiltinVariadic], Box::new(Type::Int)),
+        );
+        let _ = env.define(
+            "range".into(),
+            Value::Func(Func::Native(builtin::range)),
+            Constness::Const,
+            Type::Func(
+                vec![Type::Int, Type::Int, Type::Int],
+                Box::new(Type::List(Box::new(Type::Int))),
+            ),
+        );
+        let _ = env.define(
+            "inputchar".into(),
+            Value::Func(Func::Native(builtin::inputchar)),
+            Constness::Const,
+            Type::Func(vec![], Box::new(Type::Str)),
+        );
+        let _ = env.define(
+            "inputline".into(),
+            Value::Func(Func::Native(builtin::inline)),
+            Constness::Const,
+            Type::Func(vec![], Box::new(Type::Str)),
+        );
+        let _ = env.define(
+            "inputall".into(),
+            Value::Func(Func::Native(builtin::inall)),
+            Constness::Const,
+            Type::Func(vec![], Box::new(Type::Str)),
+        );
         env
     }
 }

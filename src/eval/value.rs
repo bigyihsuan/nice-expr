@@ -1,8 +1,16 @@
 use std::{cell::RefCell, cmp::Ordering, collections::HashMap, hash::Hash, rc::Rc};
 
-use crate::{parse::ast::Expr, prelude::RuntimeError};
+use itertools::Itertools;
 
-use super::{env::SEnv, r#type::Type};
+use crate::{
+    parse::ast::{Declaration, Expr},
+    prelude::RuntimeError,
+};
+
+use super::{
+    env::{Env, SEnv},
+    r#type::Type,
+};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -14,8 +22,20 @@ pub enum Value {
     Bool(bool),
     List(Vec<Value>),
     Map(HashMap<Value, Value>),
-    Func(Function),
+    Func(Func),
 }
+
+#[derive(Debug, Clone)]
+pub enum Func {
+    Native(NativeFunc),
+    Declared {
+        decls: Vec<Expr>,
+        ret: Type,
+        body: Vec<Expr>,
+    },
+}
+
+pub type NativeFunc = fn(args: &[Value]) -> Result<Value, RuntimeError>;
 
 impl Value {
     pub fn to_type(&self) -> Result<Type, RuntimeError> {
@@ -44,14 +64,43 @@ impl Value {
                         .unwrap_or_else(|| Ok(Type::None))?;
                 Ok(Type::Map(Box::new(k), Box::new(v)))
             }
-            Value::Func(_) => todo!(),
             Value::Break(v) => {
                 let v = v.to_type()?;
                 Ok(Type::Break(Box::new(v)))
             }
+            Value::Func(Func::Declared {
+                decls: args,
+                ret,
+                body: _,
+            }) => {
+                let args = args
+                    .into_iter()
+                    .filter_map(|decl| {
+                        if let Expr::Declaration(decl) = decl {
+                            match decl {
+                                Declaration::Const {
+                                    name: _,
+                                    type_name,
+                                    expr: _,
+                                } => Some(type_name.clone()),
+                                Declaration::Var {
+                                    name: _,
+                                    type_name,
+                                    expr: _,
+                                } => Some(type_name.clone()),
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                    .collect_vec();
+                Ok(Type::Func(args, Box::new(ret.clone())))
+            }
+            Value::Func(Func::Native(_)) => todo!(),
         }
     }
 
+    // returns if all elements in value are of the same type
     pub fn is_homogeneous(&self) -> bool {
         match self {
             Value::None => true,
@@ -69,8 +118,9 @@ impl Value {
                 .map(|e| e.0.is_homogeneous() && e.1.is_homogeneous())
                 .reduce(|acc, e| acc && e)
                 .unwrap_or(false),
-            Value::Func(_) => todo!(),
             Value::Break(v) => v.is_homogeneous(),
+            Value::Func(Func::Declared { .. }) => true,
+            Value::Func(Func::Native(_)) => todo!(),
         }
     }
 
@@ -85,6 +135,7 @@ impl Value {
     pub fn default(t: Type) -> Self {
         match t {
             Type::None => Value::None,
+            Type::BuiltinVariadic => Value::None,
             Type::Int => Value::Int(0),
             Type::Dec => Value::Dec(0.0),
             Type::Str => Value::Str(String::new()),
@@ -92,6 +143,7 @@ impl Value {
             Type::List(_) => Value::List(Vec::new()),
             Type::Map(_, _) => Value::Map(HashMap::new()),
             Type::Break(box t) => Value::Break(Box::new(Self::default(t))),
+            Type::Func(_, _) => todo!("what to do with default func value"), // TODO: what to do with default func value
         }
     }
 }
@@ -364,40 +416,4 @@ impl TryFrom<&Value> for HashMap<Value, Value> {
             }),
         }
     }
-}
-
-impl TryFrom<Value> for Function {
-    type Error = RuntimeError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        let t = value.to_type()?;
-        match value.unbreak() {
-            Value::Func(f) => Ok(f.clone()),
-            _ => Err(RuntimeError::MismatchedTypes {
-                got: vec![t],
-                expected: vec![Type::Bool],
-            }),
-        }
-    }
-}
-impl TryFrom<&Value> for Function {
-    type Error = RuntimeError;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        let t = value.to_type()?;
-        match value.unbreak() {
-            Value::Func(f) => Ok(f.clone()),
-            _ => Err(RuntimeError::MismatchedTypes {
-                got: vec![t],
-                expected: vec![Type::Bool],
-            }),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Function {
-    env: SEnv,
-    args: Vec<Value>,
-    block: Expr,
 }

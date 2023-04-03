@@ -1,0 +1,656 @@
+file: Some("example/returning-funcs.ne")
+```
+// add is a generator function
+const add is func(int) func(int)int func(const x is int) func(int)int {
+    return func(const n is int)int {
+        var inner is int x;
+        return n + inner;
+    };
+};
+
+const addFive is func(int)int add(5);
+
+printline(addFive(10)); // 15
+```
+
+Const
+Ident("add")
+Is
+Func
+LeftParen
+IntTypename
+RightParen
+Func
+LeftParen
+IntTypename
+RightParen
+IntTypename
+Func
+LeftParen
+Const
+Ident("x")
+Is
+IntTypename
+RightParen
+Func
+LeftParen
+IntTypename
+RightParen
+IntTypename
+LeftBrace
+Return
+Func
+LeftParen
+Const
+Ident("n")
+Is
+IntTypename
+RightParen
+IntTypename
+LeftBrace
+Var
+Ident("inner")
+Is
+IntTypename
+Ident("x")
+Semicolon
+Return
+Ident("n")
+Plus
+Ident("inner")
+Semicolon
+RightBrace
+Semicolon
+RightBrace
+Semicolon
+Const
+Ident("addFive")
+Is
+Func
+LeftParen
+IntTypename
+RightParen
+IntTypename
+Ident("add")
+LeftParen
+IntLit(5)
+RightParen
+Semicolon
+Ident("printline")
+LeftParen
+Ident("addFive")
+LeftParen
+IntLit(10)
+RightParen
+RightParen
+Semicolon
+
+[
+    Declaration(
+        Const {
+            name: "add",
+            type_name: Func(
+                [
+                    Int,
+                ],
+                Func(
+                    [
+                        Int,
+                    ],
+                    Int,
+                ),
+            ),
+            expr: Some(
+                FunctionDefinition {
+                    args: [
+                        Declaration(
+                            Const {
+                                name: "x",
+                                type_name: Int,
+                                expr: None,
+                            },
+                        ),
+                    ],
+                    ret: Func(
+                        [
+                            Int,
+                        ],
+                        Int,
+                    ),
+                    body: [
+                        Return(
+                            Some(
+                                FunctionDefinition {
+                                    args: [
+                                        Declaration(
+                                            Const {
+                                                name: "n",
+                                                type_name: Int,
+                                                expr: None,
+                                            },
+                                        ),
+                                    ],
+                                    ret: Int,
+                                    body: [
+                                        Declaration(
+                                            Var {
+                                                name: "inner",
+                                                type_name: Int,
+                                                expr: Some(
+                                                    Identifier(
+                                                        "x",
+                                                    ),
+                                                ),
+                                            },
+                                        ),
+                                        Return(
+                                            Some(
+                                                Addition(
+                                                    BinaryExpr {
+                                                        left: Identifier(
+                                                            "n",
+                                                        ),
+                                                        op: Add,
+                                                        right: Identifier(
+                                                            "inner",
+                                                        ),
+                                                    },
+                                                ),
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ),
+                        ),
+                    ],
+                },
+            ),
+        },
+    ),
+    Declaration(
+        Const {
+            name: "addFive",
+            type_name: Func(
+                [
+                    Int,
+                ],
+                Int,
+            ),
+            expr: Some(
+                FunctionCall {
+                    name: "add",
+                    args: [
+                        Literal(
+                            Int(
+                                5,
+                            ),
+                        ),
+                    ],
+                },
+            ),
+        },
+    ),
+    FunctionCall {
+        name: "printline",
+        args: [
+            FunctionCall {
+                name: "addFive",
+                args: [
+                    Literal(
+                        Int(
+                            10,
+                        ),
+                    ),
+                ],
+            },
+        ],
+    },
+]
+
+RefCell {
+    value: Env {
+        parent: Some(
+            RefCell {
+                value: Env {
+                    parent: None,
+                    values: {
+                        "printline": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f65d0,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    BuiltinVariadic,
+                                ],
+                                None,
+                            ),
+                        },
+                        "inputchar": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f7010,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [],
+                                Str,
+                            ),
+                        },
+                        "print": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f6440,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    BuiltinVariadic,
+                                ],
+                                None,
+                            ),
+                        },
+                        "len": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f6770,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    BuiltinVariadic,
+                                ],
+                                Int,
+                            ),
+                        },
+                        "add": ValueEntry {
+                            v: Func(
+                                Declared {
+                                    decls: [
+                                        Declaration(
+                                            Const {
+                                                name: "x",
+                                                type_name: Int,
+                                                expr: None,
+                                            },
+                                        ),
+                                    ],
+                                    ret: Func(
+                                        [
+                                            Int,
+                                        ],
+                                        Int,
+                                    ),
+                                    body: [
+                                        Return(
+                                            Some(
+                                                FunctionDefinition {
+                                                    args: [
+                                                        Declaration(
+                                                            Const {
+                                                                name: "n",
+                                                                type_name: Int,
+                                                                expr: None,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    ret: Int,
+                                                    body: [
+                                                        Declaration(
+                                                            Var {
+                                                                name: "inner",
+                                                                type_name: Int,
+                                                                expr: Some(
+                                                                    Identifier(
+                                                                        "x",
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ),
+                                                        Return(
+                                                            Some(
+                                                                Addition(
+                                                                    BinaryExpr {
+                                                                        left: Identifier(
+                                                                            "n",
+                                                                        ),
+                                                                        op: Add,
+                                                                        right: Identifier(
+                                                                            "inner",
+                                                                        ),
+                                                                    },
+                                                                ),
+                                                            ),
+                                                        ),
+                                                    ],
+                                                },
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    Int,
+                                ],
+                                Func(
+                                    [
+                                        Int,
+                                    ],
+                                    Int,
+                                ),
+                            ),
+                        },
+                        "range": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f6b00,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    Int,
+                                    Int,
+                                    Int,
+                                ],
+                                List(
+                                    Int,
+                                ),
+                            ),
+                        },
+                        "inputall": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f74a0,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [],
+                                Str,
+                            ),
+                        },
+                        "inputline": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f71b0,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [],
+                                Str,
+                            ),
+                        },
+                    },
+                },
+            },
+        ),
+        values: {
+            "x": ValueEntry {
+                v: Int(
+                    5,
+                ),
+                c: Const,
+                t: Int,
+            },
+        },
+    },
+}
+RefCell {
+    value: Env {
+        parent: Some(
+            RefCell {
+                value: Env {
+                    parent: None,
+                    values: {
+                        "printline": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f65d0,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    BuiltinVariadic,
+                                ],
+                                None,
+                            ),
+                        },
+                        "inputchar": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f7010,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [],
+                                Str,
+                            ),
+                        },
+                        "print": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f6440,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    BuiltinVariadic,
+                                ],
+                                None,
+                            ),
+                        },
+                        "addFive": ValueEntry {
+                            v: Break(
+                                Func(
+                                    Declared {
+                                        decls: [
+                                            Declaration(
+                                                Const {
+                                                    name: "n",
+                                                    type_name: Int,
+                                                    expr: None,
+                                                },
+                                            ),
+                                        ],
+                                        ret: Int,
+                                        body: [
+                                            Declaration(
+                                                Var {
+                                                    name: "inner",
+                                                    type_name: Int,
+                                                    expr: Some(
+                                                        Identifier(
+                                                            "x",
+                                                        ),
+                                                    ),
+                                                },
+                                            ),
+                                            Return(
+                                                Some(
+                                                    Addition(
+                                                        BinaryExpr {
+                                                            left: Identifier(
+                                                                "n",
+                                                            ),
+                                                            op: Add,
+                                                            right: Identifier(
+                                                                "inner",
+                                                            ),
+                                                        },
+                                                    ),
+                                                ),
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    Int,
+                                ],
+                                Int,
+                            ),
+                        },
+                        "len": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f6770,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    BuiltinVariadic,
+                                ],
+                                Int,
+                            ),
+                        },
+                        "add": ValueEntry {
+                            v: Func(
+                                Declared {
+                                    decls: [
+                                        Declaration(
+                                            Const {
+                                                name: "x",
+                                                type_name: Int,
+                                                expr: None,
+                                            },
+                                        ),
+                                    ],
+                                    ret: Func(
+                                        [
+                                            Int,
+                                        ],
+                                        Int,
+                                    ),
+                                    body: [
+                                        Return(
+                                            Some(
+                                                FunctionDefinition {
+                                                    args: [
+                                                        Declaration(
+                                                            Const {
+                                                                name: "n",
+                                                                type_name: Int,
+                                                                expr: None,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    ret: Int,
+                                                    body: [
+                                                        Declaration(
+                                                            Var {
+                                                                name: "inner",
+                                                                type_name: Int,
+                                                                expr: Some(
+                                                                    Identifier(
+                                                                        "x",
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ),
+                                                        Return(
+                                                            Some(
+                                                                Addition(
+                                                                    BinaryExpr {
+                                                                        left: Identifier(
+                                                                            "n",
+                                                                        ),
+                                                                        op: Add,
+                                                                        right: Identifier(
+                                                                            "inner",
+                                                                        ),
+                                                                    },
+                                                                ),
+                                                            ),
+                                                        ),
+                                                    ],
+                                                },
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    Int,
+                                ],
+                                Func(
+                                    [
+                                        Int,
+                                    ],
+                                    Int,
+                                ),
+                            ),
+                        },
+                        "range": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f6b00,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [
+                                    Int,
+                                    Int,
+                                    Int,
+                                ],
+                                List(
+                                    Int,
+                                ),
+                            ),
+                        },
+                        "inputall": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f74a0,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [],
+                                Str,
+                            ),
+                        },
+                        "inputline": ValueEntry {
+                            v: Func(
+                                Native(
+                                    0x00005565926f71b0,
+                                ),
+                            ),
+                            c: Const,
+                            t: Func(
+                                [],
+                                Str,
+                            ),
+                        },
+                    },
+                },
+            },
+        ),
+        values: {
+            "n": ValueEntry {
+                v: Int(
+                    10,
+                ),
+                c: Const,
+                t: Int,
+            },
+        },
+    },
+}
