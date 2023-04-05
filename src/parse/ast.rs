@@ -13,7 +13,7 @@ pub enum Expr {
         args: Vec<Expr>,
     },
     FunctionDefinition {
-        args: Vec<Expr>, // declarations
+        args: Vec<Declaration>,
         ret: Type,
         body: Program,
     },
@@ -34,7 +34,7 @@ pub enum Expr {
         when_false: Option<Box<Expr>>,
     },
     For {
-        vars: Vec<Expr>, // declarations
+        vars: Vec<Declaration>,
         body: Program,
     },
     Break(Option<Box<Expr>>),

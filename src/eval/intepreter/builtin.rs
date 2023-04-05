@@ -38,26 +38,21 @@ pub fn format_value(value: &Value) -> String {
             decls: args,
             ret,
             body: _,
+            env: _,
         }) => {
             let args = args
                 .into_iter()
-                .filter_map(|decl| {
-                    if let Expr::Declaration(decl) = decl {
-                        match decl {
-                            Declaration::Const {
-                                name,
-                                type_name,
-                                expr: _,
-                            } => Some((name, format!("{type_name}"))),
-                            Declaration::Var {
-                                name,
-                                type_name,
-                                expr: _,
-                            } => Some((name, format!("{type_name}"))),
-                        }
-                    } else {
-                        None
-                    }
+                .filter_map(|decl| match decl {
+                    Declaration::Const {
+                        name,
+                        type_name,
+                        expr: _,
+                    } => Some((name, format!("{type_name}"))),
+                    Declaration::Var {
+                        name,
+                        type_name,
+                        expr: _,
+                    } => Some((name, format!("{type_name}"))),
                 })
                 .map(|(n, t)| format!("{n} {t}"))
                 .collect_vec()

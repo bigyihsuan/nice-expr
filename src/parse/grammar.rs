@@ -21,7 +21,7 @@ peg::parser! {
             --
             expr:assignment() { expr }
             --
-            expr:declaration() { expr }
+            expr:declaration_expr() { expr }
             --
             expr:literal() { expr }
             --
@@ -115,14 +115,16 @@ peg::parser! {
         pub rule block() -> Program
         = [Token::LeftBrace] program:program() [Token::RightBrace] { program }
 
-        pub rule declaration() -> Expr
+        pub rule declaration_expr() -> Expr
+        = d:declaration() { Expr::Declaration(d) }
+        pub rule declaration() -> Declaration
         = declaration_var() / declaration_const()
-        pub rule declaration_var() -> Expr
+        pub rule declaration_var() -> Declaration
         = [Token::Var] name:identifier() [Token::Is] type_name:type_name() value:expr()?
-        { Expr::Declaration(Declaration::Var { name, type_name, expr: value.map(|e| Box::new(e)) })}
-        pub rule declaration_const() -> Expr
+        { Declaration::Var { name, type_name, expr: value.map(|e| Box::new(e)) }}
+        pub rule declaration_const() -> Declaration
         = [Token::Const] name:identifier() [Token::Is] type_name:type_name() value:expr()?
-        { Expr::Declaration(Declaration::Const { name, type_name, expr: value.map(|e| Box::new(e)) })}
+        { Declaration::Const { name, type_name, expr: value.map(|e| Box::new(e)) }}
 
         pub rule assignment() -> Expr
         = [Token::Set] name:identifier() op:assignment_operator() value:expr()

@@ -42,7 +42,7 @@ even the loops
 * [/] Functions
   * [x] return value with `return` keyword
   * [x] recursion
-  * [ ] functions returned from functions can access variables of the outer functions
+  * [x] functions act as closures (inner functions can use outer functions' variables)
 * [x] Conditionals:
   * [x] if-else
   * [x] if-else if-else

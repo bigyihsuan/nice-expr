@@ -34,24 +34,18 @@ impl Interpreter {
         Rc::new(RefCell::new(Env::default()))
     }
 
-    pub fn interpret_program(&self, program: &Program, env: &SEnv) -> Result<(), RuntimeError> {
+    pub fn interpret_program(&self, program: &Program, env: &SEnv) -> Result<Value, RuntimeError> {
+        let mut last_value = Value::None;
         for expr in program {
-            let value = self.interpret_expr(expr, env)?;
-            if let Value::None = value {
-                continue;
-            }
+            last_value = self.interpret_expr(expr, env)?;
         }
-        Ok(())
+        Ok(last_value)
     }
 
     pub fn interpret_expr(&self, expr: &Expr, env: &SEnv) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Literal(l) => self.interpret_literal(l, env),
-            Expr::Identifier(name) => env
-                .borrow()
-                .get(name.clone())
-                .ok_or_else(|| RuntimeError::IdentifierNotFound(name.clone()))
-                .and_then(|ValueEntry { v, c: _, t: _ }| Ok(v)),
+            Expr::Identifier(name) => Ok(env.borrow().get(name.clone())?.v),
             Expr::Declaration(d) => self.interpret_declaration(d, env),
             Expr::Assignment(a) => self.interpret_assignment(a, env),
             Expr::FunctionCall { name, args } => self.interpret_function_call(name, args, env),
@@ -66,14 +60,7 @@ impl Interpreter {
 
             Expr::Block(exprs) => {
                 let block_env = Env::extend(env.clone());
-                let mut last_val = Value::None;
-                for expr in exprs {
-                    last_val = self.interpret_expr(&expr, &block_env)?;
-                    if let Value::Break(_) = last_val {
-                        return Ok(last_val);
-                    }
-                }
-                return Ok(last_val);
+                return self.interpret_program(exprs, &block_env);
             }
             Expr::Return(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
             Expr::Return(None) => Ok(Value::Break(Box::new(Value::None))),
@@ -93,9 +80,9 @@ impl Interpreter {
             }
             Expr::For { vars, body } => {
                 // init the vars
-                let loop_env = Env::extend(env.clone());
+                let mut loop_env = Env::extend(env.clone());
                 for v in vars {
-                    self.interpret_expr(v, &loop_env)?;
+                    self.interpret_declaration(v, &mut loop_env)?;
                 }
                 // run the loop
                 loop {
@@ -109,11 +96,9 @@ impl Interpreter {
             }
             Expr::Break(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
             Expr::Break(None) => Ok(Value::Break(Box::new(Value::None))),
-            Expr::FunctionDefinition { args, ret, body } => Ok(Value::Func(Func::Declared {
-                decls: args.clone(),
-                ret: ret.clone(),
-                body: body.clone(),
-            })),
+            Expr::FunctionDefinition { args, ret, body } => {
+                self.interpret_function_definition(args, ret, body, env)
+            }
         }
     }
 
@@ -203,10 +188,7 @@ impl Interpreter {
         assignment: &Assignment,
         env: &SEnv,
     ) -> Result<Value, RuntimeError> {
-        let entry = env
-            .borrow()
-            .get(assignment.name.clone())
-            .ok_or(RuntimeError::IdentifierNotFound(assignment.name.clone()))?;
+        let entry = env.borrow().get(assignment.name.clone())?;
         let mut result = entry.v;
         let value = self.interpret_expr(assignment.expr.as_ref(), env)?;
 
@@ -312,52 +294,27 @@ impl Interpreter {
             .filter_map(|r| r.ok())
             .collect::<Vec<Value>>();
 
-        let entry = env
-            .borrow()
-            .get(name.into())
-            .ok_or(RuntimeError::IdentifierNotFound(name.into()))?;
+        let entry = env.borrow().get(name.into())?;
         let ValueEntry { v, t: _, c: _ } = entry;
         let v = v.unbreak();
+
         match v {
-            Value::Func(Func::Native(f)) => f(&args),
+            Value::Func(Func::Native(f)) => f(&args), // builtin
             Value::Func(Func::Declared {
                 decls,
                 ret: _,
                 body,
+                env: closed_env,
             }) => {
+                // user-declared
                 assert_exactly_args(decls.len(), args.len())?;
-                // make new env for the inner function
-                let func_env = Env::extend(env.clone());
-                for (decl, arg) in decls.into_iter().zip(args.into_iter()) {
-                    if let Expr::Declaration(decl) = decl {
-                        self.interpret_declaration(&decl, &func_env)?;
-                        let _ = match decl {
-                            Declaration::Const {
-                                name,
-                                type_name,
-                                expr: _,
-                            } => func_env.borrow_mut().define_unchecked(
-                                name,
-                                arg,
-                                Constness::Const,
-                                type_name,
-                            ),
-                            Declaration::Var {
-                                name,
-                                type_name,
-                                expr: _,
-                            } => func_env.borrow_mut().define_unchecked(
-                                name,
-                                arg,
-                                Constness::Var,
-                                type_name,
-                            ),
-                        };
-                    }
+                for (decl, arg) in decls.iter().zip(args.into_iter()) {
+                    // fill the variables with the argument values
+                    let (Declaration::Const { name, .. } | Declaration::Var { name, .. }) = &decl;
+                    closed_env.borrow_mut().set(name.into(), arg, true)?;
                 }
-                println!("{func_env:#?}");
                 // run the function body
-                self.interpret_expr(&Expr::Block(body), &func_env)
+                self.interpret_expr(&Expr::Block(body), &closed_env)
             }
             _ => Err(RuntimeError::CallingNonCallable { name: name.into() }),
         }
@@ -497,5 +454,26 @@ impl Interpreter {
                 types: vec![l_type, r_type],
             }),
         }
+    }
+
+    fn interpret_function_definition(
+        &self,
+        args: &[Declaration],
+        ret: &Type,
+        body: &[Expr],
+        env: &SEnv,
+    ) -> Result<Value, RuntimeError> {
+        // set up any variables in the args
+        let mut func_env = Env::extend(env.clone());
+        for decl in args {
+            self.interpret_declaration(decl, &mut func_env)?;
+        }
+
+        Ok(Value::Func(Func::Declared {
+            decls: args.into(),
+            ret: ret.clone(),
+            body: body.into(),
+            env: func_env.clone(),
+        }))
     }
 }

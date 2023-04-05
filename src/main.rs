@@ -1,6 +1,8 @@
 #![feature(box_patterns)]
 #![feature(let_chains)]
 
+use itertools::Itertools;
+
 use crate::{
     args::parse_args,
     eval::intepreter::{builtin, Interpreter},
@@ -38,9 +40,11 @@ fn main() {
                     let env = Interpreter::default_env();
                     let values = interpeter.interpret_program(&ast, &env);
                     match values {
-                        Ok(()) => {
+                        Ok(_) => {
                             println!();
-                            for (name, value_entry) in env.borrow().identifiers() {
+                            let mut entries = env.borrow().identifiers().into_iter().collect_vec();
+                            entries.sort_by(|(l, _), (r, _)| l.partial_cmp(r).unwrap());
+                            for (name, value_entry) in entries {
                                 let value = value_entry.v;
                                 let con = value_entry.c;
                                 let t = value_entry.t;

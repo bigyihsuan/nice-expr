@@ -33,17 +33,26 @@ impl Env {
     }
 
     pub fn identifiers(&self) -> HashMap<String, ValueEntry> {
-        self.values.clone()
+        if let Some(parent) = &self.parent {
+            let parent_values = parent.borrow().identifiers();
+            self.values
+                .clone()
+                .into_iter()
+                .chain(parent_values.into_iter())
+                .collect()
+        } else {
+            self.values.clone()
+        }
     }
 
-    pub fn get(&self, name: String) -> Option<ValueEntry> {
+    pub fn get(&self, name: String) -> Result<ValueEntry, RuntimeError> {
         // try this Env first
         if let Some(value) = self.values.get(&name) {
-            Some(value.clone())
+            Ok(value.clone())
         } else if let Some(parent) = &self.parent {
             parent.borrow().get(name)
         } else {
-            None
+            Err(RuntimeError::IdentifierNotFound(name.clone()))
         }
     }
 
@@ -102,24 +111,6 @@ impl Env {
             Err(name)
         }
     }
-    pub fn define_unchecked(
-        &mut self,
-        name: String,
-        value: Value,
-        constness: Constness,
-        ident_type: Type,
-    ) -> Result<Value, String> {
-        self.values.insert(
-            name,
-            ValueEntry {
-                v: value.clone(),
-                c: constness,
-                t: ident_type,
-            },
-        );
-        Ok(value)
-    }
-
     pub fn def_var(
         &mut self,
         name: String,
@@ -135,6 +126,14 @@ impl Env {
         type_name: Type,
     ) -> Result<Value, String> {
         self.define(name, value, Constness::Const, type_name)
+    }
+
+    pub fn undefine(&mut self, name: String) {
+        if self.values.contains_key(&name) {
+            self.values.remove(&name);
+        } else if let Some(parent) = &self.parent {
+            parent.borrow_mut().undefine(name);
+        }
     }
 }
 

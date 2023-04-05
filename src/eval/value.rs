@@ -29,9 +29,10 @@ pub enum Value {
 pub enum Func {
     Native(NativeFunc),
     Declared {
-        decls: Vec<Expr>,
+        decls: Vec<Declaration>,
         ret: Type,
         body: Vec<Expr>,
+        env: SEnv,
     },
 }
 
@@ -72,26 +73,21 @@ impl Value {
                 decls: args,
                 ret,
                 body: _,
+                env: _,
             }) => {
                 let args = args
                     .into_iter()
-                    .filter_map(|decl| {
-                        if let Expr::Declaration(decl) = decl {
-                            match decl {
-                                Declaration::Const {
-                                    name: _,
-                                    type_name,
-                                    expr: _,
-                                } => Some(type_name.clone()),
-                                Declaration::Var {
-                                    name: _,
-                                    type_name,
-                                    expr: _,
-                                } => Some(type_name.clone()),
-                            }
-                        } else {
-                            None
-                        }
+                    .filter_map(|decl| match decl {
+                        Declaration::Const {
+                            name: _,
+                            type_name,
+                            expr: _,
+                        } => Some(type_name.clone()),
+                        Declaration::Var {
+                            name: _,
+                            type_name,
+                            expr: _,
+                        } => Some(type_name.clone()),
                     })
                     .collect_vec();
                 Ok(Type::Func(args, Box::new(ret.clone())))
