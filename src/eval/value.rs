@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, collections::HashMap, hash::Hash, rc::Rc};
+use std::{cmp::Ordering, collections::HashMap, hash::Hash};
 
 use itertools::Itertools;
 
@@ -7,10 +7,7 @@ use crate::{
     prelude::RuntimeError,
 };
 
-use super::{
-    env::{Env, SEnv},
-    r#type::Type,
-};
+use super::{env::SEnv, r#type::Type};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -23,6 +20,7 @@ pub enum Value {
     List(Vec<Value>),
     Map(HashMap<Value, Value>),
     Func(Func),
+    Type(Type),
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +34,7 @@ pub enum Func {
     },
 }
 
-pub type NativeFunc = fn(args: &[Value]) -> Result<Value, RuntimeError>;
+pub type NativeFunc = (String, fn(args: &[Value]) -> Result<Value, RuntimeError>);
 
 impl Value {
     pub fn to_type(&self) -> Result<Type, RuntimeError> {
@@ -92,7 +90,11 @@ impl Value {
                     .collect_vec();
                 Ok(Type::Func(args, Box::new(ret.clone())))
             }
-            Value::Func(Func::Native(_)) => todo!(),
+            Value::Func(Func::Native(n)) => Ok(Type::Func(
+                vec![Type::BuiltinVariadic],
+                Box::new(Type::None),
+            )),
+            Value::Type(t) => Ok(t.clone()),
         }
     }
 
@@ -117,6 +119,7 @@ impl Value {
             Value::Break(v) => v.is_homogeneous(),
             Value::Func(Func::Declared { .. }) => true,
             Value::Func(Func::Native(_)) => todo!(),
+            Value::Type(_) => true, // are types homogeneous?
         }
     }
 

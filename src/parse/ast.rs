@@ -38,6 +38,9 @@ pub enum Expr {
         body: Program,
     },
     Break(Option<Box<Expr>>),
+
+    TypeName(Type),
+    TypeCast(Box<Expr>, Type),
 }
 
 #[derive(Debug, Clone)]

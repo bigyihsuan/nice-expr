@@ -51,7 +51,7 @@ even the loops
   * [x] `break`
   * [x] for
   * [x] for-with-local-variables
-* [ ] Type conversions `type(val)`
+* [ ] Type conversions `val as type`
 
 ## Examples?
 

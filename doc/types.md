@@ -14,6 +14,25 @@
 * `list[T]`: list
 * `map[K]V`: map
 
+### Casting
+
+Cast a value to a type using `val as T`, where `val` is a value and `T` is a type.
+
+| ↓ `val`; → `T` | `int` | `dec` | `str` | `bool` | `list[T]` | `map[K]V` |
+| -------------- | ----- | ----- | ----- | ------ | --------- | --------- |
+| `int`          | ✅     | ✅     | ✅     | ✅      |           |           |
+| `dec`          | ✅     | ✅     | ✅     | ✅      |           |           |
+| `str`          | ✅     | ✅     | ✅     | ✅      |           |           |
+| `bool`         | ✅     | ✅     | ✅     | ✅      |           |           |
+| `list[T]`      |       |       |       |        | ✅         |           |
+| `map[K]V`      |       |       |       |        |           | ✅         |
+
+When casting `list` and `map`, it will attempt to cast all the contained elements to the new type.
+
+Trying a combination not in the above table is a runtime error.
+
+When casting anything to bool, the returned value is whether or not the value is equal to to the zero value of its type.
+
 ## Zero-Values
 
 Each type has a zero value when declared on a variable with no explicit assignment.
@@ -39,6 +58,7 @@ Operators on the same row have the same precedence and are grouped left-to-right
 | Op Kind        | Operator      |
 | -------------- | ------------- |
 | Parens         | `()`          |
+| Type Cast      | `as`          |
 | Indexing       | `_`           |
 | Unary Minus    | `-a`          |
 | Multiplication | `* / %`       |

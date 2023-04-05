@@ -18,21 +18,15 @@ peg::parser! {
 
         pub rule expr() -> Expr = precedence!{
             expr:function_call() { expr }
-            --
             expr:assignment() { expr }
-            --
             expr:declaration_expr() { expr }
-            --
             expr:literal() { expr }
-            --
             expr:expr_identifier() { expr }
             --
             [Token::Return] expr:(@) { Expr::Return(Some(Box::new(expr))) }
-            --
             [Token::Return] { Expr::Return(None) }
             --
             [Token::Break] expr:(@) { Expr::Break(Some(Box::new(expr))) }
-            --
             [Token::Break] { Expr::Break(None) }
             --
             [Token::Not] expr:(@) {
@@ -86,15 +80,17 @@ peg::parser! {
                 }, right: Box::new(right)})
             }
             --
+            expr:(@) [Token::As] t:type_name() { Expr::TypeCast(Box::new(expr), t) }
+            --
             [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
             --
             expr:if_expr() { expr }
-            --
             expr:for_expr() { expr }
-            --
             expr:function_definition() { expr }
             --
             expr:block_expr() { expr }
+            --
+            expr:type_name_expr() { expr }
         }
 
         pub rule function_definition() -> Expr
@@ -193,6 +189,8 @@ peg::parser! {
         =  l:literal() [Token::Colon] r:literal()
         { (l,r) }
 
+        pub rule type_name_expr() -> Expr
+        = expr:type_name() { Expr::TypeName(expr) }
         pub rule type_name() -> Type
         = simple_type() / compound_type()
 

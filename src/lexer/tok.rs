@@ -103,6 +103,8 @@ pub enum Token {
     Then,
     #[token("else")]
     Else,
+    #[token("as")]
+    As,
     // type keywords
     #[token("int")]
     IntTypename,

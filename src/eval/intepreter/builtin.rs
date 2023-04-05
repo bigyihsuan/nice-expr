@@ -63,6 +63,7 @@ pub fn format_value(value: &Value) -> String {
         }
         Value::Func(Func::Native(_)) => format!("builtin_function"),
         Value::Break(box v) => format!("{}", format_value(v)),
+        Value::Type(t) => format!("{t}"),
     }
 }
 

@@ -99,6 +99,8 @@ impl Interpreter {
             Expr::FunctionDefinition { args, ret, body } => {
                 self.interpret_function_definition(args, ret, body, env)
             }
+            Expr::TypeName(t) => self.interpret_type_name(t, env),
+            Expr::TypeCast(expr, t) => self.interpret_type_cast(expr, t, env),
         }
     }
 
@@ -299,7 +301,7 @@ impl Interpreter {
         let v = v.unbreak();
 
         match v {
-            Value::Func(Func::Native(f)) => f(&args), // builtin
+            Value::Func(Func::Native(f)) => f.1(&args), // builtin
             Value::Func(Func::Declared {
                 decls,
                 ret: _,
@@ -475,5 +477,91 @@ impl Interpreter {
             body: body.into(),
             env: func_env.clone(),
         }))
+    }
+
+    fn interpret_type_name(&self, t: &Type, _env: &SEnv) -> Result<Value, RuntimeError> {
+        Ok(Value::Type(t.clone()))
+    }
+
+    fn interpret_type_cast(
+        &self,
+        expr: &Expr,
+        t: &Type,
+        env: &SEnv,
+    ) -> Result<Value, RuntimeError> {
+        let value = self.interpret_expr(expr, env)?;
+        if let Value::Type(t) = self.interpret_type_name(t, env)? {
+            self.cast_to_type(&value, &t)
+        } else {
+            Err(RuntimeError::NotImplemented)
+        }
+    }
+
+    fn cast_to_type(&self, value: &Value, t: &Type) -> Result<Value, RuntimeError> {
+        match (&value, &t) {
+            (Value::Int(i), Type::Int) => Ok(Value::Int(*i)),
+            (Value::Dec(i), Type::Int) => Ok(Value::Int(*i as i64)),
+            (Value::Str(i), Type::Int) => {
+                if let Ok(i) = parse_int::parse::<i64>(&i) {
+                    Ok(Value::Int(i))
+                } else {
+                    Err(RuntimeError::StringToValueParseFailed(
+                        value.clone(),
+                        t.clone(),
+                    ))
+                }
+            }
+            (Value::Bool(i), Type::Int) => Ok(Value::Int(*i as i64)),
+
+            (Value::Int(i), Type::Dec) => Ok(Value::Dec(*i as f64)),
+            (Value::Dec(i), Type::Dec) => Ok(Value::Dec(*i)),
+            (Value::Str(i), Type::Dec) => {
+                if let Ok(i) = parse_int::parse::<f64>(&i) {
+                    Ok(Value::Dec(i))
+                } else {
+                    Err(RuntimeError::StringToValueParseFailed(
+                        value.clone(),
+                        t.clone(),
+                    ))
+                }
+            }
+            (Value::Bool(i), Type::Dec) => Ok(Value::Dec(*i as i64 as f64)),
+
+            (Value::Int(i), Type::Str) => Ok(Value::Str(format!("{i}"))),
+            (Value::Dec(i), Type::Str) => Ok(Value::Str(format!("{i}"))),
+            (Value::Str(i), Type::Str) => Ok(Value::Str(format!("{i}"))),
+            (Value::Bool(i), Type::Str) => Ok(Value::Str(format!("{i}"))),
+
+            (Value::Int(i), Type::Bool) => Ok(Value::Bool(*i != 0)),
+            (Value::Dec(i), Type::Bool) => Ok(Value::Bool(*i != 0.0)),
+            (Value::Str(i), Type::Bool) => Ok(Value::Bool(*i != "")),
+            (Value::Bool(i), Type::Bool) => Ok(Value::Bool(*i)),
+
+            (Value::List(l), Type::List(t)) => {
+                let mut new_vals = Vec::new();
+
+                for e in l {
+                    new_vals.push(self.cast_to_type(e, t)?);
+                }
+
+                Ok(Value::List(new_vals))
+            }
+            (Value::Map(m), Type::Map(kt, vt)) => {
+                let mut new_vals = HashMap::new();
+
+                for (k, v) in m {
+                    let k = self.cast_to_type(k, kt)?;
+                    let v = self.cast_to_type(v, vt)?;
+                    new_vals.insert(k, v);
+                }
+
+                Ok(Value::Map(new_vals))
+            }
+
+            (_, _) => Err(RuntimeError::CannotCastValueToType(
+                value.clone(),
+                t.clone(),
+            )),
+        }
     }
 }

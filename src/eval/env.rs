@@ -142,25 +142,25 @@ impl Default for Env {
         let mut env = Self::new();
         let _ = env.define(
             "print".into(),
-            Value::Func(Func::Native(builtin::print)),
+            Value::Func(Func::Native(("print".into(), builtin::print))),
             Constness::Const,
             Type::Func(vec![Type::BuiltinVariadic], Box::new(Type::None)),
         );
         let _ = env.define(
             "printline".into(),
-            Value::Func(Func::Native(builtin::println)),
+            Value::Func(Func::Native(("println".into(), builtin::println))),
             Constness::Const,
             Type::Func(vec![Type::BuiltinVariadic], Box::new(Type::None)),
         );
         let _ = env.define(
             "len".into(),
-            Value::Func(Func::Native(builtin::len)),
+            Value::Func(Func::Native(("len".into(), builtin::len))),
             Constness::Const,
             Type::Func(vec![Type::BuiltinVariadic], Box::new(Type::Int)),
         );
         let _ = env.define(
             "range".into(),
-            Value::Func(Func::Native(builtin::range)),
+            Value::Func(Func::Native(("range".into(), builtin::range))),
             Constness::Const,
             Type::Func(
                 vec![Type::Int, Type::Int, Type::Int],
@@ -169,19 +169,19 @@ impl Default for Env {
         );
         let _ = env.define(
             "inputchar".into(),
-            Value::Func(Func::Native(builtin::inputchar)),
+            Value::Func(Func::Native(("inputchar".into(), builtin::inputchar))),
             Constness::Const,
             Type::Func(vec![], Box::new(Type::Str)),
         );
         let _ = env.define(
             "inputline".into(),
-            Value::Func(Func::Native(builtin::inline)),
+            Value::Func(Func::Native(("inline".into(), builtin::inline))),
             Constness::Const,
             Type::Func(vec![], Box::new(Type::Str)),
         );
         let _ = env.define(
             "inputall".into(),
-            Value::Func(Func::Native(builtin::inall)),
+            Value::Func(Func::Native(("inall".into(), builtin::inall))),
             Constness::Const,
             Type::Func(vec![], Box::new(Type::Str)),
         );

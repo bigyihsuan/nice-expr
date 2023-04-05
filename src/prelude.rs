@@ -109,7 +109,8 @@ pub enum RuntimeError {
     IndexOutOfBounds(Value, Value),
     KeyNotFound(Value, Value),
     CallingNonCallable { name: String },
-    // TODO: more runtime errors
+    CannotCastValueToType(Value, Type),
+    StringToValueParseFailed(Value, Type),
 }
 
 #[derive(Debug, Clone)]
