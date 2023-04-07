@@ -11,8 +11,8 @@ use unicode_reader::CodePoints;
 use crate::{
     eval::Constness,
     parse::ast::{
-        Assignment, BinaryExpr, BinaryOperator, Declaration, Expr, Literal, Operator, Program,
-        UnaryExpr,
+        Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, Literal, Operator,
+        Program, UnaryExpr,
     },
     prelude::{IOError, RuntimeError},
     util::{assert_at_least_args, assert_exactly_args},
@@ -94,6 +94,78 @@ impl Interpreter {
                     }
                 }
             }
+            Expr::ForIn {
+                vars,
+                box collection,
+                body,
+            } => {
+                let collection = self.interpret_expr(collection, env)?;
+                // init the vars
+                let mut loop_env = Env::extend(env.clone());
+                if vars.len() < 1 {
+                    return Err(RuntimeError::NotEnoughArguments {
+                        want: 1,
+                        got: vars.len(),
+                    });
+                }
+                for v in vars {
+                    self.interpret_declaration(v, &mut loop_env)?;
+                }
+                // check for the first decl to be a var
+                let first = vars.first().unwrap();
+                if let Declaration::Var(Decl { name, .. }) = first {
+                    let mut last_val = Value::None;
+                    match collection {
+                        Value::Str(s) => {
+                            for c in s.chars() {
+                                let c = Value::Str(c.into());
+                                loop_env.borrow_mut().set(name.clone(), c, false)?;
+                                for expr in body {
+                                    last_val = self.interpret_expr(&expr, &loop_env)?;
+                                    if let Value::Break(_) = last_val {
+                                        return Ok(last_val.unbreak());
+                                    }
+                                }
+                            }
+                        }
+                        Value::List(l) => {
+                            for e in l {
+                                loop_env.borrow_mut().set(name.clone(), e, false)?;
+                                for expr in body {
+                                    last_val = self.interpret_expr(&expr, &loop_env)?;
+                                    if let Value::Break(_) = last_val {
+                                        return Ok(last_val.unbreak());
+                                    }
+                                }
+                            }
+                        }
+                        Value::Map(m) => {
+                            for (k, _) in m {
+                                loop_env.borrow_mut().set(name.clone(), k, false)?;
+                                for expr in body {
+                                    last_val = self.interpret_expr(&expr, &loop_env)?;
+                                    if let Value::Break(_) = last_val {
+                                        return Ok(last_val.unbreak());
+                                    }
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(RuntimeError::MismatchedTypes {
+                                got: vec![collection.to_type()?],
+                                expected: vec![
+                                    Type::Str,
+                                    Type::List(Box::new(Type::None)),
+                                    Type::Map(Box::new(Type::None), Box::new(Type::None)),
+                                ],
+                            })
+                        }
+                    }
+                    Ok(last_val)
+                } else {
+                    return Err(RuntimeError::ForInFirstDeclMustBeVar);
+                }
+            }
             Expr::Break(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
             Expr::Break(None) => Ok(Value::Break(Box::new(Value::None))),
             Expr::FunctionDefinition { args, ret, body } => {
@@ -106,11 +178,11 @@ impl Interpreter {
 
     fn interpret_declaration(&self, decl: &Declaration, env: &SEnv) -> Result<Value, RuntimeError> {
         match decl {
-            Declaration::Const {
+            Declaration::Const(Decl {
                 name,
                 type_name: decl_type,
                 expr: value,
-            } => {
+            }) => {
                 let v = {
                     if let Some(v) = value {
                         self.interpret_expr(v, env)?
@@ -144,11 +216,11 @@ impl Interpreter {
                     Ok(v)
                 }
             }
-            Declaration::Var {
+            Declaration::Var(Decl {
                 name,
                 type_name: decl_type,
                 expr: value,
-            } => {
+            }) => {
                 let v = {
                     if let Some(v) = value {
                         self.interpret_expr(v, env)?
@@ -312,7 +384,8 @@ impl Interpreter {
                 assert_exactly_args(decls.len(), args.len())?;
                 for (decl, arg) in decls.iter().zip(args.into_iter()) {
                     // fill the variables with the argument values
-                    let (Declaration::Const { name, .. } | Declaration::Var { name, .. }) = &decl;
+                    let (Declaration::Const(Decl { name, .. })
+                    | Declaration::Var(Decl { name, .. })) = &decl;
                     closed_env.borrow_mut().set(name.into(), arg, true)?;
                 }
                 // run the function body

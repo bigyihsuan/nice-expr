@@ -5,7 +5,7 @@ use unicode_reader::CodePoints;
 
 use crate::{
     eval::value::{Func, NativeFunc, Value},
-    parse::ast::{Declaration, Expr},
+    parse::ast::{Decl, Declaration, Expr},
     prelude::{IOError, RuntimeError},
     util::{self, assert_at_least_args},
 };
@@ -43,16 +43,16 @@ pub fn format_value(value: &Value) -> String {
             let args = args
                 .into_iter()
                 .filter_map(|decl| match decl {
-                    Declaration::Const {
+                    Declaration::Const(Decl {
                         name,
                         type_name,
                         expr: _,
-                    } => Some((name, format!("{type_name}"))),
-                    Declaration::Var {
+                    }) => Some((name, format!("{type_name}"))),
+                    Declaration::Var(Decl {
                         name,
                         type_name,
                         expr: _,
-                    } => Some((name, format!("{type_name}"))),
+                    }) => Some((name, format!("{type_name}"))),
                 })
                 .map(|(n, t)| format!("{n} {t}"))
                 .collect_vec()

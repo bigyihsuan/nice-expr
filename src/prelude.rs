@@ -111,6 +111,7 @@ pub enum RuntimeError {
     CallingNonCallable { name: String },
     CannotCastValueToType(Value, Type),
     StringToValueParseFailed(Value, Type),
+    ForInFirstDeclMustBeVar,
 }
 
 #[derive(Debug, Clone)]

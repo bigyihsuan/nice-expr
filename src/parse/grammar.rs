@@ -2,8 +2,8 @@ use crate::{
     eval::r#type::Type,
     lexer::{tok::Token, TokenStream},
     parse::ast::{
-        Assignment, BinaryExpr, BinaryOperator, Declaration, Expr, Literal, Program, UnaryExpr,
-        UnaryOperator,
+        Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, Literal, Program,
+        UnaryExpr, UnaryOperator,
     },
 };
 
@@ -86,6 +86,7 @@ peg::parser! {
             --
             expr:if_expr() { expr }
             expr:for_expr() { expr }
+            expr:for_in_expr() { expr }
             expr:function_definition() { expr }
             --
             expr:block_expr() { expr }
@@ -105,6 +106,10 @@ peg::parser! {
         = [Token::For] vars:(declaration() ** [Token::Comma]) [Token::Comma]? body:block()
         { Expr::For{ vars, body } }
 
+        pub rule for_in_expr() -> Expr
+        = [Token::For] vars:(declaration() ** [Token::Comma]) [Token::Comma]? [Token::In] collection:expr() body:block()
+        { Expr::ForIn{ vars, collection: Box::new(collection), body } }
+
         pub rule block_expr() -> Expr
         = block:block() { Expr::Block(block) }
 
@@ -117,10 +122,10 @@ peg::parser! {
         = declaration_var() / declaration_const()
         pub rule declaration_var() -> Declaration
         = [Token::Var] name:identifier() [Token::Is] type_name:type_name() value:expr()?
-        { Declaration::Var { name, type_name, expr: value.map(|e| Box::new(e)) }}
+        { Declaration::Var(Decl{ name, type_name, expr: value.map(|e| Box::new(e)) })}
         pub rule declaration_const() -> Declaration
         = [Token::Const] name:identifier() [Token::Is] type_name:type_name() value:expr()?
-        { Declaration::Const { name, type_name, expr: value.map(|e| Box::new(e)) }}
+        { Declaration::Const(Decl{ name, type_name, expr: value.map(|e| Box::new(e)) })}
 
         pub rule assignment() -> Expr
         = [Token::Set] name:identifier() op:assignment_operator() value:expr()

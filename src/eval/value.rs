@@ -3,7 +3,7 @@ use std::{cmp::Ordering, collections::HashMap, hash::Hash};
 use itertools::Itertools;
 
 use crate::{
-    parse::ast::{Declaration, Expr},
+    parse::ast::{Decl, Declaration, Expr},
     prelude::RuntimeError,
 };
 
@@ -76,21 +76,21 @@ impl Value {
                 let args = args
                     .into_iter()
                     .filter_map(|decl| match decl {
-                        Declaration::Const {
+                        Declaration::Const(Decl {
                             name: _,
                             type_name,
                             expr: _,
-                        } => Some(type_name.clone()),
-                        Declaration::Var {
+                        }) => Some(type_name.clone()),
+                        Declaration::Var(Decl {
                             name: _,
                             type_name,
                             expr: _,
-                        } => Some(type_name.clone()),
+                        }) => Some(type_name.clone()),
                     })
                     .collect_vec();
                 Ok(Type::Func(args, Box::new(ret.clone())))
             }
-            Value::Func(Func::Native(n)) => Ok(Type::Func(
+            Value::Func(Func::Native(_)) => Ok(Type::Func(
                 vec![Type::BuiltinVariadic],
                 Box::new(Type::None),
             )),

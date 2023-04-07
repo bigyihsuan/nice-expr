@@ -27,7 +27,7 @@
             },
             "args": [
                 "-f",
-                "example/returning-funcs.ne",
+                "test/control-flow/for-in.ne",
             ],
         }
     ]

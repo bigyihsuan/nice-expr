@@ -37,6 +37,11 @@ pub enum Expr {
         vars: Vec<Declaration>,
         body: Program,
     },
+    ForIn {
+        vars: Vec<Declaration>,
+        collection: Box<Expr>,
+        body: Program,
+    },
     Break(Option<Box<Expr>>),
 
     TypeName(Type),
@@ -58,16 +63,15 @@ pub struct BinaryExpr {
 
 #[derive(Debug, Clone)]
 pub enum Declaration {
-    Const {
-        name: String,
-        type_name: Type,
-        expr: Option<Box<Expr>>,
-    },
-    Var {
-        name: String,
-        type_name: Type,
-        expr: Option<Box<Expr>>,
-    },
+    Const(Decl),
+    Var(Decl),
+}
+
+#[derive(Debug, Clone)]
+pub struct Decl {
+    pub name: String,
+    pub type_name: Type,
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Debug, Clone)]

@@ -129,3 +129,18 @@ The return type differs based on the type.
 | `str`     | `int`         | `str`       | the len-1 string at that index, 0-indexed. Negative indexes supported. Error if the index is larger than the length. |
 | `list[T]` | `int`         | `T`         | the element at that index, 0-indexed. Negative indexes supported. Error if the index is larger than the length.      |
 | `map[K]V` | `K`           | `V`         | the value associated with the key. Error if the key doesn't exist in the map.                                        |
+
+## Collection Types
+
+`str`, `list`, and `map` are all collection types.
+They can be iterated upon either through the manual `for ... { if ... then { break; }; };` construct, or the more ergonomic `for ... in collection { ... };`.
+
+The `for ... in collection` construct expects at least one `var` declaration in the `...`.
+The collection to be iterated over is passed as `collection`.
+The first `var` found is used to store the collection elements on each iteration:
+
+| Collection | Element Type |
+| ---------- | ------------ |
+| `str`      | `str`        |
+| `list[T]`  | `T`          |
+| `map[K]V`  | `K`          |
