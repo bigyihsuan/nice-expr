@@ -39,7 +39,7 @@ even the loops
   * [x] inputchar()/inputline()/inputall(): get 1 char/1 line/all chars of input as a string
 * [x] Blocks
   * [x] return value with `return` keyword
-* [/] Functions
+* [x] Functions
   * [x] return value with `return` keyword
   * [x] recursion
   * [x] functions act as closures (inner functions can use outer functions' variables)
@@ -51,7 +51,7 @@ even the loops
   * [x] `break`
   * [x] for
   * [x] for-with-local-variables
-* [ ] Type conversions `val as type`
+* [x] Type conversions `val as type`
 
 ## Examples?
 
