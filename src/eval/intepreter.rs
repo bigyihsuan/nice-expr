@@ -1,21 +1,19 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    io::{self, Read},
     rc::Rc,
 };
 
 use itertools::Itertools;
-use unicode_reader::CodePoints;
+
 
 use crate::{
-    eval::Constness,
     parse::ast::{
         Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, Literal, Operator,
         Program, UnaryExpr,
     },
-    prelude::{IOError, RuntimeError},
-    util::{assert_at_least_args, assert_exactly_args},
+    prelude::{RuntimeError},
+    util::{assert_exactly_args},
 };
 
 use super::{

@@ -4,10 +4,10 @@ use itertools::Itertools;
 use unicode_reader::CodePoints;
 
 use crate::{
-    eval::value::{Func, NativeFunc, Value},
-    parse::ast::{Decl, Declaration, Expr},
+    eval::value::{Func, Value},
+    parse::ast::{Decl, Declaration},
     prelude::{IOError, RuntimeError},
-    util::{self, assert_at_least_args},
+    util::{assert_at_least_args},
 };
 
 pub fn format_value(value: &Value) -> String {

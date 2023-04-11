@@ -5,7 +5,7 @@ use itertools::Itertools;
 use crate::{
     eval::{r#type::Type, value::Value},
     lexer::TokenLocation,
-    parse::ast::{BinaryOperator, Operator, UnaryOperator},
+    parse::ast::{BinaryOperator, Operator},
 };
 
 pub type Result<T> = std::result::Result<T, SyntaxError>;

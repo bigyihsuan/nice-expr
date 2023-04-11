@@ -1,4 +1,4 @@
-use crate::{eval::value::NativeFunc, prelude::RuntimeError};
+use crate::prelude::RuntimeError;
 
 pub fn assert_at_least_args(want: usize, got: usize) -> Result<(), RuntimeError> {
     if got < want {
