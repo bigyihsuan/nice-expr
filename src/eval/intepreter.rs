@@ -389,7 +389,7 @@ impl Interpreter {
     }
 
     fn interpret_minus(&self, e: &UnaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let val = self.interpret_expr(&e.expr, env)?;
+        let val = self.interpret_expr(&e.expr, env)?.unbreak();
         let val_type = val.to_type()?;
         match val_type {
             Type::Int => operators::ineg(val, env),
@@ -414,8 +414,8 @@ impl Interpreter {
     }
 
     fn interpret_indexing(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let left = self.interpret_expr(&e.left, env)?;
-        let right = self.interpret_expr(&e.right, env)?;
+        let left = self.interpret_expr(&e.left, env)?.unbreak();
+        let right = self.interpret_expr(&e.right, env)?.unbreak();
         let l_type = left.to_type()?;
         let r_type = right.to_type()?;
         match (&l_type, &r_type) {
@@ -430,20 +430,20 @@ impl Interpreter {
     }
 
     fn interpret_multiplication(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let left = self.interpret_expr(&e.left, env)?;
-        let right = self.interpret_expr(&e.right, env)?;
+        let left = self.interpret_expr(&e.left, env)?.unbreak();
+        let right = self.interpret_expr(&e.right, env)?.unbreak();
         self.multiplication(e.op.clone(), left, right, env)
     }
 
     fn interpret_addition(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let left = self.interpret_expr(&e.left, env)?;
-        let right = self.interpret_expr(&e.right, env)?;
+        let left = self.interpret_expr(&e.left, env)?.unbreak();
+        let right = self.interpret_expr(&e.right, env)?.unbreak();
         self.addition(e.op.clone(), left, right, env)
     }
 
     fn interpret_comparison(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let left = self.interpret_expr(&e.left, env)?;
-        let right = self.interpret_expr(&e.right, env)?;
+        let left = self.interpret_expr(&e.left, env)?.unbreak();
+        let right = self.interpret_expr(&e.right, env)?.unbreak();
 
         match &e.op {
             BinaryOperator::Equal => operators::eq(left, right, env),
@@ -460,8 +460,8 @@ impl Interpreter {
     }
 
     fn interpret_logical(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let left = self.interpret_expr(&e.left, env)?;
-        let right = self.interpret_expr(&e.right, env)?;
+        let left = self.interpret_expr(&e.left, env)?.unbreak();
+        let right = self.interpret_expr(&e.right, env)?.unbreak();
 
         match e.op {
             BinaryOperator::And => operators::band(left, right, env),
@@ -562,6 +562,7 @@ impl Interpreter {
         env: &SEnv,
     ) -> Result<Value, RuntimeError> {
         let value = self.interpret_expr(expr, env)?;
+        let value = value.unbreak();
         if let Value::Type(t) = self.interpret_type_name(t, env)? {
             self.cast_to_type(&value, &t)
         } else {
