@@ -175,6 +175,38 @@ pub fn lidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
     }
 }
 
+pub fn madd(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+    let left: HashMap<Value, Value> = left.try_into()?;
+    let right: HashMap<Value, Value> = right.try_into()?;
+
+    let l = left
+        .into_iter()
+        .chain(right.into_iter())
+        .collect::<HashMap<_, _>>();
+    let result = Value::Map(l.clone());
+    if result.is_homogeneous() {
+        Ok(result)
+    } else {
+        Err(RuntimeError::MismatchedTypes {
+            got: l
+                .into_iter()
+                .map(|(k, v)| (k.to_type(), v.to_type()))
+                .filter_map(|(k, v)| k.ok().and(v.ok()))
+                .unique()
+                .collect(),
+            expected: vec![result.to_type()?],
+        })
+    }
+}
+pub fn msub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+    let left: HashMap<Value, Value> = left.try_into()?;
+    let right: HashMap<Value, Value> = right.try_into()?;
+    Ok(Value::Map(
+        left.into_iter()
+            .filter(|(k, _)| right.get(k).is_none())
+            .collect(),
+    ))
+}
 pub fn midx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
     let l: HashMap<Value, Value> = left.clone().try_into()?;
     let r: Value = right.clone();

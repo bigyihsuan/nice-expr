@@ -86,16 +86,19 @@ IndexingExpr ::= UnaryMinusExpr "_" Expr;
 
 ### Binary Arithmetic
 
-| Op  | `int`          | `dec`          | `str`          | `bool` | `list[T]`      | `map[K]V` |
-| --- | -------------- | -------------- | -------------- | ------ | -------------- | --------- |
-| `+` | Addition       | Addition       | Concatenation  |        | Concatenation  |           |
-| `-` | Subtraction    | Subtraction    | Set Difference |        | Set Difference |           |
-| `*` | Multiplication | Multiplication |                |        |                |           |
-| `/` | Division       | Division       |                |        |                |           |
-| `%` | Modulo         |                |                |        |                |           |
+| Op  | `int`          | `dec`          | `str`          | `bool` | `list[T]`      | `map[K]V`       |
+| --- | -------------- | -------------- | -------------- | ------ | -------------- | --------------- |
+| `+` | Addition       | Addition       | Concatenation  |        | Concatenation  | Concatenation*  |
+| `-` | Subtraction    | Subtraction    | Set Difference |        | Set Difference | Set Difference* |
+| `*` | Multiplication | Multiplication |                |        |                |                 |
+| `/` | Division       | Division       |                |        |                |                 |
+| `%` | Modulo         |                |                |        |                |                 |
 
 The subtraction operator of `str` and `list` performs set difference on them,
 removing from the left side elements in common with the right side.
+
+The `+` and `-` operators on `map` act upon the keys;
+their associated values are not modified.
 
 ### Binary Comparison
 

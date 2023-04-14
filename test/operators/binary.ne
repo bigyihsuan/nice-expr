@@ -19,6 +19,14 @@ printline(l + [6,],); // [1,2,3,4,5,6]
 printline(l - [3,],); // [1,2,4,5]
 printline("---");
 
+printline("map");
+var ott is map[str]int <|"one":1, "two":2, "three":3|>;
+var tf is map[str]int <|"three":3, "four":4|>;
+printline(ott + tf); // one two three four
+printline(ott - tf); // one two
+printline(tf - ott); // four
+printline("---");
+
 printline("logical operators");
 printline(true and true,); // true
 printline(false or true,); // true

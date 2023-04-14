@@ -1,19 +1,14 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use itertools::Itertools;
-
 
 use crate::{
     parse::ast::{
         Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, Literal, Operator,
         Program, UnaryExpr,
     },
-    prelude::{RuntimeError},
-    util::{assert_exactly_args},
+    prelude::RuntimeError,
+    util::assert_exactly_args,
 };
 
 use super::{
@@ -494,11 +489,17 @@ impl Interpreter {
             (BinaryOperator::Add, Type::List(_), Type::List(_)) => {
                 operators::ladd(left, right, env)
             }
+            (BinaryOperator::Add, Type::Map(_, _), Type::Map(_, _)) => {
+                operators::madd(left, right, env)
+            }
             (BinaryOperator::Subtract, Type::Int, Type::Int) => operators::isub(left, right, env),
             (BinaryOperator::Subtract, Type::Dec, Type::Dec) => operators::fsub(left, right, env),
             (BinaryOperator::Subtract, Type::Str, Type::Str) => operators::ssub(left, right, env),
             (BinaryOperator::Subtract, Type::List(_), Type::List(_)) => {
                 operators::lsub(left, right, env)
+            }
+            (BinaryOperator::Subtract, Type::Map(_, _), Type::Map(_, _)) => {
+                operators::msub(left, right, env)
             }
             _ => Err(RuntimeError::InvalidOperatorOnTypes {
                 op: Operator::BinaryOperator(op.clone()),
