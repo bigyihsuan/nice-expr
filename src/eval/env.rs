@@ -168,6 +168,15 @@ impl Default for Env {
             ),
         );
         let _ = env.define(
+            "repeat".into(),
+            Value::Func(Func::Native(("repeat".into(), builtin::repeat))),
+            Constness::Const,
+            Type::Func(
+                vec![Type::Any, Type::Int],
+                Box::new(Type::List(Box::new(Type::Any))),
+            ),
+        );
+        let _ = env.define(
             "inputchar".into(),
             Value::Func(Func::Native(("inputchar".into(), builtin::inputchar))),
             Constness::Const,

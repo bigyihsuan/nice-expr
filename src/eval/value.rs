@@ -143,6 +143,7 @@ impl Value {
             Type::Map(_, _) => Value::Map(HashMap::new()),
             Type::Break(box t) => Value::Break(Box::new(Self::default(t))),
             Type::Func(_, _) => todo!("what to do with default func value"), // TODO: what to do with default func value
+            Type::Any => todo!("what to do with any"),
         }
     }
 }

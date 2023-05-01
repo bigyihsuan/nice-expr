@@ -7,7 +7,7 @@ use crate::{
     eval::value::{Func, Value},
     parse::ast::{Decl, Declaration},
     prelude::{IOError, RuntimeError},
-    util::{assert_at_least_args},
+    util::assert_at_least_args,
 };
 
 pub fn format_value(value: &Value) -> String {
@@ -121,6 +121,14 @@ pub fn range(args: &[Value]) -> Result<Value, RuntimeError> {
     } else {
         Err(RuntimeError::InvalidRangeStep(step))
     }
+}
+pub fn repeat(args: &[Value]) -> Result<Value, RuntimeError> {
+    assert_at_least_args(2, args.len())?;
+    let ele = &args[0];
+    let count = &args[1];
+    let count: usize = count.try_into()?;
+    let list = vec![ele.clone(); count];
+    Ok(Value::List(list))
 }
 
 pub fn inputchar(_: &[Value]) -> Result<Value, RuntimeError> {

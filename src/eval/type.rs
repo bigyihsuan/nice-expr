@@ -14,6 +14,7 @@ pub enum Type {
     Map(Box<Type>, Box<Type>),
     Func(Vec<Type>, Box<Type>),
     Break(Box<Type>),
+    Any,
 }
 
 impl Type {
@@ -29,6 +30,7 @@ impl Type {
             Type::Map(box k, _) => Some(k.clone()),
             Type::Break(box t) => t.key_type(),
             Type::Func(_, _) => None,
+            Type::Any => None,
         }
     }
 
@@ -44,6 +46,7 @@ impl Type {
             Type::Map(_, box v) => Some(v.clone()),
             Type::Break(box t) => t.element_type(),
             Type::Func(_, _) => None,
+            Type::Any => None,
         }
     }
 
@@ -120,6 +123,7 @@ impl Display for Type {
                     .join(",")
             )),
             Type::Break(box t) => f.write_fmt(format_args!("{t}")),
+            Type::Any => f.write_str("any"),
         }
     }
 }
