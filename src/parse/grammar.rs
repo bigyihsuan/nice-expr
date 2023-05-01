@@ -17,12 +17,6 @@ peg::parser! {
         { e }
 
         pub rule expr() -> Expr = precedence!{
-            expr:function_call() { expr }
-            expr:assignment() { expr }
-            expr:declaration_expr() { expr }
-            expr:literal() { expr }
-            expr:expr_identifier() { expr }
-            --
             [Token::Return] expr:(@) { Expr::Return(Some(Box::new(expr))) }
             [Token::Return] { Expr::Return(None) }
             --
@@ -73,7 +67,7 @@ peg::parser! {
                 Expr::Minus(UnaryExpr{op: UnaryOperator::Minus, expr: Box::new(expr)})
             }
             --
-            left:(@) op:[Token::Underscore] right:@ {
+            left:@ op:[Token::Underscore] right:(@) {
                 Expr::Indexing(BinaryExpr{left: Box::new(left), op: match op {
                     Token::Underscore => BinaryOperator::Indexing,
                     _ => unreachable!()
@@ -81,8 +75,6 @@ peg::parser! {
             }
             --
             expr:(@) [Token::As] t:type_name() { Expr::TypeCast(Box::new(expr), t) }
-            --
-            [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
             --
             expr:if_expr() { expr }
             expr:for_expr() { expr }
@@ -92,6 +84,14 @@ peg::parser! {
             expr:block_expr() { expr }
             --
             expr:type_name_expr() { expr }
+            --
+            expr:assignment() { expr }
+            expr:declaration_expr() { expr }
+            expr:function_call() { expr }
+            expr:literal() { expr }
+            expr:expr_identifier() { expr }
+            --
+            [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
         }
 
         pub rule function_definition() -> Expr
@@ -128,8 +128,8 @@ peg::parser! {
         { Declaration::Const(Decl{ name, type_name, expr: value.map(|e| Box::new(e)) })}
 
         pub rule assignment() -> Expr
-        = [Token::Set] name:identifier() op:assignment_operator() value:expr()
-        {Expr::Assignment(Assignment { name, op, expr: Box::new(value) })}
+        = [Token::Set] name:identifier() index:([Token::At] index:expr() {Box::new(index)})? op:assignment_operator() value:expr()
+        {Expr::Assignment(Assignment { name, index, op, expr: Box::new(value) })}
         pub rule assignment_operator() -> BinaryOperator
         = op:[Token::Is | Token::And | Token::Or | Token::Greater | Token::Less | Token::GreaterEqual | Token::LessEqual
         | Token::Equal | Token::NotEqual | Token::Plus | Token::Minus | Token::Star | Token::Slash | Token::Percent]

@@ -77,6 +77,7 @@ pub struct Decl {
 #[derive(Debug, Clone)]
 pub struct Assignment {
     pub name: String,
+    pub index: Option<Box<Expr>>,
     pub op: BinaryOperator,
     pub expr: Box<Expr>,
 }

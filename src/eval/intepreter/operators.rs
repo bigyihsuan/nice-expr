@@ -86,7 +86,7 @@ pub fn ssub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
         left.chars().filter(|c| !right.contains(*c)).collect(),
     ))
 }
-pub fn sidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+pub fn sgetidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
     let l: String = left.clone().try_into()?;
     let r: isize = right.clone().try_into()?;
 
@@ -104,6 +104,30 @@ pub fn sidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
             Some(c) => Ok(Value::Str(c.to_string())),
             None => Err(RuntimeError::IndexOutOfBounds(left, right)),
         }
+    }
+}
+pub fn ssetidx(
+    collection: Value,
+    index: Value,
+    element: Value,
+    _env: &SEnv,
+) -> Result<Value, RuntimeError> {
+    let mut c: String = collection.clone().try_into()?;
+    let i: isize = index.clone().try_into()?;
+    let e: String = element.clone().try_into()?;
+    if i >= 0 {
+        let i = i as usize;
+        if i > c.len() {
+            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+        }
+        c.replace_range(i..=i, e.as_str());
+        Ok(Value::Str(c))
+    } else {
+        if -i as usize > c.len() + 1 {
+            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+        }
+        c.insert_str(c.len() - (-i as usize) + 1, e.as_str());
+        Ok(Value::Str(c))
     }
 }
 
@@ -154,7 +178,7 @@ pub fn lsub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
         left.into_iter().filter(|c| !right.contains(c)).collect(),
     ))
 }
-pub fn lidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+pub fn lgetidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
     let l: Vec<Value> = left.clone().try_into()?;
     let r: isize = right.clone().try_into()?;
 
@@ -172,6 +196,36 @@ pub fn lidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
             Some(e) => Ok(e),
             None => Err(RuntimeError::IndexOutOfBounds(left, right)),
         }
+    }
+}
+pub fn lsetidx(
+    collection: Value,
+    index: Value,
+    element: Value,
+    _env: &SEnv,
+) -> Result<Value, RuntimeError> {
+    let mut c: Vec<Value> = collection.clone().try_into()?;
+    let i: isize = index.clone().try_into()?;
+    let e: Value = element.clone();
+
+    let len = c.len();
+
+    if len == 0 {
+        Err(RuntimeError::IndexingCollectionWithZeroElements(collection))
+    } else if i >= 0 {
+        let i = i as usize;
+        if i > c.len() {
+            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+        }
+        c[i] = e;
+        Ok(Value::List(c))
+    } else {
+        if -i as usize > c.len() + 1 {
+            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+        }
+        let l = c.len();
+        c[l - (-i as usize) + 1] = e;
+        Ok(Value::List(c))
     }
 }
 
@@ -207,7 +261,7 @@ pub fn msub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
             .collect(),
     ))
 }
-pub fn midx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+pub fn mgetidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
     let l: HashMap<Value, Value> = left.clone().try_into()?;
     let r: Value = right.clone();
 
@@ -218,6 +272,22 @@ pub fn midx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
             Some(v) => Ok(v.clone()),
             None => Err(RuntimeError::KeyNotFound(left, right)),
         }
+    }
+}
+pub fn msetidx(
+    collection: Value,
+    key: Value,
+    value: Value,
+    _env: &SEnv,
+) -> Result<Value, RuntimeError> {
+    let mut m: HashMap<Value, Value> = collection.clone().try_into()?;
+    let k: Value = key.clone();
+
+    if m.len() == 0 {
+        Err(RuntimeError::IndexingCollectionWithZeroElements(collection))
+    } else {
+        m.insert(k, value);
+        Ok(Value::Map(m))
     }
 }
 

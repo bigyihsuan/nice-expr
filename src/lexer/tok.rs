@@ -74,6 +74,8 @@ pub enum Token {
     Semicolon,
     #[token("_")]
     Underscore,
+    #[token("@")]
+    At,
     // keywords
     #[token("and")]
     And,

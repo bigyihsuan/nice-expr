@@ -29,7 +29,9 @@ even the loops
     * [x] Arithmetic operators (+, -, *, /, %)
     * [x] Comparison operators (=, <, <=, >, >=)
     * [x] Logical operators (`and`, `or`)
-    * [x] Indexing operator `_`
+    * [x] Indexing operators
+      * [x] readonly `_`
+      * [/] writeonly `set X @ v` (TODO: Redo parse tree to allow for set expressions)
 * [x] Assignments (set): check if var or const
 * [x] Arithmetic/Comparison operators in assignments (`set i + 5; set b or true;`)
 * [x] Built-in functions

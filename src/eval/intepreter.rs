@@ -42,7 +42,6 @@ impl Interpreter {
             Expr::Declaration(d) => self.interpret_declaration(d, env),
             Expr::Assignment(a) => self.interpret_assignment(a, env),
             Expr::FunctionCall { name, args } => self.interpret_function_call(name, args, env),
-
             Expr::Minus(e) => self.interpret_minus(e, env),
             Expr::Not(e) => self.interpret_not(e, env),
             Expr::Indexing(e) => self.interpret_indexing(e, env),
@@ -256,7 +255,7 @@ impl Interpreter {
         env: &SEnv,
     ) -> Result<Value, RuntimeError> {
         let entry = env.borrow().get(assignment.name.clone())?;
-        let mut result = entry.v;
+        let mut result = entry.v.clone();
         let value = self.interpret_expr(assignment.expr.as_ref(), env)?;
 
         result = match assignment.op {
@@ -280,6 +279,26 @@ impl Interpreter {
                     assignment.op.clone(),
                 ))
             }
+        };
+        // make sure the collection at the index is set to the result
+        let result = if let Some(box index) = &assignment.index {
+            let collection = entry.v.clone();
+            let index = self.interpret_expr(index, env)?;
+            let l_type = collection.unbreak().to_type()?;
+            let r_type = index.unbreak().to_type()?;
+            match (&l_type, &r_type) {
+                (Type::Str, Type::Int) => operators::ssetidx(collection, index, result, env),
+                (Type::List(_), Type::Int) => operators::lsetidx(collection, index, result, env),
+                (Type::Map(box k, _), t) if t == k => {
+                    operators::msetidx(collection, index, result, env)
+                }
+                _ => Err(RuntimeError::InvalidOperatorOnTypes {
+                    op: Operator::BinaryOperator(BinaryOperator::Indexing),
+                    types: vec![l_type, r_type],
+                }),
+            }?
+        } else {
+            result
         };
         env.borrow_mut()
             .set(assignment.name.clone(), result.clone(), false)
@@ -419,9 +438,9 @@ impl Interpreter {
         let l_type = left.to_type()?;
         let r_type = right.to_type()?;
         match (&l_type, &r_type) {
-            (Type::Str, Type::Int) => operators::sidx(left, right, env),
-            (Type::List(_), Type::Int) => operators::lidx(left, right, env),
-            (Type::Map(box k, _), t) if t == k => operators::midx(left, right, env),
+            (Type::Str, Type::Int) => operators::sgetidx(left, right, env),
+            (Type::List(_), Type::Int) => operators::lgetidx(left, right, env),
+            (Type::Map(box k, _), t) if t == k => operators::mgetidx(left, right, env),
             _ => Err(RuntimeError::InvalidOperatorOnTypes {
                 op: Operator::BinaryOperator(e.op.clone()),
                 types: vec![l_type, r_type],
