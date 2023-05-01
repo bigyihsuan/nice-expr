@@ -1,11 +1,20 @@
 # Built-in Functions
 
-## `print(any...)`, `println(any...)`
+## `print(any...)`, `printline(any...)`
 
-`print`, and `println` print their arguments to STDOUT.
+`print`, and `printline` print their arguments to STDOUT.
 For `print`, the elements are printed without spaces in between.
-`println` on the other hand, puts a newline between each element,
+`printline` on the other hand, puts a newline between each element,
 as well as a trailing newline.
+
+## `inputchar() string`, `inputline() string`, `inputall() string`
+
+These are the 3 functions for getting input.
+They take input from STDIN, return a string, and have varying behaviors:
+
+- `inputchar` consumes and returns exactly 1 character.
+- `inputline` consumes up to and including a newline, and returns it.
+- `inputall` consumes all of STDIN and returns it.
 
 ## `len(collection) int`
 
@@ -22,3 +31,7 @@ So if you call `range(1,11,2)`, it will return `[1,3,5,7,9]` (every odd number f
 
 The step must be non-0.
 If `start < end` and `step` is negative, an empty list will be returned.
+
+## `repeat(ele any, count int) list[any]`
+
+`repeat` returns a list containing `ele` repeated `count` times.

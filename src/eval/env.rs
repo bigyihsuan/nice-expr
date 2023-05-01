@@ -184,13 +184,13 @@ impl Default for Env {
         );
         let _ = env.define(
             "inputline".into(),
-            Value::Func(Func::Native(("inline".into(), builtin::inline))),
+            Value::Func(Func::Native(("inline".into(), builtin::inputline))),
             Constness::Const,
             Type::Func(vec![], Box::new(Type::Str)),
         );
         let _ = env.define(
             "inputall".into(),
-            Value::Func(Func::Native(("inall".into(), builtin::inall))),
+            Value::Func(Func::Native(("inall".into(), builtin::inputall))),
             Constness::Const,
             Type::Func(vec![], Box::new(Type::Str)),
         );

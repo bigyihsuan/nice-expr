@@ -142,7 +142,7 @@ pub fn inputchar(_: &[Value]) -> Result<Value, RuntimeError> {
     }
 }
 
-pub fn inline(_: &[Value]) -> Result<Value, RuntimeError> {
+pub fn inputline(_: &[Value]) -> Result<Value, RuntimeError> {
     let mut str = String::new();
     if let Err(err) = io::stdin().read_line(&mut str) {
         Err(RuntimeError::IOError(IOError::ErrorKind(err.kind())))
@@ -151,7 +151,7 @@ pub fn inline(_: &[Value]) -> Result<Value, RuntimeError> {
     }
 }
 
-pub fn inall(_: &[Value]) -> Result<Value, RuntimeError> {
+pub fn inputall(_: &[Value]) -> Result<Value, RuntimeError> {
     let str = CodePoints::from(io::stdin().bytes())
         .map(|r| r.unwrap())
         .collect();
