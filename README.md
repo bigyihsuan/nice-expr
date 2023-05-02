@@ -55,6 +55,10 @@ even the loops
   * [x] for-with-local-variables
 * [x] Type conversions `val as type`
 
+## Known Bugs
+
+* Get-indexing `collection_index` has bugged operator precedence. For now, surround indexing with parentheses `(collection_index)`.
+
 ## Examples?
 
 ```cs

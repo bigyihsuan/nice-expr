@@ -78,8 +78,6 @@ peg::parser! {
                 Expr::Minus(UnaryExpr{op: UnaryOperator::Minus, expr: Box::new(expr)})
             }
             --
-            expr:block_expr() { expr }
-            --
             left:@ op:[Token::Underscore] right:index() {
                 Expr::Indexing(Indexing{collection: Box::new(left), op: match op {
                     Token::Underscore => BinaryOperator::GetIndexing,
@@ -87,8 +85,9 @@ peg::parser! {
                 }, index: right})
             }
             --
-            expr:type_name_expr() { expr }
+            expr:block_expr() { expr }
             --
+            expr:type_name_expr() { expr }
             expr:expr_lit_or_ident() { expr }
             --
             [Token::LeftParen] expr:expr() [Token::RightParen] { expr }

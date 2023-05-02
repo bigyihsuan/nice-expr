@@ -35,3 +35,9 @@ If `start < end` and `step` is negative, an empty list will be returned.
 ## `repeat(ele any, count int) list[any]`
 
 `repeat` returns a list containing `ele` repeated `count` times.
+
+## `char(int)`, `ord(str)`
+
+`char` converts a positive int (a Unicode code point) into a single-character string.
+
+`ord` converts a single-character string into a positive int (its Unicode code point).
