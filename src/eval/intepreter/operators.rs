@@ -95,7 +95,7 @@ pub fn sgetidx(
     let l: String = left.clone().try_into()?;
     let len = l.chars().count();
 
-    let (range_start, range_end, take_count) = transform_to_range(len, start_index, end_index)?;
+    let (range_start, _, take_count) = transform_to_range(len, start_index, end_index)?;
 
     if len == 0 {
         Err(RuntimeError::IndexingCollectionWithZeroElements(left))

@@ -89,8 +89,7 @@ peg::parser! {
             --
             expr:type_name_expr() { expr }
             --
-            expr:literal() { expr }
-            expr:expr_identifier() { expr }
+            expr:expr_lit_or_ident() { expr }
             --
             [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
         }
@@ -166,6 +165,10 @@ peg::parser! {
         = name:identifier() [Token::LeftParen] args:(expr() ** [Token::Comma]) [Token::Comma]? [Token::RightParen]
         { Expr::FunctionCall { name, args } }
 
+        pub rule expr_lit_or_ident() -> Expr
+        = l:literal() {l}
+        / i:expr_identifier() {i}
+
         pub rule expr_identifier() -> Expr
         = name:identifier()
         { Expr::Identifier(name) }
@@ -195,14 +198,14 @@ peg::parser! {
         = [Token::TrueBoolLit(i) | Token::FalseBoolLit(i)]
         { Literal::Bool(*i) }
         pub rule literal_list() -> Literal
-        = [Token::LeftBracket] l:(literal() ** [Token::Comma]) [Token::Comma]? [Token::RightBracket]
+        = [Token::LeftBracket] l:(expr_lit_or_ident() ** [Token::Comma]) [Token::Comma]? [Token::RightBracket]
         { Literal::List(l) }
         pub rule literal_map() -> Literal
-        = [Token::LeftTriangle] m:(literal_map_element() ** [Token::Comma]) [Token::Comma]? [Token::RightTriangle]
+        = [Token::LeftTriangle] m:(map_element() ** [Token::Comma]) [Token::Comma]? [Token::RightTriangle]
         { let m = m.into_iter().collect(); Literal::Map(m) }
 
-        pub rule literal_map_element() -> (Expr, Expr)
-        =  l:literal() [Token::Colon] r:literal()
+        pub rule map_element() -> (Expr, Expr)
+        =  l:expr_lit_or_ident() [Token::Colon] r:expr_lit_or_ident()
         { (l,r) }
 
         pub rule type_name_expr() -> Expr
