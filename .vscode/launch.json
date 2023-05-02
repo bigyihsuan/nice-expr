@@ -5,17 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "debug",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}",
-            "args": [
-                "-d",
-                "test/for.test.ne",
-            ]
-        },
-        {
             "type": "lldb",
             "request": "launch",
             "name": "Debug Rust",
@@ -26,8 +15,8 @@
                 ]
             },
             "args": [
-                "-f",
-                "test/control-flow/for-in.ne",
+                "-c",
+                "var l is list[int] range(1,6,1); printline(l_l_2);",
             ],
         }
     ]

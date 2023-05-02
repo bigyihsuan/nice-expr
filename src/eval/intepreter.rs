@@ -4,8 +4,8 @@ use itertools::Itertools;
 
 use crate::{
     parse::ast::{
-        Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, Literal, Operator,
-        Program, UnaryExpr,
+        Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, IndexKind, Indexing,
+        Literal, Operator, Program, UnaryExpr,
     },
     prelude::RuntimeError,
     util::assert_exactly_args,
@@ -49,7 +49,6 @@ impl Interpreter {
             Expr::Addition(e) => self.interpret_addition(e, env),
             Expr::Comparison(e) => self.interpret_comparison(e, env),
             Expr::Logical(e) => self.interpret_logical(e, env),
-
             Expr::Block(exprs) => {
                 let block_env = Env::extend(env.clone());
                 return self.interpret_program(exprs, &block_env);
@@ -432,18 +431,38 @@ impl Interpreter {
         }
     }
 
-    fn interpret_indexing(&self, e: &BinaryExpr, env: &SEnv) -> Result<Value, RuntimeError> {
-        let left = self.interpret_expr(&e.left, env)?.unbreak();
-        let right = self.interpret_expr(&e.right, env)?.unbreak();
-        let l_type = left.to_type()?;
-        let r_type = right.to_type()?;
-        match (&l_type, &r_type) {
-            (Type::Str, Type::Int) => operators::sgetidx(left, right, env),
-            (Type::List(_), Type::Int) => operators::lgetidx(left, right, env),
-            (Type::Map(box k, _), t) if t == k => operators::mgetidx(left, right, env),
+    fn interpret_indexing(&self, e: &Indexing, env: &SEnv) -> Result<Value, RuntimeError> {
+        let collection = self.interpret_expr(&e.collection, env)?.unbreak();
+        let start_index = match &e.index {
+            IndexKind::Single { index } => self.interpret_expr(index, env)?.unbreak(),
+            IndexKind::Range { start, end: _ } => self.interpret_expr(start, env)?.unbreak(),
+        };
+        let end_index = if let IndexKind::Range { start: _, box end } = &e.index {
+            Some(self.interpret_expr(end, env)?.unbreak())
+        } else {
+            None
+        };
+        let l_type = collection.to_type()?;
+        let start_r_type = start_index.to_type()?;
+        let end_r_type = end_index.clone().and_then(|e| e.to_type().ok());
+        match (&l_type, &start_r_type, &end_r_type) {
+            (Type::Str, Type::Int, _) => {
+                operators::sgetidx(collection, start_index, end_index, env)
+            }
+            (Type::List(_), Type::Int, _) => {
+                operators::lgetidx(collection, start_index, end_index, env)
+            }
+            (Type::Map(box k, _), t, None) if t == k => {
+                // can't do a range on a map
+                operators::mgetidx(collection, start_index, end_index, env)
+            }
             _ => Err(RuntimeError::InvalidOperatorOnTypes {
                 op: Operator::BinaryOperator(e.op.clone()),
-                types: vec![l_type, r_type],
+                types: vec![
+                    l_type,
+                    start_r_type.clone(),
+                    end_r_type.unwrap_or(start_r_type),
+                ],
             }),
         }
     }

@@ -86,24 +86,23 @@ pub fn ssub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
         left.chars().filter(|c| !right.contains(*c)).collect(),
     ))
 }
-pub fn sgetidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+pub fn sgetidx(
+    left: Value,
+    start_index: Value,
+    end_index: Option<Value>,
+    _env: &SEnv,
+) -> Result<Value, RuntimeError> {
     let l: String = left.clone().try_into()?;
-    let r: isize = right.clone().try_into()?;
-
     let len = l.chars().count();
+
+    let (range_start, range_end, take_count) = transform_to_range(len, start_index, end_index)?;
 
     if len == 0 {
         Err(RuntimeError::IndexingCollectionWithZeroElements(left))
-    } else if r >= 0 {
-        match l.chars().skip(r as usize).next() {
-            Some(c) => Ok(Value::Str(c.to_string())),
-            None => Err(RuntimeError::IndexOutOfBounds(left, right)),
-        }
     } else {
-        match l.chars().rev().skip((-r) as usize - 1).next() {
-            Some(c) => Ok(Value::Str(c.to_string())),
-            None => Err(RuntimeError::IndexOutOfBounds(left, right)),
-        }
+        Ok(Value::Str(
+            l.chars().skip(range_start).take(take_count).collect(),
+        ))
     }
 }
 pub fn ssetidx(
@@ -118,13 +117,13 @@ pub fn ssetidx(
     if i >= 0 {
         let i = i as usize;
         if i > c.len() {
-            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+            return Err(RuntimeError::IndexOutOfBounds(collection, index, None));
         }
         c.replace_range(i..=i, e.as_str());
         Ok(Value::Str(c))
     } else {
         if -i as usize > c.len() + 1 {
-            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+            return Err(RuntimeError::IndexOutOfBounds(collection, index, None));
         }
         c.insert_str(c.len() - (-i as usize) + 1, e.as_str());
         Ok(Value::Str(c))
@@ -178,24 +177,29 @@ pub fn lsub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
         left.into_iter().filter(|c| !right.contains(c)).collect(),
     ))
 }
-pub fn lgetidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+pub fn lgetidx(
+    left: Value,
+    start_index: Value,
+    end_index: Option<Value>,
+    _env: &SEnv,
+) -> Result<Value, RuntimeError> {
     let l: Vec<Value> = left.clone().try_into()?;
-    let r: isize = right.clone().try_into()?;
-
     let len = l.len();
+
+    let (range_start, _, take_count) =
+        transform_to_range(len, start_index.clone(), end_index.clone())?;
 
     if len == 0 {
         Err(RuntimeError::IndexingCollectionWithZeroElements(left))
-    } else if r >= 0 {
-        match l.into_iter().skip(r as usize).next() {
-            Some(e) => Ok(e),
-            None => Err(RuntimeError::IndexOutOfBounds(left, right)),
-        }
+    } else if let None = end_index && take_count == 1 {
+        let ele =
+            l.get(range_start)
+                .ok_or(RuntimeError::IndexOutOfBounds(left, start_index, None))?;
+        Ok(ele.clone())
     } else {
-        match l.into_iter().rev().skip((-r) as usize - 1).next() {
-            Some(e) => Ok(e),
-            None => Err(RuntimeError::IndexOutOfBounds(left, right)),
-        }
+        Ok(Value::List(
+            l.into_iter().skip(range_start).take(take_count).collect(),
+        ))
     }
 }
 pub fn lsetidx(
@@ -215,13 +219,13 @@ pub fn lsetidx(
     } else if i >= 0 {
         let i = i as usize;
         if i > c.len() {
-            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+            return Err(RuntimeError::IndexOutOfBounds(collection, index, None));
         }
         c[i] = e;
         Ok(Value::List(c))
     } else {
         if -i as usize > c.len() + 1 {
-            return Err(RuntimeError::IndexOutOfBounds(collection, index));
+            return Err(RuntimeError::IndexOutOfBounds(collection, index, None));
         }
         let l = c.len();
         c[l - (-i as usize) + 1] = e;
@@ -261,16 +265,21 @@ pub fn msub(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeErro
             .collect(),
     ))
 }
-pub fn mgetidx(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
+pub fn mgetidx(
+    left: Value,
+    key: Value,
+    _: Option<Value>,
+    _env: &SEnv,
+) -> Result<Value, RuntimeError> {
     let l: HashMap<Value, Value> = left.clone().try_into()?;
-    let r: Value = right.clone();
+    let r: Value = key.clone();
 
     if l.len() == 0 {
         Err(RuntimeError::IndexingCollectionWithZeroElements(left))
     } else {
         match l.get(&r) {
             Some(v) => Ok(v.clone()),
-            None => Err(RuntimeError::KeyNotFound(left, right)),
+            None => Err(RuntimeError::KeyNotFound(left, key)),
         }
     }
 }
@@ -308,4 +317,37 @@ pub fn lt(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError>
 }
 pub fn le(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {
     Ok(Value::Bool(left <= right))
+}
+
+fn transform_to_range(
+    len: usize,
+    start: Value,
+    end: Option<Value>,
+) -> Result<(usize, usize, usize), RuntimeError> {
+    let start: isize = start.clone().try_into()?;
+    let end: isize = if let Some(end) = &end {
+        end.clone().try_into()?
+    } else {
+        start + 1
+    };
+
+    let range_start = if start < 0 {
+        len - (-start) as usize
+    } else {
+        start as usize
+    };
+    let range_end = if end <= 0 {
+        len - (-end) as usize
+    } else {
+        end as usize
+    };
+
+    let take_count = if range_end >= range_start {
+        range_end - range_start
+    } else {
+        0
+    };
+
+    // println!("[{start},{end}) -> [{range_start},{range_end}) take {take_count}");
+    Ok((range_start, range_end, take_count))
 }

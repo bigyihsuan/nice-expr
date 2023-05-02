@@ -20,7 +20,7 @@ pub enum Expr {
 
     Minus(UnaryExpr),
     Not(UnaryExpr),
-    Indexing(BinaryExpr),
+    Indexing(Indexing),
     Multiplication(BinaryExpr),
     Addition(BinaryExpr),
     Comparison(BinaryExpr),
@@ -121,4 +121,17 @@ pub enum BinaryOperator {
     And,
     Or,
     Is,
+}
+
+#[derive(Debug, Clone)]
+pub struct Indexing {
+    pub collection: Box<Expr>,
+    pub op: BinaryOperator,
+    pub index: IndexKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum IndexKind {
+    Single { index: Box<Expr> },
+    Range { start: Box<Expr>, end: Box<Expr> },
 }

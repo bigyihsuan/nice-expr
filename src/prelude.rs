@@ -106,7 +106,7 @@ pub enum RuntimeError {
     IOError(IOError),
     InvalidRangeStep(isize),
     IndexingCollectionWithZeroElements(Value),
-    IndexOutOfBounds(Value, Value),
+    IndexOutOfBounds(Value, Value, Option<Value>),
     KeyNotFound(Value, Value),
     CallingNonCallable { name: String },
     CannotCastValueToType(Value, Type),

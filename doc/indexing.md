@@ -14,6 +14,24 @@ set l@3 is 10; // ok, sets the element at index 3 to be 10
 printline(l_3); // should be 10
 ```
 
+## Slicing
+
+You can use the double-dot operator `col_start..end` to get a slice of elements, on get-indexes only.
+`start` is the inclusive starting index, and `end` is the exclusive ending index.
+Negative indexes are permitted.
+You cannot slice on a `map`.
+If the number of desired elements `end-start` is larger than the number of elements in the collection, it will simply return everything after `start`.
+If `start` is larger than `end`, it will return an empty string/list.
+
+Slicing a string yields a string.
+Slicing a list yields a list.
+
+```swift
+var l is list[int] range(1,6,1);
+printline(l_0..-1); // [1,2,3,4]
+printline(l_-3..-1); // [1,2,3,4]
+```
+
 ## Indexing Strings
 
 Getting an index from a string returns another string,

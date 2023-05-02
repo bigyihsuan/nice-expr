@@ -76,6 +76,8 @@ pub enum Token {
     Underscore,
     #[token("@")]
     At,
+    #[token("..")]
+    DoubleDot,
     // keywords
     #[token("and")]
     And,

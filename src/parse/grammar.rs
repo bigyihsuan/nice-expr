@@ -2,8 +2,8 @@ use crate::{
     eval::r#type::Type,
     lexer::{tok::Token, TokenStream},
     parse::ast::{
-        Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, Literal, Program,
-        UnaryExpr, UnaryOperator,
+        Assignment, BinaryExpr, BinaryOperator, Decl, Declaration, Expr, IndexKind, Indexing,
+        Literal, Program, UnaryExpr, UnaryOperator,
     },
 };
 
@@ -17,11 +17,22 @@ peg::parser! {
         { e }
 
         pub rule expr() -> Expr = precedence!{
+            expr:assignment() { expr }
+            expr:declaration_expr() { expr }
+            expr:function_call() { expr }
+            --
+            expr:if_expr() { expr }
+            expr:for_expr() { expr }
+            expr:for_in_expr() { expr }
+            expr:function_definition() { expr }
+            --
             [Token::Return] expr:(@) { Expr::Return(Some(Box::new(expr))) }
             [Token::Return] { Expr::Return(None) }
             --
             [Token::Break] expr:(@) { Expr::Break(Some(Box::new(expr))) }
             [Token::Break] { Expr::Break(None) }
+            --
+            expr:(@) [Token::As] t:type_name() { Expr::TypeCast(Box::new(expr), t) }
             --
             [Token::Not] expr:(@) {
                 Expr::Not(UnaryExpr{op: UnaryOperator::Not, expr: Box::new(expr)})
@@ -67,31 +78,31 @@ peg::parser! {
                 Expr::Minus(UnaryExpr{op: UnaryOperator::Minus, expr: Box::new(expr)})
             }
             --
-            left:@ op:[Token::Underscore] right:(@) {
-                Expr::Indexing(BinaryExpr{left: Box::new(left), op: match op {
+            expr:block_expr() { expr }
+            --
+            left:@ op:[Token::Underscore] right:index() {
+                Expr::Indexing(Indexing{collection: Box::new(left), op: match op {
                     Token::Underscore => BinaryOperator::Indexing,
                     _ => unreachable!()
-                }, right: Box::new(right)})
+                }, index: right})
             }
-            --
-            expr:(@) [Token::As] t:type_name() { Expr::TypeCast(Box::new(expr), t) }
-            --
-            expr:if_expr() { expr }
-            expr:for_expr() { expr }
-            expr:for_in_expr() { expr }
-            expr:function_definition() { expr }
-            --
-            expr:block_expr() { expr }
             --
             expr:type_name_expr() { expr }
             --
-            expr:assignment() { expr }
-            expr:declaration_expr() { expr }
-            expr:function_call() { expr }
             expr:literal() { expr }
             expr:expr_identifier() { expr }
             --
             [Token::LeftParen] expr:expr() [Token::RightParen] { expr }
+        }
+
+        pub rule index() -> IndexKind
+        = start:expr() end:([Token::DoubleDot] end:expr() {end})?
+        {
+            if let Some(end) = end {
+                IndexKind::Range{start: Box::new(start), end: Box::new(end)}
+            } else {
+                IndexKind::Single{index: Box::new(start)}
+            }
         }
 
         pub rule function_definition() -> Expr
