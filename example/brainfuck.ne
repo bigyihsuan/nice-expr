@@ -25,19 +25,15 @@ var brackets is map[int]int <||>; // keys and values are indexes of brackets.
 var bracketStack is list[int] []; // stack that holds left bracket indexes
 for var i is int 0 { // first pass: match up brackets
     var c is str code_i;
-    // print(i, " ", c, "\n");
     if c = "[" then {
         set bracketStack + [i]; // push a left bracket
-        // print("pushed left bracket at ", i, "\n");
     } else if c = "]" then {
-        // printline("got right bracket");
         // pop a left bracket
         var left is int bracketStack_-1;
         set bracketStack is bracketStack_0..-1;
         var right is int i;
         set brackets@left is right;
         set brackets@right is left;
-        // print("found bracket pair: ", left, " ", right, "\n");
     };
     set i + 1;
     if i >= len(code) then { break; };
