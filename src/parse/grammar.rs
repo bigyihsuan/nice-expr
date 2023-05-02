@@ -213,10 +213,11 @@ peg::parser! {
         = simple_type() / compound_type()
 
         pub rule simple_type() -> Type
-        = i:[Token::IntTypename] {Type::Int}
-        / i:[Token::DecTypename] {Type::Dec}
-        / i:[Token::StrTypename] {Type::Str}
-        / i:[Token::BoolTypename] {Type::Bool}
+        = [Token::NoneTypename] {Type::None}
+        / [Token::IntTypename] {Type::Int}
+        / [Token::DecTypename] {Type::Dec}
+        / [Token::StrTypename] {Type::Str}
+        / [Token::BoolTypename] {Type::Bool}
 
         pub rule compound_type() -> Type
         = [Token::ListTypename] [Token::LeftBracket] t:type_name() [Token::RightBracket]

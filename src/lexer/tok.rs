@@ -124,6 +124,8 @@ pub enum Token {
     ListTypename,
     #[token("map")]
     MapTypename,
+    #[token("none")]
+    NoneTypename,
 
     // identifiers can only have letters
     #[regex("[a-zA-Z]+", |lex| lex.slice().to_string())]
