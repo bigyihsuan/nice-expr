@@ -4,7 +4,10 @@ use itertools::Itertools;
 use unicode_reader::CodePoints;
 
 use crate::{
-    eval::value::{Func, Value},
+    eval::{
+        r#type::Type,
+        value::{Func, Value},
+    },
     parse::ast::{Decl, Declaration},
     prelude::{IOError, RuntimeError},
     util::assert_at_least_args,
@@ -74,8 +77,12 @@ pub fn print(args: &[Value]) -> Result<Value, RuntimeError> {
     Ok(Value::None)
 }
 pub fn println(args: &[Value]) -> Result<Value, RuntimeError> {
-    for arg in args {
-        println!("{}", format_value(&arg));
+    if args.len() > 0 {
+        for arg in args {
+            println!("{}", format_value(&arg));
+        }
+    } else {
+        println!();
     }
     Ok(Value::None)
 }
@@ -156,4 +163,42 @@ pub fn inputall(_: &[Value]) -> Result<Value, RuntimeError> {
         .map(|r| r.unwrap())
         .collect();
     Ok(Value::Str(str))
+}
+
+pub fn char(args: &[Value]) -> Result<Value, RuntimeError> {
+    assert_at_least_args(1, args.len())?;
+    let ele = &args[0];
+    if let Value::Int(i) = ele {
+        if *i > 0 {
+            Ok(Value::Str(
+                char::from_u32(*i as u32)
+                    .expect("i should be positive")
+                    .to_string(),
+            ))
+        } else {
+            Err(RuntimeError::IntToStrDomainError { got: *i })
+        }
+    } else {
+        Err(RuntimeError::MismatchedTypes {
+            got: vec![ele.to_type()?],
+            expected: vec![Type::Int],
+        })
+    }
+}
+
+pub fn ord(args: &[Value]) -> Result<Value, RuntimeError> {
+    assert_at_least_args(1, args.len())?;
+    let ele = &args[0];
+    if let Value::Str(s) = ele {
+        if s.len() == 1 {
+            Ok(Value::Int(s.chars().next().unwrap() as i64))
+        } else {
+            Err(RuntimeError::OrdOnlyAllowsSingleCharacterStrings { got: s.clone() })
+        }
+    } else {
+        Err(RuntimeError::MismatchedTypes {
+            got: vec![ele.to_type()?],
+            expected: vec![Type::Int],
+        })
+    }
 }

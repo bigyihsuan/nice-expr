@@ -106,7 +106,8 @@ pub enum UnaryOperator {
 
 #[derive(Debug, Clone)]
 pub enum BinaryOperator {
-    Indexing,
+    GetIndexing,
+    SetIndexing,
     Times,
     Divide,
     Modulo,

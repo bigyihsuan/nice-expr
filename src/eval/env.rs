@@ -64,23 +64,28 @@ impl Env {
     ) -> Result<Value, RuntimeError> {
         if self.values.contains_key(&name.clone()) {
             // disallow setting on const
-            let ve = self.values.get(&name).unwrap();
-            if let Constness::Const = ve.c && !ignore_constness {
+            let variable_entry = self.values.get(&name).unwrap();
+            if let Constness::Const = variable_entry.c && !ignore_constness {
                 return Err(RuntimeError::SettingConst(name));
             }
-            let t = value.to_type()?;
-            if ve.t == t.clone() {
+
+            let val_type = value.to_type()?;
+            if variable_entry.t == val_type.clone()
+                || variable_entry
+                    .t
+                    .has_same_compound_base_type(val_type.clone())
+            {
                 let new_entry = ValueEntry {
                     v: value.clone(),
-                    c: ve.c.clone(),
-                    t,
+                    c: variable_entry.c.clone(),
+                    t: val_type,
                 };
                 self.values.insert(name, new_entry);
                 Ok(value)
             } else {
                 Err(RuntimeError::MismatchedTypes {
-                    got: vec![t],
-                    expected: vec![ve.t.clone()],
+                    got: vec![val_type],
+                    expected: vec![variable_entry.t.clone()],
                 })
             }
         } else if let Some(parent) = &self.parent {
@@ -97,19 +102,15 @@ impl Env {
         constness: Constness,
         ident_type: Type,
     ) -> Result<Value, String> {
-        if !self.values.contains_key(&name) {
-            self.values.insert(
-                name,
-                ValueEntry {
-                    v: value.clone(),
-                    c: constness,
-                    t: ident_type,
-                },
-            );
-            Ok(value)
-        } else {
-            Err(name)
-        }
+        self.values.insert(
+            name,
+            ValueEntry {
+                v: value.clone(),
+                c: constness,
+                t: ident_type,
+            },
+        );
+        Ok(value)
     }
     pub fn def_var(
         &mut self,
@@ -193,6 +194,18 @@ impl Default for Env {
             Value::Func(Func::Native(("inall".into(), builtin::inputall))),
             Constness::Const,
             Type::Func(vec![], Box::new(Type::Str)),
+        );
+        let _ = env.define(
+            "ord".into(),
+            Value::Func(Func::Native(("ord".into(), builtin::ord))),
+            Constness::Const,
+            Type::Func(vec![Type::Str], Box::new(Type::Int)),
+        );
+        let _ = env.define(
+            "char".into(),
+            Value::Func(Func::Native(("char".into(), builtin::char))),
+            Constness::Const,
+            Type::Func(vec![Type::Int], Box::new(Type::Str)),
         );
         env
     }

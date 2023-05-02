@@ -29,10 +29,13 @@ fn main() {
         Ok(token_stream) => {
             let tokens = token_stream.tokens();
             if debug {
-                for token in tokens {
-                    let token = &token.0;
-                    eprintln!("{token}");
-                }
+                eprintln!(
+                    "[{}]",
+                    tokens
+                        .into_iter()
+                        .map(|token| format!("{token:?}"))
+                        .join(" ")
+                );
                 eprintln!();
             }
 

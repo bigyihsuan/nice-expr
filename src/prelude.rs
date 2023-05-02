@@ -112,6 +112,8 @@ pub enum RuntimeError {
     CannotCastValueToType(Value, Type),
     StringToValueParseFailed(Value, Type),
     ForInFirstDeclMustBeVar,
+    IntToStrDomainError { got: i64 },
+    OrdOnlyAllowsSingleCharacterStrings { got: String },
 }
 
 #[derive(Debug, Clone)]

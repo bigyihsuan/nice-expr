@@ -292,12 +292,8 @@ pub fn msetidx(
     let mut m: HashMap<Value, Value> = collection.clone().try_into()?;
     let k: Value = key.clone();
 
-    if m.len() == 0 {
-        Err(RuntimeError::IndexingCollectionWithZeroElements(collection))
-    } else {
-        m.insert(k, value);
-        Ok(Value::Map(m))
-    }
+    m.insert(k, value);
+    Ok(Value::Map(m))
 }
 
 pub fn eq(left: Value, right: Value, _env: &SEnv) -> Result<Value, RuntimeError> {

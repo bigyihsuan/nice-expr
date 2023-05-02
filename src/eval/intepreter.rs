@@ -288,11 +288,11 @@ impl Interpreter {
             match (&l_type, &r_type) {
                 (Type::Str, Type::Int) => operators::ssetidx(collection, index, result, env),
                 (Type::List(_), Type::Int) => operators::lsetidx(collection, index, result, env),
-                (Type::Map(box k, _), t) if t == k => {
+                (Type::Map(box k, _), t) if t == k || collection.is_empty() => {
                     operators::msetidx(collection, index, result, env)
                 }
                 _ => Err(RuntimeError::InvalidOperatorOnTypes {
-                    op: Operator::BinaryOperator(BinaryOperator::Indexing),
+                    op: Operator::BinaryOperator(BinaryOperator::SetIndexing),
                     types: vec![l_type, r_type],
                 }),
             }?

@@ -20,51 +20,51 @@ pub enum Type {
 impl Type {
     pub fn key_type(&self) -> Option<Type> {
         match self {
-            Type::None => None,
-            Type::BuiltinVariadic => None,
-            Type::Int => None,
-            Type::Dec => None,
-            Type::Str => Some(Type::Int),
-            Type::Bool => None,
-            Type::List(_) => Some(Type::Int),
-            Type::Map(box k, _) => Some(k.clone()),
-            Type::Break(box t) => t.key_type(),
-            Type::Func(_, _) => None,
-            Type::Any => None,
+            Self::None => None,
+            Self::BuiltinVariadic => None,
+            Self::Int => None,
+            Self::Dec => None,
+            Self::Str => Some(Type::Int),
+            Self::Bool => None,
+            Self::List(_) => Some(Type::Int),
+            Self::Map(box k, _) => Some(k.clone()),
+            Self::Break(box t) => t.key_type(),
+            Self::Func(_, _) => None,
+            Self::Any => None,
         }
     }
 
     pub fn element_type(&self) -> Option<Type> {
         match self {
-            Type::None => None,
-            Type::BuiltinVariadic => None,
-            Type::Int => None,
-            Type::Dec => None,
-            Type::Str => Some(Type::Str),
-            Type::Bool => None,
-            Type::List(box e) => Some(e.clone()),
-            Type::Map(_, box v) => Some(v.clone()),
-            Type::Break(box t) => t.element_type(),
-            Type::Func(_, _) => None,
-            Type::Any => None,
+            Self::None => None,
+            Self::BuiltinVariadic => None,
+            Self::Int => None,
+            Self::Dec => None,
+            Self::Str => Some(Type::Str),
+            Self::Bool => None,
+            Self::List(box e) => Some(e.clone()),
+            Self::Map(_, box v) => Some(v.clone()),
+            Self::Break(box t) => t.element_type(),
+            Self::Func(_, _) => None,
+            Self::Any => None,
         }
     }
 
     pub fn infer_contained_type(&self, other: &Self) -> Option<Self> {
         match (self, other) {
-            (Type::List(box l), Type::List(box r)) if *l != Type::None && *r == Type::None => {
-                Some(Type::List(Box::new(l.clone())))
+            (Self::List(box l), Self::List(box r)) if *l != Self::None && *r == Self::None => {
+                Some(Self::List(Box::new(l.clone())))
             }
 
-            (Type::List(box l), Type::List(box r)) if *l == Type::None && *r != Type::None => {
-                Some(Type::List(Box::new(r.clone())))
+            (Self::List(box l), Self::List(box r)) if *l == Self::None && *r != Self::None => {
+                Some(Self::List(Box::new(r.clone())))
             }
-            (Type::Map(box lk, box lv), Type::Map(box rk, box rv)) => {
+            (Self::Map(box lk, box lv), Self::Map(box rk, box rv)) => {
                 match (
-                    *lk != Type::None,
-                    *lv != Type::None,
-                    *rk != Type::None,
-                    *rv != Type::None,
+                    *lk != Self::None,
+                    *lv != Self::None,
+                    *rk != Self::None,
+                    *rv != Self::None,
                 ) {
                     (true, true, true, true) => Some(self.clone()),
                     (true, true, true, false) => Some(self.clone()),
@@ -74,20 +74,28 @@ impl Type {
                     (false, true, true, true) => Some(other.clone()),
                     (false, false, true, true) => Some(other.clone()),
                     (true, false, false, true) => {
-                        Some(Type::Map(Box::new(lk.clone()), Box::new(rv.clone())))
+                        Some(Self::Map(Box::new(lk.clone()), Box::new(rv.clone())))
                     }
                     (false, true, true, false) => {
-                        Some(Type::Map(Box::new(rk.clone()), Box::new(lv.clone())))
+                        Some(Self::Map(Box::new(rk.clone()), Box::new(lv.clone())))
                     }
                     _ => None,
                 }
             }
-            (Type::Break(box l), r) => l.infer_contained_type(r),
-            (l, Type::Break(box r)) => l.infer_contained_type(r),
+            (Self::Break(box l), r) => l.infer_contained_type(r),
+            (l, Self::Break(box r)) => l.infer_contained_type(r),
             // TODO: Func handled by below?
-            (l, _) if *l != Type::None => Some(l.clone()),
+            (l, _) if *l != Self::None => Some(l.clone()),
             (_, r) if *r != Type::None => Some(r.clone()),
             _ => None,
+        }
+    }
+
+    pub fn has_same_compound_base_type(&self, other: Type) -> bool {
+        match (self, other) {
+            (Self::List(_), Self::List(_)) => true,
+            (Self::Map(_, _), Self::Map(_, _)) => true,
+            _ => false,
         }
     }
 }

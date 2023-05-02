@@ -82,7 +82,7 @@ peg::parser! {
             --
             left:@ op:[Token::Underscore] right:index() {
                 Expr::Indexing(Indexing{collection: Box::new(left), op: match op {
-                    Token::Underscore => BinaryOperator::Indexing,
+                    Token::Underscore => BinaryOperator::GetIndexing,
                     _ => unreachable!()
                 }, index: right})
             }

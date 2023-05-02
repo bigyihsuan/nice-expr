@@ -123,6 +123,21 @@ impl Value {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Value::None => true,
+            Value::Break(v) => v.is_empty(),
+            Value::Int(_) => false,
+            Value::Dec(_) => false,
+            Value::Str(_) => false,
+            Value::Bool(_) => false,
+            Value::List(l) => l.is_empty(),
+            Value::Map(m) => m.is_empty(),
+            Value::Func(_) => false,
+            Value::Type(_) => false,
+        }
+    }
+
     pub fn unbreak(&self) -> Self {
         if let Value::Break(box v) = self {
             v.clone()
