@@ -125,7 +125,7 @@ pub fn ssetidx(
         if -i as usize > c.len() + 1 {
             return Err(RuntimeError::IndexOutOfBounds(collection, index, None));
         }
-        c.insert_str(c.len() - (-i as usize) + 1, e.as_str());
+        c.insert_str(c.len() - (-i as usize), e.as_str());
         Ok(Value::Str(c))
     }
 }
@@ -228,7 +228,7 @@ pub fn lsetidx(
             return Err(RuntimeError::IndexOutOfBounds(collection, index, None));
         }
         let l = c.len();
-        c[l - (-i as usize) + 1] = e;
+        c[l - (-i as usize)] = e;
         Ok(Value::List(c))
     }
 }

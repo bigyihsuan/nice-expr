@@ -197,14 +197,14 @@ peg::parser! {
         = [Token::TrueBoolLit(i) | Token::FalseBoolLit(i)]
         { Literal::Bool(*i) }
         pub rule literal_list() -> Literal
-        = [Token::LeftBracket] l:(expr_lit_or_ident() ** [Token::Comma]) [Token::Comma]? [Token::RightBracket]
+        = [Token::LeftBracket] l:(expr() ** [Token::Comma]) [Token::Comma]? [Token::RightBracket]
         { Literal::List(l) }
         pub rule literal_map() -> Literal
         = [Token::LeftTriangle] m:(map_element() ** [Token::Comma]) [Token::Comma]? [Token::RightTriangle]
         { let m = m.into_iter().collect(); Literal::Map(m) }
 
         pub rule map_element() -> (Expr, Expr)
-        =  l:expr_lit_or_ident() [Token::Colon] r:expr_lit_or_ident()
+        =  l:expr() [Token::Colon] r:expr()
         { (l,r) }
 
         pub rule type_name_expr() -> Expr
