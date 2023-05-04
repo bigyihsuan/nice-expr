@@ -67,16 +67,6 @@ Operators on the same row have the same precedence and are grouped left-to-right
 | Logical        | `and or`      |
 | Logical Not    | `not a`       |
 
-#### BNF
-
-* <https://docs.python.org/3/reference/expressions.html>
-* <https://go.dev/ref/spec#Expressions>
-
-```ebnf
-Expr ::= IndexingExpr | "(" Expr ")";
-IndexingExpr ::= UnaryMinusExpr "_" Expr;
-```
-
 ### Unary
 
 | Op    | `int`  | `dec`  | `str` | `bool` | `list[T]` | `map[K]V` |

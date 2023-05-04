@@ -95,6 +95,8 @@ pub enum Token {
     Is,
     #[token("for")]
     For,
+    #[token("while")]
+    While,
     #[token("break")]
     Break,
     #[token("return")]

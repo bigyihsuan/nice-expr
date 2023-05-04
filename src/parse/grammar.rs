@@ -23,6 +23,7 @@ peg::parser! {
             --
             expr:if_expr() { expr }
             expr:for_expr() { expr }
+            expr:for_while_expr() { expr }
             expr:for_in_expr() { expr }
             expr:function_definition() { expr }
             --
@@ -108,16 +109,28 @@ peg::parser! {
         { Expr::FunctionDefinition {args, ret, body} }
 
         pub rule if_expr() -> Expr
-        = [Token::If] condition:expr() [Token::Then] when_true:block_expr() when_false:([Token::Else] when_false:(block_expr() / if_expr()) {Box::new(when_false)})?
-        { Expr::If { condition: Box::new(condition), when_true: Box::new(when_true), when_false: when_false }}
+        = [Token::If] vars:(vars:decl_list() [Token::While] {vars})? condition:expr() [Token::Then] when_true:block_expr() when_false:([Token::Else] when_false:(block_expr() / if_expr()) {Box::new(when_false)})?
+        {
+            if let Some(vars) = vars {
+                Expr::If { vars, condition: Box::new(condition), when_true: Box::new(when_true), when_false: when_false }
+            } else {
+                Expr::If { vars: vec![], condition: Box::new(condition), when_true: Box::new(when_true), when_false: when_false }
+            }
+        }
 
         pub rule for_expr() -> Expr
-        = [Token::For] vars:(declaration() ** [Token::Comma]) [Token::Comma]? body:block()
-        { Expr::For{ vars, body } }
+        = [Token::For] vars:decl_list() body:block() { Expr::For{ vars, body } }
+
+        pub rule for_while_expr() -> Expr
+        = [Token::For] vars:decl_list() [Token::While] condition:expr() body:block()
+        { Expr::ForWhile{ vars, condition: Box::new(condition), body } }
 
         pub rule for_in_expr() -> Expr
-        = [Token::For] vars:(declaration() ** [Token::Comma]) [Token::Comma]? [Token::In] collection:expr() body:block()
+        = [Token::For] vars:decl_list() [Token::In] collection:expr() body:block()
         { Expr::ForIn{ vars, collection: Box::new(collection), body } }
+
+        rule decl_list() -> Vec<Declaration>
+        = vars:(declaration() ** [Token::Comma]) [Token::Comma]? { vars }
 
         pub rule block_expr() -> Expr
         = block:block() { Expr::Block(block) }

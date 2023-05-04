@@ -110,8 +110,9 @@ if x < 10 then {
 for {};
 // `break` stops the loop immediately, and returns `value`
 for {break value;};
-for var i is int 0 { /* use i... */ }; // loop with loop variable
+for var i is int 0 { ... }; // loop with loop variable
 var x is int for { break 30; }; // x == 30
+for var i is int 0 while i < 10 { ... } // for-while
 
 // example: getting and returning a sum
 var l is list[int] [1,2,3,4,5,6,];

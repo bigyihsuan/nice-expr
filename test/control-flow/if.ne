@@ -23,3 +23,10 @@ if x < 3 then {
 
 // if with no return type returns None
 printline(if z < 10 then {return;});
+
+// if with decl
+if var k is int z+x while k > 15 then {
+  printline("this should NOT print", k);
+} else {
+  printline(k);
+};

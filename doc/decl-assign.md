@@ -26,13 +26,13 @@ You can only assign a value to variables (`var`), not constants.
 ```cs
 var x is str "10";
 set x is "hello, world!";
-set x += " and me too!"; // string append:  x = "hello, world! and me too!"
-set x -= "aeiou"; // string set difference: x = "hll, wrld! nd m t!"
+set x + " and me too!"; // string append:  x = "hello, world! and me too!"
+set x - "aeiou"; // string set difference: x = "hll, wrld! nd m t!"
 
 var y is int 5;
-set y *= 10; // y = 50
-set y += 4;  // y = 54
-set y %= 9;  // y = 6
+set y * 10; // y = 50
+set y + 4;  // y = 54
+set y % 9;  // y = 6
 ```
 
 ## Declarations, Assignments, and Blocks

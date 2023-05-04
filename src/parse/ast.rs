@@ -29,12 +29,18 @@ pub enum Expr {
     Block(Program),
     Return(Option<Box<Expr>>),
     If {
+        vars: Vec<Declaration>,
         condition: Box<Expr>,
         when_true: Box<Expr>,
         when_false: Option<Box<Expr>>,
     },
     For {
         vars: Vec<Declaration>,
+        body: Program,
+    },
+    ForWhile {
+        vars: Vec<Declaration>,
+        condition: Box<Expr>,
         body: Program,
     },
     ForIn {

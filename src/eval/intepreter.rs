@@ -56,15 +56,20 @@ impl Interpreter {
             Expr::Return(Some(box e)) => Ok(Value::Break(Box::new(self.interpret_expr(e, env)?))),
             Expr::Return(None) => Ok(Value::Break(Box::new(Value::None))),
             Expr::If {
+                vars,
                 condition,
                 when_true,
                 when_false,
             } => {
-                let condition: bool = self.interpret_expr(&condition, env)?.try_into()?;
+                let mut if_env = Env::extend(env.clone());
+                for v in vars {
+                    self.interpret_declaration(v, &mut if_env)?;
+                }
+                let condition: bool = self.interpret_expr(&condition, &if_env)?.try_into()?;
                 if condition {
-                    self.interpret_expr(&when_true, env)
+                    self.interpret_expr(&when_true, &if_env)
                 } else if let Some(when_false) = when_false {
-                    self.interpret_expr(&when_false, env)
+                    self.interpret_expr(&when_false, &if_env)
                 } else {
                     Ok(Value::None)
                 }
@@ -79,6 +84,32 @@ impl Interpreter {
                 loop {
                     for expr in body {
                         let last_val = self.interpret_expr(&expr, &loop_env)?;
+                        if let Value::Break(_) = last_val {
+                            return Ok(last_val.unbreak());
+                        }
+                    }
+                }
+            }
+            Expr::ForWhile {
+                vars,
+                condition,
+                body,
+            } => {
+                // init the vars
+                let mut loop_env = Env::extend(env.clone());
+                for v in vars {
+                    self.interpret_declaration(v, &mut loop_env)?;
+                }
+                // run the loop
+                let mut last_val = Value::None;
+                loop {
+                    let continue_loop: bool =
+                        self.interpret_expr(condition, &loop_env)?.try_into()?;
+                    if !continue_loop {
+                        return Ok(last_val);
+                    }
+                    for expr in body {
+                        last_val = self.interpret_expr(&expr, &loop_env)?;
                         if let Value::Break(_) = last_val {
                             return Ok(last_val.unbreak());
                         }
